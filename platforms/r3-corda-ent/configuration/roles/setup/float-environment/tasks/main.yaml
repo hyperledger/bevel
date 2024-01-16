@@ -48,8 +48,7 @@
     name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
   vars:
     org_name: "{{ org.name | lower }}"
-    cloudProvider: "{{ org.cloud_provider | lower }}"
-    sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+    sc_name: "{{ org_name }}-bevel-storageclass"
     kubernetes: "{{ org.services.float.k8s }}"
     charts_dir: "platforms/shared/charts"
     gitops: "{{ org.services.float.gitops }}"
@@ -74,18 +73,6 @@
     kubernetes: "{{ org.services.float.k8s }}"
     type: "retry"
 
-# Wait for vault-auth creation
-- name: "Wait for vault-auth creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-auth"
-    kubernetes: "{{ org.services.float.k8s }}"
-    type: "retry"
-  tags:
-    - notest    
-
 # Wait for vault-reviewer creation
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
@@ -97,15 +84,3 @@
     type: "retry"
   tags:
     - notest    
-
-# Wait for ClusterRoleBinding creation
-- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ClusterRoleBinding"
-    component_name: "{{ component_ns }}-role-tokenreview-binding"
-    kubernetes: "{{ org.services.float.k8s }}"
-    type: "retry"
-  tags:
-    - notest

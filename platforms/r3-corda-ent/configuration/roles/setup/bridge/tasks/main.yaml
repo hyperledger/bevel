@@ -25,7 +25,7 @@
     component_name: "{{ org.services.bridge.name }}"
     type: bridge
     name: "{{ org.name | lower }}"
-    corda_service_version: "firewall-{{ org.version }}"
+    corda_service_version: "firewall-{{ org.firewall_version }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
 
@@ -54,6 +54,6 @@
 - name: Copy the network-parameter file into the bride pod 
   shell: |
     export BRIDGE_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.services.bridge.name }} | grep {{ org.services.bridge.name }}  | awk '{print $1}')
-    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.name }} | grep {{ org.name }} | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ org.name }} | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ org.name }}
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/np-{{ org.name }} {{ component_ns }}/${BRIDGE_POD}:base/network-parameters

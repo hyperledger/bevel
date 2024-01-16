@@ -13,7 +13,7 @@
     component_name: "{{ org.services.float.name }}"
     type: float
     name: "{{ org.name | lower }}"
-    corda_service_version: "firewall-{{ org.version }}"
+    corda_service_version: "firewall-{{ org.firewall_version }}"
     vault: "{{ org.services.float.vault }}"
     charts_dir: "{{ gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}"
@@ -42,6 +42,6 @@
 - name: Copy the network-parameter file into the float pod 
   shell: |
     export FLOAT_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.services.float.name }} | grep {{ org.services.float.name }}  | awk '{print $1}')
-    export PEER_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.name }} | grep {{ org.name }} | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ org.name }} | awk '{print $1}')
     KUBECONFIG={{ k8s.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ org.name }}
     KUBECONFIG={{ k8s.config_file }} kubectl cp ./build/np-{{ org.name }} {{ component_ns }}/${FLOAT_POD}:base/network-parameters

@@ -6,7 +6,7 @@
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
@@ -17,6 +17,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
 spec:
+  serviceName: {{ .Values.nodeName }}
   replicas: 1
   selector:
     matchLabels:
@@ -138,7 +139,7 @@ spec:
             limits:
               memory: {{ .Values.config.pod.resources.limits }}
           volumeMounts:
-          - name: auth-etc
+          - name: {{ .Values.prefix }}-auth-etc
             mountPath: {{ .Values.config.volume.baseDir }}/etc
       containers:
         - name: main
@@ -193,13 +194,13 @@ spec:
           - name: auth-conf
             mountPath: {{ .Values.config.volume.baseDir }}/authservice.conf
             subPath: authservice.conf
-          - name: auth-etc
+          - name: {{ .Values.prefix }}-auth-etc
             mountPath: {{ .Values.config.volume.baseDir }}/etc
           - name: certificates
             mountPath: {{ .Values.config.volume.baseDir }}/DATA
-          - name: auth-logs
+          - name: {{ .Values.prefix }}-auth-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
-          - name: auth-h2
+          - name: {{ .Values.prefix }}-auth-h2
             mountPath: {{ .Values.config.volume.baseDir }}/h2
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
@@ -240,7 +241,7 @@ spec:
             # in case sth went wrong just wait indefinitely ...
             tail -f /dev/null
           volumeMounts:
-          - name: auth-logs
+          - name: {{ .Values.prefix }}-auth-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
           resources:
             requests:
@@ -253,15 +254,6 @@ spec:
           configMap:
             name: {{ .Values.prefix }}-auth-conf
             defaultMode: 0777
-        - name: auth-etc
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-auth-etc
-        - name: auth-h2
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-auth-h2
-        - name: auth-logs
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-auth-logs
         - name: certificates
           emptyDir:
             medium: Memory
@@ -277,3 +269,28 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.prefix }}-auth-etc
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeAuthEtc }}
+    - metadata:
+        name: {{ .Values.prefix }}-auth-h2
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeAuthH2 }}
+    - metadata:
+        name: {{ .Values.prefix }}-auth-logs
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeAuthLogs }}

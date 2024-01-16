@@ -217,20 +217,3 @@
     VAULT_ADDR: "{{ org.services.float.vault.url }}"
     VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
   when: org.type == 'node' and org.firewall.enabled
-
-# Delete the policies
-- name: Delete vault access control policy for organizations
-  shell: |
-    vault policy delete vault-crypto-{{ org.type | lower }}-{{ org.name | lower }}-vaultk8s-job-ro
-  environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
-
-# Delete the float vault policies
-- name: Delete vault access control policy for organizations float
-  shell: |
-    vault policy delete vault-crypto-{{ component_name }}-{{ org.name | lower }}-ro
-  environment:
-    VAULT_ADDR: "{{ org.services.float.vault.url }}"
-    VAULT_TOKEN: "{{ org.services.float.vault.root_token }}"
-  when: org.type == 'node' and org.firewall.enabled

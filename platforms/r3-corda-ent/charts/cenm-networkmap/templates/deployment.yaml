@@ -438,13 +438,13 @@ spec:
         volumeMounts:
         - name: notary-nodeinfo
           mountPath: {{ .Values.config.volume.baseDir }}/notary-nodeinfo
-        - name: nmap-etc
+        - name: {{ .Values.nodeName }}-etc
           mountPath: {{ .Values.config.volume.baseDir }}/etc
         - name: certificates
           mountPath: {{ .Values.config.volume.baseDir }}/DATA
-        - name: nmap-logs
+        - name: {{ .Values.nodeName }}-pvc-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
-        - name: nmap-h2
+        - name: {{ .Values.nodeName }}-pvc-h2
           mountPath: {{ .Values.config.volume.baseDir }}/h2
         resources:
           requests:
@@ -468,7 +468,7 @@ spec:
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
         volumeMounts:
-        - name: nmap-etc
+        - name: {{ .Values.nodeName }}-etc
           mountPath: {{ .Values.config.volume.baseDir }}/etc
         - name: nmap-conf
           mountPath: {{ .Values.config.volume.baseDir }}/CM/getZoneToken.sh
@@ -535,11 +535,11 @@ spec:
         volumeMounts:
         - name: notary-nodeinfo
           mountPath: {{ .Values.config.volume.baseDir }}/notary-nodeinfo
-        - name: nmap-h2
+        - name: {{ .Values.nodeName }}-pvc-h2
           mountPath: {{ .Values.config.volume.baseDir }}/h2
-        - name: nmap-etc
+        - name: {{ .Values.nodeName }}-etc
           mountPath: {{ .Values.config.volume.baseDir }}/etc
-        - name: nmap-logs
+        - name: {{ .Values.nodeName }}-pvc-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
         - name: certificates
           mountPath: {{ .Values.config.volume.baseDir }}/DATA
@@ -562,7 +562,7 @@ spec:
           # in case sth went wrong just wait indefinitely ...
           tail -f /dev/null
         volumeMounts:
-        - name: nmap-logs
+        - name: {{ .Values.nodeName }}-pvc-logs
           mountPath: {{ .Values.config.volume.baseDir }}/logs
     {{- with .Values.image.imagePullSecrets }}
       imagePullSecrets:
@@ -575,15 +575,58 @@ spec:
         - name: certificates
           emptyDir:
             medium: Memory
-        - name: nmap-etc
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-etc
-        - name: nmap-logs
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-pvc-logs
         - name: notary-nodeinfo
           emptyDir:
             medium: Memory
-        - name: nmap-h2
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-pvc-h2
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.nodeName }}-pvc-logs
+{{- if .Values.config.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.config.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-pvc-logs
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 64Mi
+    - metadata:
+        name: {{ .Values.nodeName }}-pvc-h2
+{{- if .Values.config.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.config.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-pvc-h2
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 64Mi
+    - metadata:
+        name: {{ .Values.nodeName }}-etc
+{{- if .Values.config.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.config.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-etc
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 64Mi

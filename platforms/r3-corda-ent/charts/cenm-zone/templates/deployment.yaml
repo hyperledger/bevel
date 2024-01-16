@@ -5,7 +5,7 @@
 ##############################################################################################
 
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.metadata.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
@@ -16,6 +16,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
 spec:
+  serviceName: {{ .Values.metadata.nodeName }}
   replicas: 1
   selector:
     matchLabels:
@@ -123,7 +124,7 @@ spec:
 
                echo "Done"
           volumeMounts:
-          - name: pki-certs-keys
+          - name: {{ .Values.metadata.prefix }}-pki-certs-keys
             mountPath: /DATA
       containers:
         - name: main
@@ -145,14 +146,14 @@ spec:
 
             bash {{ .Values.config.volume.baseDir }}/config/run.sh
           volumeMounts:
-          - name: pki-certs-keys
+          - name: {{ .Values.metadata.prefix }}-pki-certs-keys
             mountPath: {{ .Values.config.volume.baseDir }}/DATA
           - name: zone-conf
             mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/run.sh
             subPath: run.sh
-          - name: zone-logs
+          - name: {{ .Values.metadata.prefix }}-zone-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
-          - name: zone-h2
+          - name: {{ .Values.metadata.prefix }}-zone-h2
             mountPath: {{ .Values.config.volume.baseDir }}/h2
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
@@ -170,7 +171,7 @@ spec:
             # in case sth went wrong just wait indefinitely ...
             tail -f /dev/null
           volumeMounts:
-          - name: zone-logs
+          - name: {{ .Values.metadata.prefix }}-zone-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
@@ -179,15 +180,6 @@ spec:
         - name: zone-conf
           configMap:
             name: {{ .Values.metadata.prefix }}-zone-conf
-        - name: zone-h2
-          persistentVolumeClaim:
-            claimName: {{ .Values.metadata.prefix }}-zone-h2
-        - name: pki-certs-keys
-          persistentVolumeClaim:
-            claimName: {{ .Values.metadata.prefix }}-pki-certs-keys
-        - name: zone-logs
-          persistentVolumeClaim:
-            claimName: {{ .Values.metadata.prefix }}-zone-logs
       {{- with .Values.config.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -200,3 +192,28 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.metadata.prefix }}-zone-h2
+      spec:
+        storageClassName: {{ .Values.storageClass }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeZoneH2 }}
+    - metadata:
+        name: {{ .Values.metadata.prefix }}-zone-logs
+      spec:
+        storageClassName: {{ .Values.storageClass }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeZoneLogs }}
+    - metadata:
+        name: {{ .Values.metadata.prefix }}-pki-certs-keys
+      spec:
+        storageClassName: {{ .Values.storageClass }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeZoneData }}

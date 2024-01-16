@@ -31,9 +31,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaent{{ org.name | lower }}
+      authpath: {{ network.env.type }}{{ name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     volume:
@@ -48,7 +48,7 @@ spec:
       readinesscheckinterval: 10
       readinessthreshold:: 15
     float:
-      address: {{ org.services.float.name | lower }}.{{ org.name | lower }}.{{ org.services.float.external_url_suffix }}
+      address: {{ org.services.float.name | lower }}.{{ name }}.{{ org.services.float.external_url_suffix }}
       port: {{ org.services.float.ports.ambassador_p2p_port }}
       subject: {{ org.services.float.subject }}
     node:

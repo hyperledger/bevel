@@ -18,7 +18,7 @@ spec:
   values:
     nodeName: {{ org.services.idman.name | lower }}
     bashDebug: false
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     metadata:
       namespace: {{ component_ns }}
     image:
@@ -34,9 +34,9 @@ spec:
     acceptLicense: YES
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       serviceAccountName: vault-auth
       retries: 10
       sleepTimeAfterError: 15

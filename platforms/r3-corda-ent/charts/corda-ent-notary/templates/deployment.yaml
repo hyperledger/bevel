@@ -6,7 +6,7 @@
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
@@ -20,6 +20,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  serviceName: {{ .Values.nodeName }}
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
@@ -289,7 +290,7 @@ spec:
             cp -ar /tmp/downloaded-jars/* ${BASE_DIR}/cordapps
           {{- end }}
         volumeMounts:
-        - name: notary-volume
+        - name: {{ .Values.nodeName }}-volume
           mountPath: {{ .Values.nodeConf.volume.baseDir }}    
       containers:
       - name: notary
@@ -412,7 +413,7 @@ spec:
         - name: notary-certificates
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}/certificates
           readOnly: false
-        - name: notary-volume
+        - name: {{ .Values.nodeName }}-volume
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}
           readOnly: false
         resources:
@@ -436,7 +437,7 @@ spec:
           # If the logs are not available, enter an indefinite wait state
           tail -f /dev/null
         volumeMounts:
-        - name: notary-volume
+        - name: {{ .Values.nodeName }}-volume
           mountPath: {{ $.Values.nodeConf.volume.baseDir }}
       imagePullSecrets:
       - name: {{ .Values.image.imagePullSecret }}
@@ -444,6 +445,21 @@ spec:
       - name: notary-certificates
         emptyDir:
           medium: Memory
-      - name: notary-volume
-        persistentVolumeClaim:
-          claimName: {{ .Values.nodeName }}-volume
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.nodeName }}-volume
+{{- if .Values.nodeConf.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.nodeConf.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-volume
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.nodeConf.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.nodeConf.storage.memory }}
