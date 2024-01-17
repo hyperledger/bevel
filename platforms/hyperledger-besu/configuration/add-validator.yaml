@@ -52,16 +52,11 @@
     # Create Storageclass
     - name: Create Storage Class
       include_role:
-        name: create/storageclass
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
       vars:
         org_name: "{{ org.name | lower }}"
-        cloudProvider: "{{ org.cloud_provider | lower }}"
-        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-        kubernetes: "{{ org.k8s }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
         region: "{{ org.k8s.region | default('eu-west-1') }}"
-        git_dir: "{{ org.gitops.release_dir }}"
-        charts_dir: "platforms/shared/charts"
-        platform_suffix: "bes"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org

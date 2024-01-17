@@ -11,15 +11,15 @@
 # Delete crypto materials from vault
 - name: Delete Crypto for peers
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/users/admin/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/orderer/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/msp/config
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/admin/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/admin/msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/orderer/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/msp/config
     {% for peer in peers %}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
     {% endfor %}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
   vars:
     peers: "{{ item.services.peers }}"
   environment:

@@ -72,7 +72,7 @@ helm install member-2 ./besu-node --namespace carrier-bes --values ./values/nopr
 Replace the `global.vault.address`, `global.cluster.kubernetesUrl` and `global.proxy.externalUrlSuffix` in all the files in `./values/proxy-and-vault/` folder.
 
 ```bash
-helm create namespace supplychain-bes # if the namespace does not exist already
+kubectl create namespace supplychain-bes # if the namespace does not exist already
 # Create the roottoken secret
 kubectl -n supplychain-bes create secret generic roottoken --from-literal=token=<VAULT_ROOT_TOKEN>
 
@@ -86,7 +86,7 @@ helm install validator-3 ./besu-node --namespace supplychain-bes --values ./valu
 helm install validator-4 ./besu-node --namespace supplychain-bes --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15014
 
 # spin up a besu and tessera node pair
-helm install member-1 ./besu-node --namespace supplychain-bes --values ./values/proxy-and-vault/txnode.yaml --set global.proxy.p2p=15015
+helm install supplychain ./besu-node --namespace supplychain-bes --values ./values/proxy-and-vault/txnode.yaml --set global.proxy.p2p=15015 --set node.besu.identity="O=SupplyChain,OU=ValidatorOrg,L=51.50/-0.13/London,C=GB"
 
 ```
 ### To setup another member in a different namespace
@@ -97,16 +97,17 @@ Update the `global.proxy.externalUrlSuffix` and `tessera.tessera.peerNodes` in f
 cd ./besu-genesis/files/
 kubectl --namespace supplychain-bes get configmap besu-peers -o jsonpath='{.data.static-nodes\.json}' > static-nodes.json
 kubectl --namespace supplychain-bes get configmap besu-genesis  -o jsonpath='{.data.genesis\.json}' > genesis.json
+kubectl --namespace supplychain-bes get configmap besu-bootnodes  -o jsonpath='{.data.bootnodes-json}' > bootnodes.json
 
 # Run secondary genesis
 cd ../..
-helm create namespace carrier-bes # if the namespace does not exist already
+kubectl create namespace carrier-bes # if the namespace does not exist already
 # Create the roottoken secret
 kubectl -n carrier-bes create secret generic roottoken --from-literal=token=<VAULT_ROOT_TOKEN>
 
 helm install genesis ./besu-genesis --namespace carrier-bes --values ./values/proxy-and-vault/genesis-sec.yaml
 
-helm install member-2 ./besu-node --namespace carrier-bes --values ./values/proxy-and-vault/txnode-sec.yaml --set global.proxy.p2p=15016
+helm install carrier ./besu-node --namespace carrier-bes --values ./values/proxy-and-vault/txnode-sec.yaml --set global.proxy.p2p=15016 --set node.besu.identity="O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
 ```
 
 ### API Calls
@@ -114,7 +115,7 @@ Once deployed, services are available as follows on the address as provided in y
 
 ```bash
 # HTTP RPC API
-curl -v -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://member-1rpc.test.yourdomain.com
+curl -v -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://supplychainrpc.test.yourdomain.com
 
 # which should return (confirming that the node running the JSON-RPC service is syncing):
 {
@@ -132,10 +133,10 @@ helm uninstall --namespace supplychain-bes validator-1
 helm uninstall --namespace supplychain-bes validator-2
 helm uninstall --namespace supplychain-bes validator-3
 helm uninstall --namespace supplychain-bes validator-4
-helm uninstall --namespace supplychain-bes member-1
+helm uninstall --namespace supplychain-bes supplychain
 helm uninstall --namespace supplychain-bes genesis
 
-helm uninstall --namespace carrier-bes member-2
+helm uninstall --namespace carrier-bes carrier
 helm uninstall --namespace carrier-bes genesis
 
 ```

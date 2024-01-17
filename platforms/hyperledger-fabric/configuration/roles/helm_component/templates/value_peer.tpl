@@ -79,12 +79,8 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-{% if item.k8s.cluster_id is defined %}
-      authpath: {{ item.k8s.cluster_id }}{{ namespace }}-auth
-{% else %}
-      authpath: {{ network.env.type }}{{ namespace }}-auth
-{% endif %}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
 {% if network.docker.username is defined and network.docker.password is defined %}
@@ -92,7 +88,7 @@ spec:
 {% else %}
       imagesecretname: ""
 {% endif %}
-      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/couchdb/{{ name }}?user
+      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
       servicetype: ClusterIP
