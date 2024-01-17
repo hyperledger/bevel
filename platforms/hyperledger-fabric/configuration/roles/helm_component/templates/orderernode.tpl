@@ -75,13 +75,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-{% if item.k8s.cluster_id is defined %}
-      authpath: {{ item.k8s.cluster_id }}{{ namespace }}-auth
-{% else %}
-      authpath: {{ network.env.type }}{{ namespace }}-auth
-{% endif %}
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
       type: {{ vault.type | default("hashicorp") }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
 {% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
 {% else %}

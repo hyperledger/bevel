@@ -57,14 +57,10 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-{% if item.k8s.cluster_id is defined %}
-      authpath: {{ item.k8s.cluster_id }}{{ component_name }}-auth
-{% else %}
-      authpath: {{ network.env.type }}{{ component_name }}-auth
-{% endif %}
-      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
 {% if network.docker.username is defined and network.docker.password is defined  %}

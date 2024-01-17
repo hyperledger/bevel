@@ -33,7 +33,7 @@
   shell: |
     mkdir -p {{ temp_peer_cert_folder }}
     export CA_TOOL_CLI=$(KUBECONFIG={{ kubernetes.config_file }} kubectl get po -n {{ component_name }} | grep "ca-tools" | awk '{print $1}')
-    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/crypto/peerOrganizations/{{ component_name }}/ca > {{ temp_peer_cert_folder }}/ca.{{ component_name }}-cert.pem
+    vault kv get -field=ca.{{ component_name }}-cert.pem {{ vault.secret_path | default('secret') }}/{{ org_name }}/peerOrganizations/{{ component_name }}/ca > {{ temp_peer_cert_folder }}/ca.{{ component_name }}-cert.pem
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ component_name }} ${CA_TOOL_CLI} -c ca-tools -- mkdir -p /crypto-config/peerOrganizations/{{ component_name }}/ca/
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ temp_peer_cert_folder }}/ca.{{ component_name }}-cert.pem {{ component_name }}/${CA_TOOL_CLI}:/crypto-config/peerOrganizations/{{ component_name }}/ca/ca.{{ component_name }}-cert.pem
   environment:
@@ -95,7 +95,7 @@
 # Copy certificates to vault
 - name: Copy certificates to vault
   shell: |
-    vault kv put {{ vault.secret_path | default('secretsv2') }}/crypto/peerOrganizations/{{ component_name }}/chaincodes/{{ chaincode.name | lower }}/certificate/v{{ chaincode.version }} ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.key)"
+    vault kv put {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/peerOrganizations/{{ component_name }}/chaincodes/{{ chaincode.name | lower }}/certificate/v{{ chaincode.version }} ca.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/ca.crt)" client.crt="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.crt)" client.key="$(cat ./build/crypto-config/peerOrganizations/{{ component_name }}/chaincodes/{{chaincode.name}}-{{chaincode.version}}@{{ component_name }}/tls/client.key)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

@@ -19,7 +19,7 @@
 # Fetch the genesis block from vault to the build directory
 - name: Fetch the genesis block from vault
   shell: |
-    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name | lower }}-net > {{ channel_name}}.genesis.block.base64
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ item.name | lower }}-net > {{ channel_name}}.genesis.block.base64
     mkdir -p ./build/channel-artifacts
     mv {{ channel_name}}.genesis.block.base64 ./build/channel-artifacts/
   environment:
@@ -51,7 +51,7 @@
   vars:
     name: "orderer"
     org_name: "{{ item.name | lower }}"
-    sc_name: "{{ org_name }}-{{ item.cloud_provider | lower}}-storageclass"
+    sc_name: "{{ org_name }}-bevel-storageclass"
     component_name: "zkkafka"
     type: "zkkafka"
     consensus: "{{component_services.consensus}}"
@@ -64,7 +64,7 @@
   vars:
     name: "orderer"
     org_name: "{{ item.name | lower }}"
-    sc_name: "{{ org_name }}-{{ item.cloud_provider | lower}}-storageclass"
+    sc_name: "{{ org_name }}-bevel-storageclass"
     component_name: "{{ orderer.name }}-{{ org_name }}"
     type: "orderers"
     consensus: "{{component_services.consensus}}"
@@ -83,7 +83,7 @@
   vars:
     name: "orderer"
     org_name: "{{ item.name | lower }}"
-    sc_name: "{{ org_name }}-{{ item.cloud_provider | lower}}-storageclass"
+    sc_name: "{{ org_name }}-bevel-storageclass"
     component_name: "{{ orderer.name }}-{{ org_name }}"
     type: "orderers"
     consensus: "{{component_services.consensus}}"

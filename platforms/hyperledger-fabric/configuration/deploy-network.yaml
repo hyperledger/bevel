@@ -46,7 +46,7 @@
       loop_control:
         loop_var: org
 
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
       include_role: 
         name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
@@ -55,47 +55,22 @@
         component_name: "{{ org.name | lower }}-vaultk8s-job"
         component_type: "{{ org.type | lower }}"
         component_ns: "{{ org.name | lower }}-net"
-        component_auth: "{{ network.env.type }}{{ name }}"
+        component_auth: "{{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ name }}"
         kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"
         gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-      when: org.k8s.cluster_id is not defined
-  
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry
-    - name: Setup Vault Kubernetes for each organization
-      include_role: 
-        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
-      vars:
-        name: "{{ org.name | lower }}"
-        component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_type: "{{ org.type | lower }}"
-        component_ns: "{{ org.name | lower }}-net"
-        component_auth: "{{ network.env.type }}{{ name }}"
-        kubernetes: "{{ org.k8s }}"
-        vault: "{{ org.vault }}"
-        gitops: "{{ org.gitops }}"
-        reset_path: "platforms/hyperledger-fabric/configuration"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-      when: org.k8s.cluster_id is defined
 
     # Create Storageclass 
     - name: Create storageclass for each organization
       include_role:
-        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass" 
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
       vars:
         org_name: "{{ org.name | lower }}"
-        cloudProvider: "{{ org.cloud_provider | lower }}"
-        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-        component_type: "{{ org.type | lower }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
         region: "{{ org.k8s.region | default('eu-west-1') }}"
-        kubernetes: "{{ org.k8s }}"
-        charts_dir: "platforms/shared/charts"
-        platform_suffix: "net"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
@@ -109,7 +84,7 @@
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
-        sc_name: "{{ component }}-{{ item.cloud_provider }}-storageclass"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -124,7 +99,7 @@
       include_role:
         name: "create/crypto_script"
       vars:
-        component_type: "{{ item.type | lower}}"        
+        component_type: "{{ item.type | lower }}"        
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
 
@@ -139,11 +114,11 @@
       include_role:
         name: "create/ca_tools/orderer"
       vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
+        component_name: "{{ item.name | lower }}-net"
+        component: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
         component_services: "{{ item.services }}"
-        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -163,7 +138,7 @@
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         orderer_org: "{{ item.orderer_org | lower }}"
-        sc_name: "{{ component }}-{{ item.cloud_provider | lower }}-storageclass"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
