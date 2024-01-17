@@ -33,14 +33,10 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-{% if item.k8s.cluster_id is defined %}
-      authpath: {{ item.k8s.cluster_id }}{{ namespace | e }}-auth
-{% else %}
-      authpath: {{ network.env.type }}{{ namespace | e }}-auth
-{% endif %}
-      chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}/chaincodes
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      chaincodesecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}/chaincodes
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/users/admin 
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/orderer
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}
 {% if network.docker.username is defined and network.docker.password is defined %}
@@ -48,9 +44,9 @@ spec:
 {% else %}
       imagesecretname: ""
 {% endif %}
-      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/git?git_password
+      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ namespace }}/git?git_password
       tls: false
-      chaincodepackageprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/chaincodes/{{ component_chaincode.name | lower | e }}/package/v{{ component_chaincode.version }}
+      chaincodepackageprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/chaincodes/{{ component_chaincode.name | lower | e }}/package/v{{ component_chaincode.version }}
     chaincode:
       name: {{ component_chaincode.name | lower | e }}
       version: {{ component_chaincode.version }}
