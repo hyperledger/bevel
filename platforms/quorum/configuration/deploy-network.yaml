@@ -39,13 +39,8 @@
       name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
     vars:
       org_name: "{{ org.name | lower }}"
-      cloudProvider: "{{ org.cloud_provider | lower }}"
-      sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
+      sc_name: "{{ org_name }}-bevel-storageclass"
       region: "{{ org.k8s.region | default('eu-west-1') }}"
-      git_dir: "{{ org.gitops.release_dir }}"
-      kubernetes: "{{ org.k8s }}"
-      charts_dir: "platforms/shared/charts"
-      platform_suffix: "quo"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -56,7 +51,6 @@
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
     vars:
       namespace: "{{ org.name | lower }}-quo"
-      network_type: "{{ network.type | lower }}"
       kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
@@ -67,11 +61,10 @@
     include_role:
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
-      policy_type: "quorum"
       name: "{{ org.name | lower }}"
       component_ns: "{{ org.name | lower }}-quo"
       component_name: "{{ org.name | lower }}-vaultk8s-job"
-      component_auth: "quorum{{ org.name | lower }}"
+      component_auth: "{{ network.env.type }}{{ name }}"
       component_type: "organization"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
@@ -178,7 +171,7 @@
       component_ns: "{{ org.name | lower }}-quo"
       name: "{{ org.name | lower }}"
       peers: "{{ org.services.peers }}"
-      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      sc_name: "{{ name }}-bevel-storageclass"
       external_url: "{{ org.external_url_suffix }}"
       vault: "{{ org.vault }}"
       charts_dir: "{{ org.gitops.chart_source }}"
@@ -199,7 +192,7 @@
       component_ns: "{{ org.name | lower }}-quo"
       name: "{{ org.name | lower }}"
       peers: "{{ org.services.peers }}"
-      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      sc_name: "{{ name }}-bevel-storageclass"
       external_url: "{{ org.external_url_suffix }}"
       vault: "{{ org.vault }}"
       git_url: "{{ org.gitops.git_url }}"
@@ -223,7 +216,7 @@
       component_ns: "{{ org.name | lower }}-quo"
       name: "{{ org.name | lower }}"
       peers: "{{ org.services.peers }}"
-      sc_name: "{{ name }}-{{ org.cloud_provider | lower }}-storageclass"
+      sc_name: "{{ name }}-bevel-storageclass"
       external_url: "{{ org.external_url_suffix }}"
       vault: "{{ org.vault }}"
       git_url: "{{ org.gitops.git_url }}"

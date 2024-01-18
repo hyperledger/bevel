@@ -1,0 +1,33 @@
+#helm install genesis -f values/proxy-and-vault/genesis.yaml -n supplychain-bes --create-namespace besu-genesis
+global:
+  serviceAccountName: vault-auth
+  vault:
+    type: hashicorp
+    network: besu
+    address: http://vault.demo.com:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    role: vault-role
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+    kubernetesUrl: https://kubernetes.url
+
+rawGenesisConfig:
+  genesis:
+    config:
+      chainId: 1337
+      algorithm:
+        consensus: qbft
+        blockperiodseconds: 10
+        epochlength: 30000
+        requesttimeoutseconds: 20
+    gasLimit: '0xf7b760' 
+    difficulty: '0x1'
+    coinbase: '0x0000000000000000000000000000000000000000'
+  blockchain:
+    nodes:
+      generate: true
+      count: 4
+    accountPassword: 'password'

@@ -28,11 +28,11 @@ spec:
       alpineutils: {{ network.docker.url }}/bevel-alpine-ext:{{ bevel_alpine_version }}
     vault:
       address: {{ vault.url }}
-      secretengine: {{ vault.secret_path | default('secretsv2') }}
-      authpath: besu{{ org.name | lower }}
+      secretEngine: {{ vault.secret_path | default('secretsv2') }}
+      authPath: {{ network.env.type }}{{ org.name | lower }}
       role: vault-role
       keyprefix: {{ component_ns }}/crypto
-      serviceaccountname: vault-auth
+      serviceAccountName: vault-auth
       tmprefix: data/{{ component_ns }}/crypto
       type: {{ vault.type | default("hashicorp") }}
 

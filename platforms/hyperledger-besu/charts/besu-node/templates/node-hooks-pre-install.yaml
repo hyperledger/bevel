@@ -1,0 +1,218 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "besu-node.fullname" . }}-pre-install-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  labels:
+    app.kubernetes.io/name: pre-install-hook
+    app.kubernetes.io/component: keygen
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-install-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: {{ template "besu-node.fullname" . }}-keygen
+          image: {{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+          {{- if (eq .Values.global.vault.type "hashicorp") }}
+          volumeMounts:
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+          {{- end }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              function update_peers_configmap {
+                PUBKEY_LOC=$1
+                kubectl -n {{ .Release.Namespace }} get configmap besu-peers -o json
+                if [ $? -ne 0 ]; then
+                  echo "[]" > /tmp/static-nodes.json.raw
+                  kubectl -n {{ .Release.Namespace }} create configmap besu-peers --from-file=static-nodes.json=/tmp/static-nodes.json.raw
+                else
+                  echo $(kubectl -n {{ .Release.Namespace }} get configmap besu-peers -o jsonpath='{.data.static-nodes\.json}' ) > /tmp/static-nodes.json.raw
+                fi
+                # update the entries
+                echo "updating besu-peers..."
+                pubkey=$(cat $PUBKEY_LOC )
+                cat /tmp/static-nodes.json.raw | jq --arg NEEDLE "{{ .Release.Name }}" 'map(select(test($NEEDLE) | not))' > /tmp/static-nodes-new.json.raw
+                NEEDLE="enode://$pubkey@{{ include "besu-node.enodeURL" . }}?discport=0"
+                cat /tmp/static-nodes-new.json.raw | jq --arg NEEDLE "$NEEDLE" '. += [ $NEEDLE ] | unique ' > /tmp/static-nodes.json
+                kubectl -n {{ .Release.Namespace }} create configmap besu-peers --from-file=static-nodes.json=/tmp/static-nodes.json -o yaml --dry-run=client | kubectl replace -f -
+              }
+
+              function update_bootnodes_configmap {
+                PUBKEY_LOC=$1
+                kubectl -n {{ .Release.Namespace }} get configmap besu-bootnodes -o json
+                if [ $? -ne 0 ]; then
+                  echo "[]" > /tmp/besu-bootnodes-json.raw
+                  kubectl -n {{ .Release.Namespace }} create configmap besu-bootnodes --from-file=bootnodes-json=/tmp/besu-bootnodes-json.raw --from-literal=bootnodes-string=""
+                fi
+
+                echo "updating besu-bootnodes..."
+                echo $(kubectl -n {{ .Release.Namespace }} get configmap besu-bootnodes -o jsonpath='{.data.bootnodes-json}' ) > /tmp/besu-bootnodes-json.raw
+                pubkey=$(cat $PUBKEY_LOC )
+                cat /tmp/besu-bootnodes-json.raw | jq --arg NEEDLE "{{ .Release.Name }}" 'map(select(test($NEEDLE) | not))' > /tmp/bootnodes-new.json.raw
+                NEEDLE="enode://$pubkey@{{ include "besu-node.enodeURL" . }}"
+                cat /tmp/bootnodes-new.json.raw | jq --arg NEEDLE "$NEEDLE" '. += [ $NEEDLE ] | unique ' > /tmp/besu-bootnodes-json
+                cat /tmp/besu-bootnodes-json | jq -r -c '. | join(",")' | tr -d '\n' > /tmp/besu-bootnodes-string
+                kubectl -n {{ .Release.Namespace }} create configmap besu-bootnodes --from-file=bootnodes-json=/tmp/besu-bootnodes-json \
+                  --from-file=bootnodes-string=/tmp/besu-bootnodes-string -o yaml --dry-run=client | kubectl replace -f -
+              }
+
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+              . /scripts/bevel-vault.sh
+              echo "Getting vault Token..."
+              vaultBevelFunc "init"
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                #Read if secret exists in Vault
+                vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-keys"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  # if the key exists pull it from secrets so that when you update the enodes configmap, you have the right value
+                  nodekey_pub=$(echo ${VAULT_SECRET} | jq -r '.["nodekey_pub"]')
+                  echo $nodekey_pub > /tmp/enode
+                  kubectl get secret ${key}-keys --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                  if [ $? -ne 0 ]; then
+                    # create the secret from Vault data
+                    nodekey=$(echo ${VAULT_SECRET} | jq -r '.["nodekey"]')
+                    accountPrivateKey=$(echo ${VAULT_SECRET} | jq -r '.["accountPrivateKey"]')
+                    accountPassword=$(echo ${VAULT_SECRET} | jq -r '.["accountPassword"]')
+                    accountKeystore=$(echo ${VAULT_SECRET} | jq -r '.["accountKeystore_base64"]' | base64 -d)
+                    echo $accountKeystore > /tmp/accountKeystore
+                    accountAddress=$(echo ${VAULT_SECRET} | jq -r '.["accountAddress"]')
+                    kubectl create secret generic ${key}-keys --from-literal=nodekey=${nodekey} --from-literal=nodekey.pub=${nodekey_pub} \
+                      --from-literal=enode=${nodekey_pub} --from-literal=accountPrivate.key=${accountPrivateKey} \
+                      --from-literal=accountPassword=${accountPassword} --from-file=accountKeystore=/tmp/accountKeystore \
+                      --from-literal=accountAddress=${accountAddress}
+                    rm /tmp/accountKeystore
+                  fi
+                else
+                  # write the key to vault
+                  NODE_ADDRESS=$(cat ${fpath}/address)
+                  NODE_KEY=$(cat ${fpath}/nodekey)
+                  NODE_KEY_PUB=$(cat ${fpath}/nodekey.pub)
+                  accountPrivateKey=$(cat ${fpath}/accountPrivateKey)
+                  accountPassword=$(cat ${fpath}/accountPassword)
+                  accountKeystore=$(cat ${fpath}/accountKeystore | base64 -w 0)
+                  accountAddress=$(cat ${fpath}/accountAddress)
+
+                  # create a JSON file for the data related to node crypto
+                  echo "
+                  {
+                    \"data\":
+                      {
+                        \"nodeAddress\": \"${NODE_ADDRESS}\",
+                        \"nodekey\": \"${NODE_KEY}\",
+                        \"nodekey_pub\": \"${NODE_KEY_PUB}\",
+                        \"accountPrivateKey\": \"${accountPrivateKey}\",
+                        \"accountPassword\": \"${accountPassword}\",
+                        \"accountKeystore_base64\": \"${accountKeystore}\",
+                        \"accountAddress\": \"${accountAddress}\"
+                      }
+                  }" > payload.json
+                  # Add vault write code
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-keys" 'payload.json'
+                  rm payload.json
+                  # Also create the secret
+                  kubectl create secret generic ${key}-keys --namespace {{ .Release.Namespace }} --from-file=nodekey=${fpath}/nodekey \
+                    --from-file=nodekey.pub=${fpath}/nodekey.pub --from-file=enode=${fpath}/nodekey.pub \
+                    --from-file=accountPrivate.key=${fpath}/accountPrivateKey --from-file=accountPassword=${fpath}/accountPassword \
+                    --from-file=accountKeystore=${fpath}/accountKeystore --from-file=accountAddress=${fpath}/accountAddress
+                fi
+              }
+{{- else }}
+
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                kubectl get secret ${key}-keys --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -ne 0 ]; then
+                  kubectl create secret generic ${key}-keys --namespace {{ .Release.Namespace }} --from-file=nodekey=${fpath}/nodekey \
+                    --from-file=nodekey.pub=${fpath}/nodekey.pub --from-file=enode=${fpath}/nodekey.pub \
+                    --from-file=accountPrivate.key=${fpath}/accountPrivateKey --from-file=accountPassword=${fpath}/accountPassword \
+                    --from-file=accountKeystore=${fpath}/accountKeystore --from-file=accountAddress=${fpath}/accountAddress
+                else
+                  # if the key exists pull it from secrets so that when you update the enodes configmap, you have the right value
+                  kubectl get secrets ${key}-keys --namespace {{ .Release.Namespace }}  -o json | jq '.data.enode' | tr -d '"'| base64 --decode > /tmp/enode
+                fi
+              }
+{{- end }}
+
+              echo "{{ template "besu-node.fullname" . }} pre-install hook ..."
+              echo "Nodekey generation ..."
+              FOLDER_PATH=$(quorum-genesis-tool --validators 0 --members 1 --bootnodes 0 {{ if .Values.node.besu.account.password }} \
+                --accountPassword {{ .Values.node.besu.account.password }} {{ end }} \
+                --outputPath /generated-config | tail -1 | sed -e "s/^Artifacts in folder: //")
+              echo "Creating {{ template "besu-node.fullname" . }} secrets in k8s ..."
+              cat $FOLDER_PATH/member0/nodekey.pub > /tmp/enode
+              kubectl get configmap {{ template "besu-node.fullname" . }}-address --namespace {{ .Release.Namespace }}
+              if [ $? -ne 0 ]; then
+                echo "Creating configmap for node address"
+                kubectl create configmap {{ template "besu-node.fullname" . }}-address --from-file=address=$FOLDER_PATH/${f}/member0/address
+              fi
+              
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              echo "Creating keys in vault for {{ template "besu-node.fullname" . }} ..."
+              safeWriteSecret {{ template "besu-node.fullname" . }}-nodekey $FOLDER_PATH/member0/nodekey
+              safeWriteSecret {{ template "besu-node.fullname" . }}-nodekeypub $FOLDER_PATH/member0/nodekey.pub
+              safeWriteSecret {{ template "besu-node.fullname" . }}-enode $FOLDER_PATH/member0/nodekey.pub
+              safeWriteSecret {{ template "besu-node.fullname" . }}-address $FOLDER_PATH/member0/address
+              safeWriteSecret {{ template "besu-node.fullname" . }}-accountPrivateKey $FOLDER_PATH/member0/accountPrivateKey
+              safeWriteSecret {{ template "besu-node.fullname" . }}-accountPassword $FOLDER_PATH/member0/accountPassword
+              safeWriteSecret {{ template "besu-node.fullname" . }}-accountKeystore $FOLDER_PATH/member0/accountKeystore
+              safeWriteSecret {{ template "besu-node.fullname" . }}-accountAddress $FOLDER_PATH/member0/accountAddress
+{{- else }}
+              safeWriteSecret {{ template "besu-node.fullname" . }} $FOLDER_PATH/member0
+{{- end }}
+
+              update_peers_configmap /tmp/enode
+{{- if .Values.node.isBootnode }}
+              update_bootnodes_configmap /tmp/enode
+{{- end }}
+              echo "Pre-install hook completed"
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777

@@ -4,53 +4,17 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Set enode_data_list to empty
-- name: Set enode_data_list to []
-  set_fact:
-    enode_data_list: []
-
-# Get enode data for all orgs
-- name: Get enode data for each node of all organization
-  include_tasks: enode_data.yaml
-  loop: "{{ network['organizations'] }}"
-  loop_control:
-    loop_var: org
-
-# Check for local genesis file
-- name: Check that the gensis file exists
-  stat:
-    path: "{{ network.config.genesis }}"
-  register: stat_result
-
-# This task gets the genesis file when there isno local genesis
-- name: get genesis from vault
-  shell: |
-    vault kv get -field=genesis {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/genesis
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: vault_genesis
-  ignore_errors: yes
-  when: stat_result.stat.exists == False
-
-# This task only runs when there is no local genesis file
-- name: Copy genesis from vault to correct path
-  shell: |
-    echo {{ vault_genesis.stdout }} > {{ network.config.genesis }}
-  when: stat_result.stat.exists == False
-
 # This task creates helm release file for each validator node of organization
 - name: Create helm release file for each validator node of organization
   include_role:
     name: create/helm_component
   vars:
-    component_name: "{{ name }}{{ peer.name }}validator_node"
+    component_name: "{{ peer.name }}"
     type: "validator"
-    genesis: "{{ lookup('file', '{{ network.config.genesis }}') }}"
-    nodelist: "{{lookup('file', '{{ build_path }}/{{ item.name }}/{{ peer.name }}/nodelist').split('\n')| join(',') }}"
-  loop: "{{ peers }}"
+  loop: "{{ org.services.validators }}"
   loop_control:
     loop_var: peer
+  when: org.services.validators is defined
 
 # Git Push : Pushes the above generated files to git directory 
 - name: Git Push
@@ -58,5 +22,23 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ item.gitops }}"
-    msg: "[ci skip] Pushing Peer files"
+    msg: "[ci skip] Pushing Validator files"
+  when: org.services.validators is defined
+
+# Wait for the last validator to be running
+- name: "Wait for the last validator to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    validator: "{{ org.services.validators | last }}"
+    label_selectors:
+      - app.kubernetes.io/release = {{ validator.name | lower }}
+    component_type: "Pod"
+    namespace: "{{ component_ns }}"
+  when: org.services.validators is defined
+
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.services.validators is defined

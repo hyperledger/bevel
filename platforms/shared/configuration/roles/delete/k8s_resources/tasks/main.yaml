@@ -4,16 +4,43 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Remove all Helm components of organization
-- name: Remove all Helm components of {{ organization }}
-  args:
-    executable: /bin/bash
+# Get all Helm releases of organization
+- name: Get Helm releases
   shell: |
-    helm_components=($(KUBECONFIG={{ kubernetes.config_file }} helm ls -n {{ organization_ns }} | awk 'NR>1 {print $1}'))
-    for helm_component in "${helm_components[@]}"
-    do
-      KUBECONFIG={{ kubernetes.config_file }} helm uninstall ${helm_component} -n {{ organization_ns }}
-    done
+    KUBECONFIG={{ kubernetes.config_file }} helm ls -drq -n {{ organization_ns }}
+  register: helm_info
+
+# Remove all Helm releases of organization except genesis
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info.stdout_lines }}"
+  when: 
+  - item != "genesis"
+
+# Remove genesis release at last and ignore errors for now
+- name: Delete Genesis Helm release at last
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "genesis"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  ignore_errors: yes # Ignore failure until all platforms have genesis similar to Besu
+
+- name: Get Helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls -drq -n {{ organization_ns }}
+  register: helm_info_extra
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info_extra.stdout_lines }}"
 
 # Remove an existing Namespace
 - name: Remove an existing Namespace {{ organization_ns }}

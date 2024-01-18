@@ -32,7 +32,7 @@
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
     channel_name: "{{ channel_name }}"
-    storage_class: "{{ org.name | lower }}-{{ org.cloud_provider | lower }}-storageclass"
+    storage_class: "{{ org.name | lower }}-bevel-storageclass"
     release_dir: "{{ build_path }}"
     orderer_component: "{{ orderer.name | lower }}.{{ component_ns }}"
     orderer_address: "{{ orderer.ordererAddress }}"
@@ -93,7 +93,7 @@
 # This task saves the new genesis block to the vault
 - name: Save the genesis block to vault 
   shell: |
-    vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ neworg.name }}-net/{{ channel_name }} {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64)"
+    vault kv put {{ neworg.vault.secret_path | default('secretsv2') }}/{{ neworg.name }}/ordererOrganizations/{{ neworg.name }}-net/{{ channel_name }} {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ neworg.vault.url }}"
     VAULT_TOKEN: "{{ neworg.vault.root_token }}"

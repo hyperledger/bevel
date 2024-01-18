@@ -27,10 +27,10 @@
       path: "./build"
       state: absent
 
-  # Create namespace, service account and clusterrolebinding
-  - name: "Create namespace and service account"
+  # Create namespace
+  - name: "Create namespace"
     include_role: 
-      name: create/namespace_serviceaccount
+      name: create/namespace
     vars:
       component_ns: "{{ item.name | lower }}-subs"
       organisation: "{{ item.name | lower }}"
@@ -41,13 +41,13 @@
   # Create Storageclass
   - name: Create Storage Class
     include_role:
-      name: create/storageclass
+      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
     vars:
-      storageclass_name: "{{ item.cloud_provider }}storageclass"
-      git_dir: "{{ item.gitops.release_dir }}"
-      org: "{{ item }}"
-      kubernetes: "{{ item.k8s }}"
+      sc_name: "{{ org.name | lower }}-bevel-storageclass"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+        loop_var: org
 
   # Setup script for Vault and OS Package Manager
   - name: "Setup script for Vault and OS Package Manager"
@@ -55,7 +55,6 @@
       name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
     vars:
       namespace: "{{ org.name | lower }}-subs"
-      network_type: "{{ network.type | lower }}"
       kubernetes: "{{ org.k8s }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
@@ -64,15 +63,19 @@
   # Setup Vault-Kubernetes accesses and Regcred for docker registry
   - name: "Setup vault"   
     include_role: 
-      name: "setup/vault_kubernetes"
+      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
     vars:
-      component_ns: "{{ item.name | lower }}-subs"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      component_name: "{{ item.name | lower }}-vaultk8s-job"
-      component_auth: "substrate{{ item.name | lower }}"
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-subs"
+      component_name: "{{ org.name | lower }}-vaultk8s-job"
+      component_auth: "{{ network.env.type }}{{ name }}"
       component_type: "organization"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
 
   # Generate Ambassador certificate for nodes
   - name: "Create ambassador certificates for Nodes" 

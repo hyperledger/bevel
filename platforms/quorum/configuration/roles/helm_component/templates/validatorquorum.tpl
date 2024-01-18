@@ -50,7 +50,7 @@ spec:
         quorum: {{ peer.p2p.port }}
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
       role: vault-role

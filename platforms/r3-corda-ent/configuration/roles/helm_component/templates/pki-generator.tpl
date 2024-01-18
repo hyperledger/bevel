@@ -30,9 +30,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaent{{ org.name | lower }}
+      authpath: {{ network.env.type }}{{ name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 20
       sleepTimeAfterError: 20
     cenmServices:

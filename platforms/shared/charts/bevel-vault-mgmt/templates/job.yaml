@@ -3,15 +3,17 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
+{{- if eq .Values.global.vault.type "hashicorp" }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ $.Values.metadata.name }}"
-  namespace: "{{ $.Values.metadata.namespace }}"
+  name: {{ include "bevel-vault-mgmt.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "hook-succeeded"
   labels:
-    app: "{{ $.Values.metadata.name }}"
-    app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+    app: "{{ include "bevel-vault-mgmt.name" . }}"
+    app.kubernetes.io/name: "{{ include "bevel-vault-mgmt.name" . }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -21,23 +23,23 @@ spec:
   template:
     metadata:
       labels:
-        app: "{{ $.Values.metadata.name }}"
-        app.kubernetes.io/name: "{{ $.Values.metadata.name }}"
+        app: "{{ include "bevel-vault-mgmt.name" . }}"
+        app.kubernetes.io/name: "{{ include "bevel-vault-mgmt.name" . }}"
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
     spec:
       restartPolicy: OnFailure
-      {{ if .Values.vault.imagesecretname  }}
+      {{ if .Values.image.pullSecret  }}
       imagePullSecrets:
-        - name: {{ $.Values.vault.imagesecretname }}
+        - name: {{ $.Values.image.pullSecret }}
       {{ end }}
-      serviceAccountName: {{ $.Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
       volumes:
-      {{ if .Values.vault.tls  }}
+      {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.vault.tls }}
+          secretName: {{ $.Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
@@ -47,31 +49,31 @@ spec:
           medium: Memory
       - name: policies-config
         configMap:
-          name: policies-config-{{ .Values.metadata.name }}
+          name: policies-config-{{ include "bevel-vault-mgmt.name" . }}
           items:
             - key: policies-config.json
               path: policies-config.json
       containers:
         - name: "vault-kubernetes"
-          image: {{ $.Values.metadata.images.alpineutils }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           env:
           - name: VAULT_ADDR
-            value: {{ $.Values.vault.address }}
+            value: "{{ $.Values.global.vault.address }}"
           - name: VAULT_SECRET_PATH
-            value: {{ $.Values.vault.secret_path }}
+            value: "{{ $.Values.global.vault.secretEngine }}"
           - name: KUBERNETES_AUTH_PATH
-            value: {{ $.Values.vault.authpath }}
+            value: "{{ $.Values.global.vault.authPath }}"
           - name: VAULT_ROLE
-            value: {{ $.Values.vault.role }}
+            value: "{{ $.Values.global.vault.role }}"
           - name: VAULT_SA
-            value: {{ $.Values.serviceAccount.name }}
+            value: "{{ $.Values.global.serviceAccountName }}"
           - name: KUBERNETES_URL
-            value: {{ $.Values.k8s.kubernetes_url }}
+            value: "{{ $.Values.global.cluster.kubernetesUrl }}"
           - name: POLICY_NAME
-            value: {{ $.Values.vault.policy }}          
+            value: "{{ include "bevel-vault-mgmt.fullname" . }}-{{ .Release.Namespace }}-policy"
           - name: NAMESPACE
-            value: {{ $.Values.metadata.namespace }}
+            value: "{{ .Release.Namespace }}"
           - name: POLICIES_PATH
             value: "/policies"
           - name: ROOT_TOKEN
@@ -88,12 +90,12 @@ spec:
                   exit 1
                 fi
               };
-              # Check if secret_path already created
+              # Check if secretEngine already created
               vault_kv_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \
                 ${VAULT_ADDR}/v1/$VAULT_SECRET_PATH/ | jq '.errors');
 
               if [ "$vault_kv_check" != 'null' ]; then
-                echo "secret_path does not exist. Creating ..."
+                echo "secretEngine does not exist. Creating ..."
                 curl \
                 --header "X-Vault-Token: $ROOT_TOKEN" \
                 --request POST \
@@ -101,12 +103,12 @@ spec:
                 ${VAULT_ADDR}/v1/sys/mounts/${VAULT_SECRET_PATH}
               fi;
 
-              # Check if authpath already created
+              # Check if authPath already created
               vault_auth_check=$(curl --header "X-Vault-Token: $ROOT_TOKEN" \
-                ${VAULT_ADDR}/v1/sys/auth | jq '."{{ $.Values.vault.authpath }}/"');
+                ${VAULT_ADDR}/v1/sys/auth | jq '."${KUBERNETES_AUTH_PATH}/"');
               
               if [ "$vault_auth_check" == 'null' ]; then
-                echo "authpath does not exist. Creating ..."
+                echo "authPath does not exist. Creating ..."
                 # This command enables the path for the organizations on vault
                 curl \
                 --header "X-Vault-Token: $ROOT_TOKEN" \
@@ -153,8 +155,7 @@ spec:
               
               if [ "$vault_policy_check" == 'null' ]; then
                 echo "vaultpolicy does not exist. Creating ..."
-                #mkdir -p ${POLICIES_PATH}
-
+                
                 # This command writes the policies to the vault
                 curl \
                 --header "X-Vault-Token: $ROOT_TOKEN" \
@@ -195,7 +196,7 @@ spec:
                 validateVaultResponse ${response_status};
               fi;
           volumeMounts:
-          {{ if .Values.vault.tls  }}
+          {{ if .Values.global.vault.tls  }}
             - name: vaultca
               mountPath: "/etc/ssl/certs/"
               readOnly: true
@@ -203,3 +204,4 @@ spec:
             - name: policies-config
               mountPath: /policies/policies-config.json
               subPath: policies-config.json
+{{ end }}

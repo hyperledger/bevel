@@ -6,7 +6,7 @@
 
 ---  
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace}}
@@ -20,6 +20,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  serviceName: ""
   replicas: {{ .Values.replicas }} 
   selector:
     matchLabels:
@@ -195,7 +196,7 @@ spec:
                   return 0                                                                                                                                             
               fi                                                                                                                                                       
           }  
-          let EXIT_CODE=0                                                                                                                                      
+          let EXIT_CODE=0                                                                                                                                   
           while [ ${EXIT_CODE} -eq 0 ]                                                                                                                         
           do
                   sleep 2                                                                                                             
@@ -203,7 +204,6 @@ spec:
                   ifNetworkParametersExists
                   let EXIT_CODE=$?
           done
-
           echo "Starting the firewall"                                                                                                                                         
           java -jar corda-firewall.jar --base-directory ${BASE_DIR} --verbose --logging-level=INFO 
         resources:
@@ -212,7 +212,7 @@ spec:
           limits:
             memory: {{ add .Values.cordaJarMx 2}}M
         volumeMounts:
-        - name: bridge-volume
+        - name: {{ .Values.nodeName }}-volume
           mountPath: {{ .Values.volume.baseDir }}
         - name: certificates
           mountPath: {{ .Values.volume.baseDir }}/certificates
@@ -220,6 +220,21 @@ spec:
         - name: certificates
           emptyDir:
             medium: Memory
-        - name: bridge-volume
-          persistentVolumeClaim:
-            claimName: {{ .Values.nodeName }}-volume
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.nodeName }}-volume
+{{- if .Values.pvc.annotations }}
+        annotations:
+{{ toYaml .Values.pvc.annotations | indent 8 }}
+{{- end }}
+        labels:
+          app.kubernetes.io/name: {{ .Values.nodeName }}-volume
+          helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+          app.kubernetes.io/managed-by: {{ .Release.Service }}
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 256Mi

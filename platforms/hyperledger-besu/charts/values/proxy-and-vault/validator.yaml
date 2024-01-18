@@ -1,0 +1,46 @@
+---
+#helm install validator-1 -f values/proxy-and-vault/validator.yml -n supplychain-bes --set global.proxy.p2p=15011 besu-node
+#helm upgrade validator-1 -f values/proxy-and-vault/validator.yml -n supplychain-bes --set global.proxy.p2p=15011 besu-node
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    network: besu
+    address: http://vault.demo.com:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    role: vault-role
+  proxy:
+    provider: ambassador
+    externalUrlSuffix: test.yourdomain.com
+
+storage:
+  enabled: true
+  size: "2Gi"
+tessera:
+  enabled: false
+tls:
+  enabled: false
+node:
+  removeKeysOnDelete: false # this will erase keys - so be careful with this on validators
+  isBootnode: false    # set this to true if this node is a bootnode
+  usesBootnodes: false
+  besu:
+    envBesuOpts: ""  
+    metrics:
+      serviceMonitorEnabled: true
+    resources:
+      cpuLimit: 0.25
+      cpuRequest: 0.05
+      memLimit: "1G"
+      memRequest: "300M"
+    p2p:
+      discovery: false
+image:
+  besu:
+    repository: hyperledger/besu
+    tag: 22.10.2

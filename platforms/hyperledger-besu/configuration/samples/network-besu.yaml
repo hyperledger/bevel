@@ -19,7 +19,7 @@ network:
 
   #Environment section for Kubernetes setup
   env:
-    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "besu"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value can be 'ambassador' or 'none' as 'haproxy' has not been implemented for Besu
     proxy_namespace: "ambassador"
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
@@ -47,8 +47,8 @@ network:
     prometheus_prefix: bevelprom    # The prefix added to the organization's external_url_suffix to create the hostname.
     port: 80                        # The port will be used by Ambassador for Prometheus. Supported values include 80, 443, or any unused port from the network.env.ambassadorPorts range.
     # To access Prometheus publicly:
-    # - Use <prometheus_prefix>.<organization's external_url_suffix> if using port 80 or 443.
-    # - Use <random-string>.<organization's external_url_suffix>:<port> if selecting a port from network.env.ambassadorPorts range.   
+    # Use <prometheus_prefix>.<organization's external_url_suffix> if using port 80 or 443.
+    # Use <random-string>.<organization's external_url_suffix>:<port> if selecting a port from network.env.ambassadorPorts range.   
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -60,29 +60,27 @@ network:
 
   # Following are the configurations for the common Besu network
   config:
-    consensus: "ibft"                 # Options are "ibft", "qbft", "ethash" and "clique".
+    consensus: "qbft"                 # Options are "ibft2", "qbft", "ibft" and "clique".
     ## Certificate subject for the root CA of the network.
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Transaction manager can be "tessera", "tessera" or "none"; 21.x.x features are same for both
-    # This is the version of transaction_manager docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager is "tessera" or "none"
+    # This is the version of "tessera" docker image that will be deployed
     tm_version: "21.7.3"
-    # TLS can be True or False for the transaction manager
+    # TLS can be True or False for the tessera tm
     tm_tls: True
     # Tls trust value
     tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
-    ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
     # Add public key of accounts without 0x which will have 90000 ETH at genesis. Accounts created on external system like Metamask
     accounts:
-      - "75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
-      - "e668554c28e81535B8679ff9de128203Fdedc212"
+      - "0x75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
+      - "0xe668554c28e81535B8679ff9de128203Fdedc212"
     ## At least one Transaction Manager nodes public addresses should be provided.
     #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
     # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
     tm_nodes:
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:443"
 
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
@@ -95,6 +93,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
+      org_status: new   # Choose from new | existing
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -128,7 +127,7 @@ network:
       services:
         validators:
         - validator:
-          name: validator1
+          name: validator-1
           bootnode: true          # true if the validator node is used also a bootnode for the network
           cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
           p2p:
@@ -143,7 +142,7 @@ network:
             enabled: true      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
             port: 9545         # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator2
+          name: validator-2
           bootnode: true          # true if the validator node is used also a bootnode for the network
           cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
           p2p:
@@ -158,7 +157,7 @@ network:
             enabled: true      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
             port: 9545         # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator3
+          name: validator-3
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -172,7 +171,7 @@ network:
             enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
             port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator4
+          name: validator-4
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
             port: 30303
@@ -185,6 +184,31 @@ network:
           metrics:
             enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
             port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
+        peers:
+        - peer:
+          name: supplychain
+          subject: "O=SupplyChain,OU=ValidatorOrg,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
+          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
+          p2p:
+            port: 30303
+            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
+            port: 8546
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
+          tm_nodeport:
+            port: 443             # Port exposed on ambassador service must be same
+            ambassador: 443
+          tm_clientport:
+            port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
 
     - organization:
       name: carrier
@@ -194,6 +218,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
+      org_status: new
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -243,8 +268,8 @@ network:
           db:
             port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 443          # use port: 15022 when transaction_manager = "tessera"
-            ambassador: 443    # use ambassador: 15022 when transaction_manager = "tessera"
+            port: 443             # Port exposed on ambassador service must be same
+            ambassador: 443
           tm_clientport:
             port: 8888
           metrics:
@@ -260,6 +285,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
+      org_status: new
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -308,10 +334,10 @@ network:
           ws:
             port: 8546
           db:
-            port: 3306        # Only applicable for tessra where mysql db is used
+            port: 3306        # Only applicable for tessera where mysql db is used
           tm_nodeport:
-            port: 443          # use port: 15032 when transaction_manager = "tessera"
-            ambassador: 443    # use ambassador: 15032 when transaction_manager = "tessera"
+            port: 443           # Port exposed on ambassador service must be same
+            ambassador: 443    
           tm_clientport:
             port: 8888
           metrics:
@@ -326,6 +352,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
+      org_status: new
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -375,8 +402,8 @@ network:
           db:
             port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 443          # use port: 15042 when transaction_manager = "tessera"
-            ambassador: 443    # use ambassador: 15042 when transaction_manager = "tessera"
+            port: 443          # Port exposed on ambassador service must be same
+            ambassador: 443    
           tm_clientport:
             port: 8888
           metrics:
@@ -391,6 +418,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
+      org_status: new
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -439,8 +467,8 @@ network:
           db:
             port: 3306        # Only applicable for tessra where mysql db is used
           tm_nodeport:
-            port: 443          # use port: 15052 when transaction_manager = "tessera"
-            ambassador: 443    # use ambassador: 15052 when transaction_manager = "tessera"
+            port: 443          # Port exposed on ambassador service must be same
+            ambassador: 443    
           tm_clientport:
             port: 8888
           metrics:

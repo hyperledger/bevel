@@ -26,6 +26,9 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
+    - name: Fail the playbook until new helm charts are available
+      ansible.builtin.fail:
+        msg: This playbook is deprecated until new helm charts are created.
     # delete build directory
     - name: Remove build directory
       file:
@@ -49,16 +52,11 @@
     # Create Storageclass
     - name: Create Storage Class
       include_role:
-        name: create/storageclass
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
       vars:
         org_name: "{{ org.name | lower }}"
-        cloudProvider: "{{ org.cloud_provider | lower }}"
-        sc_name: "{{ org_name }}-{{ cloudProvider }}-storageclass"
-        kubernetes: "{{ org.k8s }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
         region: "{{ org.k8s.region | default('eu-west-1') }}"
-        git_dir: "{{ org.gitops.release_dir }}"
-        charts_dir: "platforms/shared/charts"
-        platform_suffix: "bes"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
@@ -67,9 +65,9 @@
     # Create Vault scrit as configmap for Vault CRUD operations
     - name: setup vault script
       include_role:
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault-script"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
       vars:
-        component_ns: "{{ org.name | lower }}-bes"
+        namespace: "{{ org.name | lower }}-bes"
         kubernetes: "{{ org.k8s }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
@@ -85,7 +83,7 @@
         name: "{{ org.name | lower }}"
         component_ns: "{{ org.name | lower }}-bes"
         component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_auth: "besu{{ org.name | lower }}"
+        component_auth: "{{ network.env.type }}{{ org.name | lower }}"
         component_type: "{{ org.type | lower }}"
         kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"

@@ -6,7 +6,7 @@
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
@@ -19,6 +19,7 @@ metadata:
   annotations:
     helm.sh/hook-weight: "0"
 spec:
+  serviceName: {{ .Values.nodeName }}
   replicas: 1
   selector:
     matchLabels:
@@ -196,11 +197,11 @@ spec:
           - name: gateway-conf
             mountPath: {{ .Values.config.volume.baseDir }}/etc/gateway.conf
             subPath: gateway.conf
-          - name: gateway-etc
+          - name: {{ .Values.prefix }}-gateway-etc
             mountPath: {{ .Values.config.volume.baseDir }}/etc
           - name: certificates
             mountPath: {{ .Values.config.volume.baseDir }}/DATA         
-          - name: gateway-logs
+          - name: {{ .Values.prefix }}-gateway-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
@@ -238,7 +239,7 @@ spec:
             # in case sth went wrong just wait indefinitely ...
             tail -f /dev/null
           volumeMounts:
-          - name: gateway-logs
+          - name: {{ .Values.prefix }}-gateway-logs
             mountPath: {{ .Values.config.volume.baseDir }}/logs
           resources:
             {{- toYaml .Values.config.pod.resources | nindent 12 }}
@@ -248,12 +249,6 @@ spec:
           configMap:
             name: {{ .Values.prefix }}-gateway-conf
             defaultMode: 0777
-        - name: gateway-etc
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-gateway-etc
-        - name: gateway-logs
-          persistentVolumeClaim:
-            claimName: {{ .Values.prefix }}-gateway-logs
         - name: certificates
           emptyDir:
             medium: Memory
@@ -269,3 +264,20 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: {{ .Values.prefix }}-gateway-etc
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeGatewayEtc }}
+    - metadata:
+        name: {{ .Values.prefix }}-gateway-logs
+      spec:
+        storageClassName: {{ .Values.storage.name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.config.pvc.volumeSizeGatewayLogs }}

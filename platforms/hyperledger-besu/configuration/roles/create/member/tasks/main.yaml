@@ -1,0 +1,64 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Execute only for members
+- name: Perform secondary genesis
+  include_role:
+    name: setup/genesis/secondary
+  vars:
+    values_dir: "./build/{{ component_ns }}"
+
+# Creates the Besu node value files for each node of organization
+- name: Create value file for Besu node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ peer.name }}"
+    type: "besu_member"
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: org.services.peers is defined
+  
+# Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing Member node files"
+  when: org.services.peers is defined
+
+# Wait for the last Member to be running
+- name: "Wait for the last member to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    member: "{{ org.services.peers | last }}"
+    label_selectors:
+      - app.kubernetes.io/release = {{ member.name | lower }}
+    component_type: "Pod"
+    component_name: "{{ member.name | lower }}"
+    namespace: "{{ component_ns }}"
+  when: org.services.peers is defined
+
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.services.peers is defined
+
+# Add the enode of new organizations to each of the existing nodes using rpc call only when ambassador is used
+- name: Adding the enode of new peer to all existing peer.
+  include_role: 
+    name: setup/new_member
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - org.services.peers is defined
+    - network.config.besu_nodes is defined
+    - network.env.proxy == 'ambassador'

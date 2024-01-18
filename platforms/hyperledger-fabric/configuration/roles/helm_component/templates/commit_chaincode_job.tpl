@@ -34,13 +34,9 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-{% if org.k8s.cluster_id is defined %}
-      authpath: {{ org.k8s.cluster_id }}{{ namespace | e }}-auth
-{% else %}
-      authpath: {{ network.env.type }}{{ namespace | e }}-auth
-{% endif %}
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
+      authpath: {{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ org.name | lower }}
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ namespace }}/users/admin
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ namespace }}/orderer
       secretpath: {{ vault.secret_path | default('secretsv2') }}
       serviceaccountname: vault-auth
       type: {{ vault.type | default("hashicorp") }}

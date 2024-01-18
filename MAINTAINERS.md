@@ -19,6 +19,7 @@ This is a list of Emeritus maintainers:
 |          Name          |     GitHub Id            |       Area of expertise                     |
 |------------------------|--------------------------|---------------------------------------------|
 | Tracy Kuhrt            | @tkuhrt                  | Architecture                                |
+| Manuel Merino          | @manuemerino             | Architecture                                |
 | Jonathan M Hamilton    | @jonathan-m-hamilton     | Product vision                              |
 
 ## License <a name="license"></a>
