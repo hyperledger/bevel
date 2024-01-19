@@ -62,11 +62,11 @@ spec:
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
       secretprefix: {{ component_name }}
-      certsecretprefix: {{ component_name }}/data/certs
-      dbcredsecretprefix: {{ component_name }}/data/credentials/mongodb
-      secretnetworkmappass: {{ component_name }}/data/credentials/userpassword
-      tlscertsecretprefix: {{ component_name }}/data/tlscerts
-      dbcertsecretprefix: {{ component_name }}/data/certs
+      certsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/certs
+      dbcredsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/mongodb
+      secretnetworkmappass: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/userpassword
+      tlscertsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/tlscerts
+      dbcertsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

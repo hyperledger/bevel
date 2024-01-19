@@ -19,24 +19,6 @@
   tags:
   - notest
 
-# Setup Vault-Kubernetes accesses and Regcred for docker registry
-- name: "Setup vault for nodes"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    name: "{{ node.name | lower }}"
-    org_name: "{{ item.name | lower }}"
-    component_ns: "{{ item.name | lower }}-ns"
-    component_name: "{{ node.name | lower }}-vaultk8s-job"
-    component_auth: "{{ network.env.type }}{{ name }}"
-    component_type: "organization"
-    kubernetes: "{{ item.k8s }}"
-    vault: "{{ item.vault }}"
-    gitops: "{{ item.gitops }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-
 # Generate crypto for nodes
 - name: Generate crypto for nodes
   include_role:
@@ -70,7 +52,7 @@
 # Check if nodekeystore already created
 - name: Check if nodekeystore already created
   shell: |
-    vault kv get -field=nodekeystore.jks {{ node.name }}/certs/nodekeystore
+    vault kv get -field=nodekeystore.jks {{ vault.secret_path | default(name) }}/{{ name }}/{{ node.name }}/certs/nodekeystore
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -89,6 +71,7 @@
     node_type: "node"
     component_type: "job"
     org_name: "{{ item.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     component_name: "{{ node.name }}"
     nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
     nms_domain: "{{ nms_url.split(':')[1] }}"
@@ -120,6 +103,7 @@
     node_type: "node"
     component_type: "node"
     org_name: "{{ item.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     component_name: "{{ node.name }}"
     nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
     nms_domain: "{{ nms_url.split(':')[1] }}"

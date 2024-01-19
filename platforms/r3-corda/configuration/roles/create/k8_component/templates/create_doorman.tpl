@@ -58,11 +58,11 @@ spec:
       role: vault-role
       authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ services.doorman.name }}/data/certs
-      dbcredsecretprefix: {{ services.doorman.name }}/data/credentials/mongodb
-      secretdoormanpass: {{ services.doorman.name }}/data/credentials/userpassword
-      tlscertsecretprefix: {{ services.doorman.name }}/data/tlscerts
-      dbcertsecretprefix: {{ component_name }}/data/certs
+      certsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/certs
+      dbcredsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/mongodb
+      secretdoormanpass: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/userpassword
+      tlscertsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/tlscerts
+      dbcertsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/certs
     healthcheck:
       readinesscheckinterval: 10
       readinessthreshold: 15

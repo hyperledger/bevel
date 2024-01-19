@@ -52,7 +52,7 @@ spec:
       exportJMXTo:
       transactionCacheSizeMegaBytes: 8
       attachmentContentCacheSizeMegaBytes: 10
-      {% if chart == 'notary' %}      
+      {% if chart == 'corda-notary' %}      
       notary:
         validating: {{ node.validating }}
         serviceLegalName: {{ node.serviceName | default() }}
@@ -108,12 +108,12 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: corda{{ component_name }}
+      authpath: {{ component_auth }}
       serviceaccountname: vault-auth
-      dbsecretprefix: {{ component_name }}/data/credentials/database
-      rpcusersecretprefix: {{ component_name }}/data/credentials/rpcusers
-      keystoresecretprefix: {{ component_name }}/data/credentials/keystore
-      certsecretprefix: {{ component_name }}/data/certs
+      dbsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/database
+      rpcusersecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/rpcusers
+      keystoresecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/credentials/keystore
+      certsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name}}/{{ component_name }}/certs
       retries: 10
         
     healthcheck:
