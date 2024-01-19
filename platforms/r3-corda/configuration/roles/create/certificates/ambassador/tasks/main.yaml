@@ -25,7 +25,7 @@
 # Check ambassador tls certs already created
 - name: Check if ambassador tls already created
   shell: |
-    vault kv get -field=tlscacerts {{ component_name }}/tlscerts
+    vault kv get -field=tlscacerts {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -35,7 +35,7 @@
 # Gets the existing ambassador tls certs
 - name: Get ambassador and tls certs from Vault
   shell: |
-    vault kv get -format=yaml {{ component_name }}/tlscerts
+    vault kv get -format=yaml {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -94,7 +94,7 @@
 # Stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
   shell: |
-    vault kv put {{ component_name }}/tlscerts tlscacerts="$(cat {{ ambassadortls }}/ambassador.crt | base64)" tlskey="$(cat {{ ambassadortls }}/ambassador.key | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts tlscacerts="$(cat {{ ambassadortls }}/ambassador.crt | base64)" tlskey="$(cat {{ ambassadortls }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
