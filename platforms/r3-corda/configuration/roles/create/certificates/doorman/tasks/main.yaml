@@ -67,7 +67,7 @@
 # Check if certificates for doorman are already created and stored in vault or not
 - name: Check if root certs already created
   shell: |
-    vault kv get -field=cacerts {{ component_name }}/certs
+    vault kv get -field=cacerts {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -77,7 +77,7 @@
 # Get the existing root certificates if any.
 - name: Get root certs from Vault
   shell: |
-    vault kv get -format=yaml {{ component_name }}/certs
+    vault kv get -format=yaml {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -118,7 +118,7 @@
 # Check if doorman certs already created
 - name: Check if doorman certs already created
   shell: |
-    vault kv get -field=doorman.jks {{ component_name }}/certs > {{ doormanca }}/tempkeys.jks
+    vault kv get -field=doorman.jks {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ doormanca }}/tempkeys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -151,7 +151,7 @@
 # Checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
-    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
+    vault kv get -field=mongoCA.crt  {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -178,7 +178,7 @@
 # checking if mongodb certificate already created
 - name: Check if mongodb certs already created
   shell: |
-    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
+    vault kv get -field=mongodb-{{component_name}}.pem  {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -206,7 +206,7 @@
 # Putting certs to vault for root
 - name: Putting certs to vault for root
   shell: |
-    vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -215,9 +215,9 @@
 # Putting certs and credential to vault for doorman
 - name: Putting certs and credential to vault for doorman
   shell: |
-    vault kv put {{ component_name }}/credentials/userpassword  sa="{{ userpassword_sa }}"
-    vault kv put {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword }}"
-    vault kv put {{ component_name }}/certs doorman.jks="$(cat {{ doormanca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/credentials/userpassword  sa="{{ userpassword_sa }}"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword }}"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs doorman.jks="$(cat {{ doormanca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

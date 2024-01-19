@@ -40,7 +40,7 @@
 # Check if root certs already created
 - name: Check if root certs already created
   shell: |
-    vault kv get -field=cacerts {{ component_name }}/certs
+    vault kv get -field=cacerts {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -50,7 +50,7 @@
 # Get all root certs data from Vault
 - name: Get all root certs data from Vault
   shell: |
-    vault kv get -format=yaml {{ component_name }}/certs
+    vault kv get -format=yaml {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -79,11 +79,11 @@
 - name: Generate CAroot certificate
   shell: |
     cd {{ rootca }}
-    keytool -genkey -keyalg RSA -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
-    openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key
-    openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ cert_subject }}'
-    openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'
-    openssl pkcs12 -export -name key -inkey cordarootca.key -in cordarootca.pem -out cordarootcakey.pkcs12 -passin pass:'changeme' -passout pass:'changeme'
+    eval "keytool -genkey -keyalg RSA -alias key -dname {{ root_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
+    eval "openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key"
+    eval "openssl req -x509 -config {{playbook_dir}}/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ cert_subject }}'"
+    eval "openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'"
+    eval "openssl pkcs12 -export -name key -inkey cordarootca.key -in cordarootca.pem -out cordarootcakey.pkcs12 -passin pass:'changeme' -passout pass:'changeme'"
     eval "yes | keytool -importkeystore -srckeystore cordarootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: nms_root_certs.failed == True and rootca_stat_result.stat.exists == False
@@ -91,7 +91,7 @@
 # Check if networkmap certs already created
 - name: Check if networkmap certs already created
   shell: |
-    vault kv get -field=networkmap.jks  {{ component_name }}/certs > {{ nmsca }}/tempkeys.jks
+    vault kv get -field=networkmap.jks  {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ nmsca }}/tempkeys.jks
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -111,12 +111,12 @@
   shell: |
     cd {{ nmsca }}
     rm keys.jks
-    keytool -genkey -keyalg RSA -alias key -dname {{ nms_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme
-    openssl ecparam -name prime256v1 -genkey -noout -out cordanetworkmap.key
-    openssl req -new -nodes -key cordanetworkmap.key -days 1000 -out cordanetworkmap.csr -subj '/{{ nms_cert_subject }}'
-    openssl x509  -req -days 1000 -in cordanetworkmap.csr -CA {{ rootca }}/cordarootca.pem -CAkey {{ rootca }}/cordarootca.key -out cordanetworkmap.pem -CAcreateserial -CAserial serial -extfile {{playbook_dir}}/openssl.conf -extensions networkMap
-    openssl pkcs12 -export -name cert -inkey cordanetworkmap.key -in cordanetworkmap.pem -out cordanetworkmapcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'
-    openssl pkcs12 -export -name key -inkey cordanetworkmap.key   -in cordanetworkmap.pem -out cordanetworkmapcakey.pkcs12 -passin pass:'changeme' -passout pass:'changeme'
+    eval "keytool -genkey -keyalg RSA -alias key -dname {{ nms_subject | quote }} -keystore keys.jks -storepass changeme -keypass changeme"
+    eval "openssl ecparam -name prime256v1 -genkey -noout -out cordanetworkmap.key"
+    eval "openssl req -new -nodes -key cordanetworkmap.key -days 1000 -out cordanetworkmap.csr -subj '/{{ nms_cert_subject }}'"
+    eval "openssl x509  -req -days 1000 -in cordanetworkmap.csr -CA {{ rootca }}/cordarootca.pem -CAkey {{ rootca }}/cordarootca.key -out cordanetworkmap.pem -CAcreateserial -CAserial serial -extfile {{playbook_dir}}/openssl.conf -extensions networkMap"
+    eval "openssl pkcs12 -export -name cert -inkey cordanetworkmap.key -in cordanetworkmap.pem -out cordanetworkmapcacert.pkcs12 -cacerts -passin pass:'changeme' -passout pass:'changeme'"
+    eval "openssl pkcs12 -export -name key -inkey cordanetworkmap.key   -in cordanetworkmap.pem -out cordanetworkmapcakey.pkcs12 -passin pass:'changeme' -passout pass:'changeme'"
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
     eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass changeme -destkeystore keys.jks -deststorepass changeme"
   when: networkmap_certs.failed == True
@@ -124,7 +124,7 @@
 # Checking root certificates for mongodb
 - name: Check if mongoroot certs already created
   shell: |
-    vault kv get -field=mongoCA.crt  {{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
+    vault kv get -field=mongoCA.crt  {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ mongorootca }}/tempmongoCA.crt
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -158,7 +158,7 @@
 # Checking if mongodb certificate already created
 - name: Check if mongodb certs already created
   shell: |
-    vault kv get -field=mongodb-{{component_name}}.pem  {{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
+    vault kv get -field=mongodb-{{component_name}}.pem  {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs > {{ mongodbca }}/tempmongodb-{{component_name}}.pem
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -186,7 +186,7 @@
 # Putting certs to vault for root
 - name: Putting certs to vault for root
   shell: |
-    vault kv put {{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -195,9 +195,9 @@
 # Putting certs and credential to vault for networkmap
 - name: Putting certs and credential to vault for networkmap
   shell: |
-    vault kv put {{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
-    vault kv put {{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
-    vault kv put {{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/credentials/mongodb  mongodbPassword="{{ mongodbPassword_networkmap }}"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/credentials/userpassword  sa="{{ userpassword_networkmap }}"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/certs networkmap.jks="$(cat {{ nmsca }}/keys.jks | base64)" rootcakey="$(cat {{ rootca }}/keys.jks | base64)" cacerts="$(cat {{ rootca }}/cordarootca.pem | base64)" keystore="$(cat {{ rootca }}/cordarootca.key | base64)" mongodb-{{ component_name }}.pem="$(cat {{ mongodbca }}/mongodb-{{ component_name }}.pem | base64)" mongoCA.crt="$(cat {{ mongorootca }}/mongoCA.crt | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"

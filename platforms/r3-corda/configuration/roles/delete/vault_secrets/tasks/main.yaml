@@ -28,7 +28,7 @@
     loop_var: service
   when: component_type != 'node'
 
-# Delete the Ambassador Creds for CA
+# Delete the Ambassador Creds
 - name: Delete Ambassador creds
   k8s:
     kind: Secret
@@ -44,38 +44,10 @@
   ignore_errors: yes
   changed_when: false
 
-# Delete vault-auth path
-- name: Delete vault-auth path
-  shell: |
-    vault delete sys/auth/corda{{ node.name }}
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: component_type == 'node'
-
 # Delete crypto materials from vault
 - name: Delete Crypto for nodes
   shell: |
-    vault secrets disable {{ node.name }}
+    vault secrets disable {{ item.vault.secret_path | default(item.name) }}
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: component_type == 'node'
-
-# Delete vault policies
-- name: Delete vault policy
-  shell: |
-      vault policy delete vault-crypto-{{ component_name }}-{{ node.name }}-ro
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: component_type == 'node'
