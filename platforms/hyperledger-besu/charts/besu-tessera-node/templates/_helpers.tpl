@@ -58,4 +58,3 @@ Client URL is defaulted to http; tls certificates need to be checked for using h
 {{- $port := .Values.tessera.q2tport | int -}}
 {{- printf "http://%s.%s:%d" $fullname .Release.Namespace $port | quote }}
 {{- end -}}
-{{- end -}}

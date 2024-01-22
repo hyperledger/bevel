@@ -14,7 +14,6 @@ metadata:
   labels:
     app: "{{ include "besu-tlscert-gen.name" . }}"
     app.kubernetes.io/name: "{{ include "besu-tlscert-gen.name" . }}"
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- if $.Values.labels }}
@@ -31,7 +30,6 @@ spec:
       labels:
         app: "{{ include "besu-tlscert-gen.name" . }}"
         app.kubernetes.io/name: "{{ include "besu-tlscert-gen.name" . }}"
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- if $.Values.labels }}
@@ -214,7 +212,7 @@ spec:
                 echo "changeme" > besu-password
                 openssl x509 -in certchain.pem -noout -fingerprint -sha256 > besu-certchain-sha256
                 export DIGEST=$(awk '{print $2}' besu-certchain-sha256 | sed -n 's/Fingerprint=\(.*\)/\1/p')
-                printf '%s\n' "tessera.${COMPONENT_NS}:${TM_CLIENT_PORT} $DIGEST" "${EXTERNAL_URL} $DIGEST" > besu-knownServer
+                printf '%s\n' "tessera-*.${COMPONENT_NS}:${TM_CLIENT_PORT} $DIGEST" "${EXTERNAL_URL} $DIGEST" > besu-knownServer
               fi;
             fi;
             # Create necessary subdirectories for certificate storage
