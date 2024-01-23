@@ -54,7 +54,7 @@ spec:
       serviceaccountname: vault-auth
       keyname: quorum
       role: vault-role
-      authpath: quorum{{ name }}
+      authpath: {{ network.env.type }}{{ name }}
       type: {{ vault.type | default("hashicorp") }}
     genesis: {{ genesis }}
     staticnodes: {{ staticnodes }}
