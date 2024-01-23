@@ -60,7 +60,7 @@ spec:
       keyname: quorum
       tm_keyname: tm
       role: vault-role
-      authpath: quorum{{ name }}
+      authpath: {{ network.env.type }}{{ name }}
       
 {% if network.config.transaction_manager != "none" %}
     tessera:
