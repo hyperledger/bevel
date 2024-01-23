@@ -48,7 +48,7 @@ spec:
       serviceaccountname: vault-auth
       keyname: quorum
       role: vault-role
-      authpath: quorum{{ name }}
+      authpath: {{ network.env.type }}{{ name }}
       type: {{ vault.type | default("hashicorp") }}
     tessera:
       dburl: "jdbc:mysql://{{ peer.name }}-tessera:3306/demodb"
