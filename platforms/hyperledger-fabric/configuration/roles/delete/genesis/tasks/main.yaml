@@ -9,10 +9,21 @@
 #############################################################################################
 
 # Delete BASE 64 encoded genesis blocks for all channels
-- name: Delete genesis block from Vault
+- name: Delete genesis block from Vault for syschannel
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/{{ sys_channel_name }}
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   ignore_errors: yes
+
+# Delete genesis block to Vault
+- name: "Delete genesis block to Vault for app channel"  
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}//{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/{{ channel.channel_name | lower }}
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ network['channels'] }}"
+  loop_control:
+    loop_var: channel
