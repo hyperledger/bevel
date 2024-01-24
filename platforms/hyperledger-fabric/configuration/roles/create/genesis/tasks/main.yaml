@@ -11,6 +11,18 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
+# Set Variable channel_name
+- name: "Set Variable channel_name"
+  set_fact:
+    channel_name: "{{ sys_channel_name }}"
+  when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
+
+# Set Variable channel_name
+- name: "Set Variable channel_name"
+  set_fact:
+    channel_name: "{{ item.channel_name | lower }}"
+  when: add_new_org == 'false' and '2.5.' in network.version 
+
 # Remove old genesis block
 - name: Remove old genesis block
   file:
@@ -24,9 +36,9 @@
     {% if '2.5' in network.version %}
     ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }} -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% elif '2.2' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID {{ sys_channel_name }}  -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% else %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
+    ./configtxgen -profile {{ genesis.name }} -channelID {{ sys_channel_name }} -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
     {% endif %}
     cat ./channel-artifacts/{{ channel_name }}.genesis.block | base64 > ./channel-artifacts/{{ channel_name }}.genesis.block.base64
   when: add_new_org == 'false'

@@ -20,7 +20,7 @@
       # AnchorPeers defines the location of peers which can be used
       # for cross org gossip communication.  Note, this value is only
       # encoded in the genesis block in the Application section context
-{% for peer in  item.services.peers %}
+{% for peer in item.services.peers %}
 {% if peer.type == 'anchor' %}
 {% if provider == 'none' %}
       - Host: {{ peer.name }}.{{ component_ns }}
@@ -33,13 +33,13 @@
 {% endif %}
 {% endfor %}
 {% endif %}
-{% if component_type == 'orderer' %}
+{% if component_type == 'orderer' and '2.5' in network.version  %}
     OrdererEndpoints:
 {% for orderer in orderers %}
 {% if provider == 'none' %}
       - {{ orderer.name }}.{{ orderer.org_name | lower }}-net:7050
 {% else %}
-      - {{ orderer.uri }}
+      - {{ orderer.ordererAddress }}
 {% endif %}
 {% endfor %}
 {% endif %} 

@@ -8,20 +8,12 @@
 # This role creates value file for zkKafka and orderer
 #############################################################################################
 
-
-
-# Set Variable channel_name
-- name: "Set Variable channel_name"
-  set_fact:
-    channel_name: "{{ network['channels'] | map(attribute='channel_name') | first | lower }}"
-  when: item.type == 'orderer' and ('2.2.' in network.version or '1.4.' in network.version)
-
 # Fetch the genesis block from vault to the build directory
 - name: Fetch the genesis block from vault
   shell: |
-    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ item.name | lower }}-net > {{ channel_name}}.genesis.block.base64
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ item.name | lower }}-net > {{ sys_channel_name}}.genesis.block.base64
     mkdir -p ./build/channel-artifacts
-    mv {{ channel_name}}.genesis.block.base64 ./build/channel-artifacts/
+    mv {{ sys_channel_name}}.genesis.block.base64 ./build/channel-artifacts/
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -68,7 +60,7 @@
     component_name: "{{ orderer.name }}-{{ org_name }}"
     type: "orderers"
     consensus: "{{component_services.consensus}}"
-    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name}}.genesis.block.base64') }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ sys_channel_name }}.genesis.block.base64') }}"
   loop: "{{ component_services.orderers }}"
   loop_control:
     loop_var: orderer

@@ -111,17 +111,6 @@
     VAULT_TOKEN: "{{ item.vault.root_token }}"
   ignore_errors: yes
 
-# Delete genesis block to Vault
-- name: "Delete genesis block to Vault"  
-  shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/{{ channel.channel_name | lower }}
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ network['channels'] }}"
-  loop_control:
-    loop_var: channel
-
 # Delete crypto materials from vault
 - name: Delete Crypto for users
   shell: |
