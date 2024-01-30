@@ -1,0 +1,164 @@
+---
+
+app:
+  config:
+    genesisFile: 'ledgers.yaml'
+    ## non-empty value is REQUIRED for genesisURL
+    genesisURL: ''
+    mountPath: '/home/indy'
+    networkName: 'NETWORK_NAME'
+  debugEnable: false
+  env: 'dev'
+  group: 'vc-authn-oidc'
+  name: 'vc-authn-oidc'
+  role: 'agent'
+
+controller:
+  role: 'controller'
+  webhookBaseURL: ''
+
+deploy:
+  image:
+    name: 'ghcr.io/hyperledger/aries-cloudagent-python'
+    ## Modify aca-py agent version: 
+    tag: 'py3.9-0.9.0'
+  name:
+    prefix: 'aries-agent'
+    suffix: ''
+
+ingress:
+  annotations: {}
+  className: ""
+  ## enable creation of the Ingress resource by setting
+  ## ingress.hosts to a non-empty list of public (host) URLs
+  hosts: []
+  #  - host: chart-example.local
+  #    paths:
+  #      - path: /
+  #        pathType: ImplementationSpecific
+  namespace: 'istio-ingress'
+  route:
+    timeout: '120s'
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+logLevel: 'WARNING'
+
+resources:
+  limits:
+    cpu: '300m'
+    memory: '512Mi'
+  requests:
+    cpu: '10m'
+    memory: '10Mi'
+
+service:
+  nameOverride: ''
+  holder:
+    endpoint: 'http://aries-agent-holder.agent:8002'
+    label: 'Holder'
+    ports:
+      admin: '8002'
+      http: '8001'
+    replicas:
+      min: '2'
+      max: '4'
+  issuer:
+    endpoint: 'http://aries-agent-issuer.agent:7002'
+    label: 'Issuer'
+    ports:
+      admin: '7002'
+      http: '7001'
+    replicas:
+      min: '2'
+      max: '4'
+  verifier:
+    endpoint: 'http://aries-agent-verifier.agent:7004'
+    label: 'Verifier'
+    ports:
+      admin: '7004'
+      http: '7003'
+    replicas:
+      min: '2'
+      max: '4'
+
+tails:
+  ## ex. 'http://tails-server:6543'
+  ##
+  ## non-empty value is REQUIRED for tails.serverBaseURL
+  serverBaseURL: ''
+
+wallet:
+  databaseAdminUser: 'root'
+  holder:
+    apiKeySecret:
+      ## non-empty value is REQUIRED
+      admin: ''
+      ## non-empty value is REQUIRED
+      webhookJWT: ''
+    credentialSecret:
+      ## non-empty value is REQUIRED
+      seed: ''
+      ## non-empty value is REQUIRED
+      did: ''
+      ## non-empty value is REQUIRED
+      verkey: ''
+    credentialStoreName: 'agent_holder'
+    databaseSecret:
+      ## non-empty value is REQUIRED
+      adminPassword: ''
+      ## non-empty value is REQUIRED
+      databasePassword: ''
+      ## non-empty value is REQUIRED
+      databaseUser: ''
+      ## non-empty value is REQUIRED
+      databaseName: ''
+  ## non-empty value is REQUIRED
+  host: ''
+  issuer:
+    ## non-empty value is REQUIRED
+    apiKeySecret:
+      admin: ''
+    credentialSecret:
+      ## non-empty value is REQUIRED
+      seed: ''
+      ## non-empty value is REQUIRED
+      did: ''
+      ## non-empty value is REQUIRED
+      verkey: ''
+    credentialStoreName: 'agent_issuer'
+    databaseSecret:
+      ## non-empty value is REQUIRED
+      adminPassword: ''
+      ## non-empty value is REQUIRED
+      databasePassword: ''
+      ## non-empty value is REQUIRED
+      databaseUser: ''
+      ## non-empty value is REQUIRED
+      databaseName: ''
+  port: '5432'
+  storageType: 'postgres_storage'
+  verifier:
+    ## non-empty value is REQUIRED
+    apiKeySecret:
+      admin: ''
+    credentialSecret:
+      ## non-empty value is REQUIRED
+      seed: ''
+      ## non-empty value is REQUIRED
+      did: ''
+      ## non-empty value is REQUIRED
+      verkey: ''
+    credentialStoreName: 'agent_verifier'
+    databaseSecret:
+      ## non-empty value is REQUIRED
+      adminPassword: ''
+      ## non-empty value is REQUIRED
+      databasePassword: ''
+      ## non-empty value is REQUIRED
+      databaseUser: ''
+      ## non-empty value is REQUIRED
+      databaseName: ''
+

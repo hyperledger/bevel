@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aries-agent.issuer.name" . }}
+  labels:
+    {{- include "aries-agent.issuer.labelsWithName" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "aries-agent.issuer.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      name: {{ include "aries-agent.issuer.name" . }}
+      labels:
+        {{- include "aries-agent.issuer.labelsWithName" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "aries-agent.issuer.name" . }}
+          command:
+            # Note:
+            #  - The wallet-name cannot contain '-'s.
+            - bash
+            - -c
+            {{- include "aries-agent.issuer.command" . | nindent 12 }}
+          env:
+            {{- include "aries-agent.issuer.env" . | nindent 12 }}
+          image: {{ include "aries-agent.image" . }}
+          imagePullPolicy: IfNotPresent
+          {{- include "aries-agent.probe.liveness" . | nindent 10 }}
+          ports:
+            - containerPort: {{ int .Values.service.issuer.ports.admin }}
+              protocol: TCP
+            - containerPort: {{ int .Values.service.issuer.ports.http }}
+              protocol: TCP
+          {{- include "aries-agent.probe.readiness" . | nindent 10 }}
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts: []
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes: []
+

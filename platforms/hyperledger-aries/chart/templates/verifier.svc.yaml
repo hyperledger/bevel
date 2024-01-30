@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aries-agent.verifier.name" . }}
+  labels:
+    {{- include "aries-agent.verifier.labelsWithName" . | nindent 4 }}
+spec:
+  ports:
+    - name: {{ include "aries-agent.verifier.name" . }}-admin
+      port: {{ int .Values.service.verifier.ports.admin }}
+      protocol: TCP
+      targetPort: {{ int .Values.service.verifier.ports.admin }}
+    - name: {{ include "aries-agent.verifier.name" . }}-http
+      port: {{ int .Values.service.verifier.ports.http }}
+      protocol: TCP
+      targetPort: {{ int .Values.service.verifier.ports.http }}
+  selector:
+    {{- include "aries-agent.verifier.selectorLabels" . | nindent 4 }}
