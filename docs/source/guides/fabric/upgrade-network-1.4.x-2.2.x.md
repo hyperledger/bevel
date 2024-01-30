@@ -45,9 +45,10 @@ Update the network network.yaml [here](https://github.com/hyperledger/bevel/tree
 	a. Set the required version tag under `network.version` for upgrading the base images of CA, orderer and peer.
 	b. Add the upgrade flag to true
 	For example:
-		network:
-	  		version: 2.2.2
-			upgrade: true	
+
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:8:16"
+```
 
 Note: The network.yaml should reflect the entire network which requires to be upgraded
 

@@ -34,17 +34,17 @@ For example, for Fabric v1.4.8, these are the image tags of the supporting docke
 The network.yaml [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) should be updated with the required version tag under `network.version` for upgrading the base images of CA, orderer and peer.
 For example:
 
-
-	network:
-	  version: 1.4.8
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:8:16"
+```
 
 2 files need to be edited in order to support version change for kafka, zookeeper and couchDB 
 
 | File                                                                                                                                                                            | Fabric entity | Key                     |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|-------------------------|
-| [orderer vars](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/orderers/vars/main.yaml) | kafka         | kafka_image_version     |
-| [orderer vars](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/orderers/vars/main.yaml) | zookeeper     | zookeeper_image_version |
-| [peer vars](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/roles/create/peers/vars/main.yaml)       | couchDB       | couchdb_image_version   |
+| [orderer vars](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/roles/helm_component/vars/main.yaml#L35) | kafka         | kafka_image     |
+| [orderer vars](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/roles/helm_component/vars/main.yaml#L36) | zookeeper     | zookeeper_image |
+| [peer vars](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/roles/helm_component/vars/main.yaml#L53)       | couchDB       | couchdb_image   |
 
 ## Executing Ansible playbook
 The playbook [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml) ([ReadMe](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/)) can be run after the configuration file (for example: [network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) for Fabric) has been updated.
