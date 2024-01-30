@@ -4,64 +4,66 @@
 [//]: # (##############################################################################################)
 
 # Configuration file specification: Hyperledger-Fabric
-A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. Below shows its structure.
-![](./../_static/TopLevelClass-Fabric.png)
+A network.yaml file is the base configuration file designed in Hyperledger Bevel for setting up a Fabric DLT network. This file contains all the information related to the infrastructure and network specifications. 
 
-Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.
 
-A sample configuration file is provided in the repo path:  
-`platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml` 
+??? note "Schema Definition"
 
-A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
+    A json-schema definition is provided in `platforms/network-schema.json` to assist with semantic validations and lints. You can use your favorite yaml lint plugin compatible with json-schema specification, like `redhat.vscode-yaml` for VSCode. You need to adjust the directive in template located in the first line based on your actual build directory:
 
-`# yaml-language-server: $schema=../platforms/network-schema.json`
+    `# yaml-language-server: $schema=../platforms/network-schema.json`
 
 The configurations are grouped in the following sections for better understanding.
 
-* type
+* [type](#type)
 
-* version
+* [version](#version)
 
-* docker
+* [frontend](#frontend)
 
-* frontend
+* [env](#env)
 
-* env
+* [frontend](#frontend)
 
-* consensus
+* [docker](#docker)
 
-* orderers
+* [consensus](#consensus)
 
-* channels
+* [orderers](#orderers)
 
-* organizations
+* [channels](#channels)
 
-Here is the snapshot from the sample configuration file
+* [organizations](#organizations)
 
-![](./../_static/NetworkYamlFabric1.png)
 
-The sections in the sample configuration file are:  
+Before setting up a Fabric DLT/Blockchain network, this file needs to be updated with the required specifications.
 
-`type` defines the platform choice like corda/fabric, here in the example its Fabric
+Use this [sample configuration file](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml) as a base. 
 
-`version` defines the version of platform being used. The current Fabric version support is 1.4.8, 2.2.2 & 2.5.4
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:7:14"
+```
 
-`frontend` is a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
+<a name="type"></a>
+type
+: `type` defines the platform choice like corda/fabric/quorum, here in the example its **Fabric**.
 
-`env` section contains the environment type. Value for proxy field under this section can be 'none' or 'haproxy'
+<a name="version"></a>
+version
+: `version` defines the version of platform being used. The current Fabric version support is 1.4.8, 2.2.2 & 2.5.4
+
+<a name="frontend"></a>
+frontend
+: `frontend` s a flag which defines if frontend is enabled for nodes or not. Its value can only be enabled/disabled. This is only applicable if the sample Supplychain App is being installed.
+
+<a name="env"></a>
+env
+: `env` section contains the environment type. Value for proxy field under this section can be 'none' or 'haproxy'
 
 The snapshot of the `env` section with example value is below
-```yaml 
-  env:
-    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy                  # values can be 'haproxy' or 'none'
-    retry_count: 100                # Retry count for the checks
-    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
-    annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
-      service: 
-       - example1: example2
-      deployment: {} 
-      pvc: {}
+
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:19:28"
 ```
 The fields under `env` section are 
 
@@ -73,18 +75,17 @@ The fields under `env` section are
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 |annotations| Use this to pass additional annotations to the `service`, `deployment` and `pvc` elements of Kubernetes|
 
-`docker` section contains the credentials of the repository where all the required images are built and stored.
+
+<a name="docker"></a>
+docker
+: `docker` section contains the credentials of the container registry where all the required images are stored.
 
 The snapshot of the `docker` section with example values is below
+
 ```yaml
-  # Docker registry details where images are stored. This will be used to create k8s secrets
-  # Please ensure all required images are built and stored in this registry.
-  # Do not check-in docker_password.
-  docker:
-    url: "docker_url"
-    username: "docker_username"
-    password: "docker_password"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:34:40"
 ```
+
 The fields under `docker` section are
 
 | Field    | Description                            |
@@ -97,43 +98,30 @@ The fields under `docker` section are
     
     Please follow [these instructions](../getting-started/configure-prerequisites.md#docker) to build and store the docker images before running the Ansible playbooks.
 
-`consensus` section contains the consensus service that uses the orderers provided in the following `orderers` section.
+<a name="consensus"></a>
+consensus
+: `consensus` section contains the consensus service that uses the orderers provided in the following `orderers` section.
 
 ```yaml
-  consensus:
-    name: raft
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:44:45"
 ```
+
 The fields under the each `consensus` are
 
 | Field       | Description                                              |
 |-------------|----------------------------------------------------------|
-| name                     | Name of the Consensus service. Can be `raft` or `kafka`.      |
+| name        | Name of the Consensus service. Can be `raft` or `kafka`. |
 
-`orderers` section contains a list of orderers with variables which will expose it for the network.
+<a name="orderers"></a>
+orderers
+: `orderers` section contains a list of orderers with variables which will expose it for the network.
 
 The snapshot of the `orderers` section with example values is below
+
 ```yaml
-  # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
-  orderers:
-    - orderer:
-      type: orderer
-      name: orderer1
-      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
-    - orderer:
-      type: orderer
-      name: orderer2
-      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
-    - orderer:
-      type: orderer
-      name: orderer3
-      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer3.org1ambassador.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:46:64"
 ```
+
 The fields under the each `orderer` are
 
 | Field       | Description                                              |
@@ -144,96 +132,17 @@ The fields under the each `orderer` are
 | uri         | Orderer URL which is accessible by all Peers. This must include the port even when running on 443                                              |
 | certificate | Path to orderer certificate. For inital network setup, ensure that the directory is present, the file need not be present. For adding a new organization, ensure that the file is the crt file of the orderer of the existing network. |
 
-The `channels` sections contains the list of channels mentioning the participating peers of the organizations.
+
+<a name="channels"></a>
+channels
+: The `channels` sections contains the list of channels mentioning the participating peers of the organizations.
 
 The snapshot of channels section with its fields and sample values is below
 
 ```yaml
-    # The channels defined for a network with participating peers in each channel
-  channels:
-  - channel:
-    consortium: SupplyChainConsortium
-    channel_name: AllChannel
-    osn_creator_org: 
-      name: supplychain
-    chaincodes:
-      - "chaincode_name"
-    orderers: 
-      - supplychain
-    participants:
-    - organization:
-      name: carrier
-      type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
-      org_status: new
-      peers:
-      - peer:
-        name: peer0
-        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
-        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
-    - organization:      
-      name: store
-      type: joiner        # joiner organization will only join the channel and install chaincode
-      org_status: new
-      peers:
-      - peer:
-        name: peer0
-        gossipAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443
-        peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
-    - organization:
-      name: warehouse
-      type: joiner
-      org_status: new
-      peers:
-      - peer:
-        name: peer0
-        gossipAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443
-        peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
-    - organization:
-      name: manufacturer
-      type: joiner
-      org_status: new
-      peers:
-      - peer:
-        name: peer0
-        gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443
-        peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
-    endorsers:
-      # Only one peer per org required for endorsement
-    - organization:
-      name: carrier
-      peers:
-      - peer:
-        name: peer0
-        corepeerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443
-        certificate: "/path/ca.crt" # certificate path for peer
-    - organization:
-      name: warehouse
-      peers:
-      - peer:
-        name: peer0
-        corepeerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:443
-        certificate: "/path/ca.crt" # certificate path for peer
-    - organization:
-      name: manufacturer
-      peers:
-      - peer:
-        name: peer0
-        corepeerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:443
-        certificate: "/path/ca.crt" # certificate path for peer
-    - organization:
-      name: store
-      peers:
-      - peer:
-        name: peer0
-        corepeerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:443
-        certificate: "/path/ca.crt" # certificate path for peer     
-    genesis:
-      name: OrdererGenesis
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:66:149"
 ```
+
 The fields under the `channel` are
 
 | Field                           | Description                                                |
@@ -269,28 +178,20 @@ Each `organization` field under `endorsers` field of the channel contains the fo
 | peer.corepeerAddress | Endorsers addresses, including port                                                    |
 | peer.certificate     | Certificate path for peer                                             |
 
-The `organizations` section contains the specifications of each organization.  
+
+
+<a name="organizations"></a>
+organizations
+: The `organizations` section contains the specifications of each organization.  
 
 In the sample configuration example, we have five organization under the `organizations` section
 
 The snapshot of an organization field with sample values is below
+
 ```yaml
-  organizations:
-    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
-    - organization:
-      name: supplychain
-      country: UK
-      state: London
-      location: London
-      subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
-      type: orderer
-      external_url_suffix: org1ambassador.blockchaincloudpoc.com
-      org_status: new
-      ca_data:
-        url: ca.supplychain-net:7054
-        certificate: file/server.crt        # This has not been implemented 
-      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:154:171"
 ```
+
 Each `organization` under the `organizations` section has the following fields. 
 
 | Field                                    | Description                                 |
@@ -313,16 +214,9 @@ Each `organization` under the `organizations` section has the following fields.
 | services                                    | Contains list of services which could ca/peer/orderers/concensus based on the type of organization |
 
 For the aws and k8s field the snapshot with sample values is below
+
 ```yaml
-      aws:
-        access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
-        secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
-  
-      # Kubernetes cluster deployment variables.
-      k8s:        
-        region: "<k8s_region>"
-        context: "<cluster_context>"
-        config_file: "<path_to_k8s_config_file>"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:172:181"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not 'aws')
@@ -341,19 +235,9 @@ The `k8s` field under each organization contains
 | config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
 For gitops fields the snapshot from the sample configuration file with the example values is below
+
 ```yaml
-      # Git Repo details which will be used by GitOps/Flux.
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
-        branch: "<branch_name>"                                                  # Git branch where release is being made
-        release_dir: "platforms/hyperledger-fabric/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-fabric/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git" # without https://
-        username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
-        email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:189:201"
 ```
 
 The gitops field under each organization contains
@@ -372,15 +256,11 @@ The gitops field under each organization contains
 | private_key                          | Path to the private key file which has write-access to the git repo (Optional for https; Required for ssh)       |
 
 For Hyperledger Fabric, you can also generate different user certificates and pass the names and attributes in the specific section for `users`. This is only applicable if using Fabric CA. An example is below:
+
 ```yaml
-      # Generating User Certificates with custom attributes using Fabric CA in BAF for Peer Organizations
-      users:
-      - user:
-        identity: user1
-        attributes:
-          - key: "hf.Revoker"
-            value: "true"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:288:294"
 ```
+
 The fields under `user` are
 
 | Field       | Description                                              |
@@ -392,17 +272,11 @@ The fields under `user` are
 The services field for each organization under `organizations` section of Fabric contains list of `services` which could be ca/orderers/consensus/peers based on if the type of organization. 
 
 Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
+
 ```yaml
-      # Services maps to the pods that will be deployed on the k8s cluster
-      # This sample is an orderer service and includes a zk-kafka consensus
-      services:
-        ca:
-          name: ca
-          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net"
-          type: ca
-          grpc:
-            port: 7054
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:203:211"
 ```
+
 The fields under `ca` service are
 
 | Field       | Description                                              |
@@ -414,44 +288,11 @@ The fields under `ca` service are
 
 
 Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
+
 ```yaml
-        peers:
-        - peer:
-          name: peer0          
-          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
-          gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
-          peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          certificate: /path/manufacturer/peer0.crt # Path to peer Certificate
-          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled)
-          configpath: /path/to/peer0-core.yaml  # path to custom core.yaml tag.         
-          grpc:
-            port: 7051         
-          events:
-            port: 7053
-          couchdb:
-            port: 5984
-          restserver:           # This is for the rest-api server
-            targetPort: 20001
-            port: 20001 
-          expressapi:           # This is for the express api server
-            targetPort: 3000
-            port: 3000
-          chaincodes:
-            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
-              version: "chaincode_version" #This has to be replaced with the version of the chaincode
-              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
-              repository:
-                username: "git_username"          # Git Service user who has rights to check-in in all branches
-                password: "git_access_token"
-                url: "github.com/hyperledger/bevel.git"
-                branch: develop
-                path: "chaincode_src"   #The path to the chaincode 
-              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
-              endorsements: "" #Endorsements (if any) provided along with the chaincode
-          metrics:
-            enabled: true     # Enable/disable metrics collector for prometheus
-            port: 9443        # metrics port - internal to the cluster 
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:304:338"
 ```
+
 The fields under `peer` service are
 
 | Field       | Description                                              |
@@ -495,14 +336,11 @@ The chaincodes section contains the list of chaincode for the peer, the fields u
 | crypto_mount_path | Required only when `tls: true`, the path where the crypto materials will be stored |
 
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
+
 ```yaml
-        consensus:
-          name: raft
-          type: broker        #This field is not consumed for raft consensus
-          replicas: 4         #This field is not consumed for raft consensus
-          grpc:
-            port: 9092        #This field is not consumed for raft consensus
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:213:214"
 ```
+
 The fields under `consensus` service are
 
 | Field       | Description                                              |
@@ -513,35 +351,11 @@ The fields under `consensus` service are
 | grpc.port                 | Only for `kafka`. Grpc port of consensus service |
 
 The organization with orderer type will have orderers service. The snapshot of orderers service with example values is below
+
 ```yaml
-        orderers:
-        # This sample has multiple orderers as an example.
-        # You can use a single orderer for most production implementations.
-        - orderer:
-          name: orderer1
-          type: orderer
-          consensus: raft
-          grpc:
-            port: 7050
-          ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:443
-        - orderer:
-          name: orderer2
-          type: orderer
-          consensus: raft
-          grpc:
-            port: 7050
-          ordererAddress: orderer2.org1ambassador.blockchaincloudpoc.com:443
-        - orderer:
-          name: orderer3
-          type: orderer
-          consensus: raft
-          grpc:
-            port: 7050
-          ordererAddress: orderer3.org1ambassador.blockchaincloudpoc.com:443
-          metrics:
-            enabled: true     # Enable/disable metrics collector for prometheus
-            port: 9443        # metrics port - internal to the cluster 
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:215:239"
 ```
+
 The fields under `orderer` service are
 
 | Field       | Description                                              |

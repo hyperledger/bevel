@@ -143,33 +143,7 @@ While modifying the configuration file (`network.yaml`), the following two secti
     - `crypto_mount_path`: If TLS is enabled, path to mount TLS certs and key in the chaincode server pod
 
 ```yaml
-    network:
-      channels:
-      - channel:
-        ..
-        ..
-        participants:
-      organizations:
-        - organization:
-          services:
-            peers:
-              name:
-              type: 
-              gossippeeraddress:
-              cli:
-              grpc:
-                port: 
-              chaincodes:
-                - name: "assettransfer" #This has to be replaced with the name of the chaincode
-                  version: "1" #This has to be replaced with the version of the chaincode
-                  external_chaincode: true
-                  tls: true
-                  buildpack_path: /home/bevel/fabric-samples/asset-transfer-basic/chaincode-external/sampleBuilder
-                  image: ghcr.io/hyperledger/bevel-samples-example:1.0
-                  arguments: '\"InitLedger\",\"\"' #Arguments to be passed along with the chaincode parameters
-                  crypto_mount_path: /crypto  # OPTIONAL | tls: true | Path where crypto shall be mounted for the chaincode server
-          ..
-          .. 
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-external-chaincode.yaml:289:319"
 ```
 
 ## Execute playbook

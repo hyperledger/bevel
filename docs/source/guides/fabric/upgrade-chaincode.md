@@ -6,12 +6,11 @@
 <a name = "upgrading-chaincode"></a>
 # Upgrading chaincode in Hyperledger Fabric
 
-- [Upgrading chaincode in Hyperledger Fabric](#upgrading-chaincode-in-hyperledger-fabric)
-  - [Pre-requisites](#pre-requisites)
-  - [Modifying configuration file](#modifying-configuration-file)
-  - [Run playbook for Fabric version 1.4.x](#run-playbook-for-fabric-version-14x)
-  - [Run playbook for Fabric version 2.2.x](#run-playbook-for-fabric-version-22x)
-  - [Run playbook for Fabric version 2.2.x with external chaincode](#run-playbook-for-fabric-version-22x-with-external-chaincode)
+- [Pre-requisites](#pre-requisites)
+- [Modifying configuration file](#modifying-configuration-file)
+- [Run playbook for Fabric version 1.4.x](#run-playbook-for-fabric-version-14x)
+- [Run playbook for Fabric version 2.2.x](#run-playbook-for-fabric-version-22x)
+- [Run playbook for Fabric version 2.2.x with external chaincode](#run-playbook-for-fabric-version-22x-with-external-chaincode)
 
 <a name = "pre_req"></a>
 ## Pre-requisites
@@ -26,35 +25,12 @@ The `network.yaml` file should contain the specific `network.organizations.servi
 
 For reference, following snippet shows that section of `network.yaml`
 
-```
----
-network:
-  ..
-  ..
-  organizations:
-    - organization:
-      name: manufacturer
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:242:248"
       ..
-      .. 
-      services:
-        peers:
-        - peer:
-          name: peer0          
-          ..
-          chaincodes:
-            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
-              version: "chaincode_version" # This has to be greater than the current version, should be an integer.
-              sequence: "2" # sequence of the chaincode, update this only for chaincode upgrade depending on the last sequence
-              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
-              lang: "java" # The chaincode language, optional field with default vaule of 'go'.
-              repository:
-                username: "git_username"          # Git Service user who has rights to check-in in all branches
-                password: "git_access_token"
-                url: "github.com/hyperledger/bevel.git"
-                branch: develop
-                path: "chaincode_src"   #The path to the chaincode 
-              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
-              endorsements: "" #Endorsements (if any) provided along with the chaincode
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:297:297"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:304:338"
 ```
 
 When the chaincode is an external service, `network.organizations.services.peers.chaincodes[*].upgrade_chaincode` variable must also be added to change the version. If only the sequence is modified, it isn't necessary to add this field.
@@ -63,32 +39,12 @@ The sequence must be incremented in each execution regardless of whether the ver
 
 For reference, following snippet shows that section of `network.yaml`
 
-```
----
-network:
-  ..
-  ..
-  organizations:
-    - organization:
-      name: manufacturer
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-external-chaincode.yaml:227:233"
       ..
-      .. 
-      services:
-        peers:
-        - peer:
-          name: peer0          
-          ..
-          chaincodes:
-            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
-              version: "2" #This has to be replaced with the version of the chaincode
-              sequence: "2"
-              external_chaincode: true
-              upgrade_chaincode: true 
-              tls: true
-              buildpack_path: /home/fabric-samples/asset-transfer-basic/chaincode-external/sampleBuilder  # The path where buildpacks are locally stored
-              image: ghcr.io/hyperledger/bevel-samples-example:1.0
-              arguments: '\"InitLedger\",\"\"' # Init Arguments to be passed which will mark chaincode as init-required
-              crypto_mount_path: /crypto  # OPTIONAL | tls: true | Path where crypto shall be mounted for the chaincode server
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-external-chaincode.yaml:282:282"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-external-chaincode.yaml:289:321"
 ```
 
 <a name = "run_network"></a>

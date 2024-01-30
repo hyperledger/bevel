@@ -7,9 +7,8 @@
 # Adding a new Orderer organization in Hyperledger Fabric
 
 - [Prerequisites](#prerequisites)
-- [Modifying configuration file](#create_config_file)
-- [Running playbook to deploy Hyperledger Fabric network](#run_network)
-
+- [Modifying Configuration File](#modifying-configuration-file)
+- [Run playbook](#run-playbook)
 
 <a name = "prerequisites"></a>
 ## Prerequisites
@@ -17,7 +16,7 @@ To add a new Orderer organization, a fully configured Fabric network must be pre
 
 ---
 **NOTE**: Addition of a new Orderer organization has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
-Addition of new Orderer organization only works with Fabric 2.2.2 and RAFT Service.
+Addition of new Orderer organization only works with Fabric 2.2.2, 2.5.4 and RAFT Service.
 
 ---
 
@@ -28,38 +27,26 @@ Refer [this guide](../networkyaml-fabric.md) for details on editing the configur
 
 While modifying the configuration file(`network.yaml`) for adding new orderer organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
 
-    network:
-      channels:
-      - channel:
-        ..
-        ..
-        participants:
-        - organization:
-          ..
-          ..
-          org_status: new  # new for new organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-ordererorg.yaml:64:138"
+```
 
 and under `network.organizations` as
 
-    network:
-      organizations:
-        - organization:
-          ..
-          ..
-          org_status: new  # new for new organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-ordererorg.yaml:145:154"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-ordererorg.yaml:230:239"
+      ..
+      ..
+```
 
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-add-ordererorg.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/add-orderer-organization.yaml).
+For reference, see `network-fabric-add-ordererorg.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabric-add-ordererorg.yaml).
 
 <a name = "run_network"></a>
 ## Run playbook

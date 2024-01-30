@@ -27,9 +27,17 @@ Due to open issues with bevel-operator-fabric, it is not recommended for Product
 A Sample configuration file for deploying using bevel-operator-fabric is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-operator-fabric.yaml). Following are the main changes in this file from previous versions:
 
 1. `network.env.type` must be `operator`. This is how Ansible will understand that bevel-operator-fabric will be used.
-1.  `network.env.proxy` must be `istio` as no other proxy is supported by bevel-operator-fabric.
-1. Only `443` is supported as external port because that is what bevel-operator-fabric supports.
-1. `vault` and `gitops` sections are removed as they are not applicable.
+2.  `network.env.proxy` must be `istio` as no other proxy is supported by bevel-operator-fabric.
+3. Only `443` is supported as external port because that is what bevel-operator-fabric supports.
+4. `vault` and `gitops` sections are removed as they are not applicable.
+
+
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-operator-fabric.yaml:8:21"
+    ..
+    .. 
+```
+
 
 For generic instructions on the Fabric configuration file, refer [this guide](../networkyaml-fabric.md).
 
@@ -44,7 +52,7 @@ ansible-playbook platforms/shared/configuration/site.yaml -e "@./build/network.y
 ```
 The `site.yaml` playbook, in turn calls various playbooks depending on the configuration file and sets up your DLT/Blockchain network.
 
-The [deploy-fabric-console.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/deploy-operator-network.yaml) playbook can be used as well if the pre-requisites like Istio and krew is already installed. This can be done using the following command
+The [deploy-operator-network.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/deploy-operator-network.yaml) playbook can be used as well if the pre-requisites like Istio and krew is already installed. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/deploy-operator-network.yaml -e "@/path/to/network.yaml"

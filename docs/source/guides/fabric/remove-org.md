@@ -6,9 +6,9 @@
 <a name = "removing-org-from-existing-network-in-fabric"></a>
 # Removing an organization in Hyperledger Fabric
 
-  - [Prerequisites](#prerequisites)
-  - [Modifying Configuration File](#modifying-configuration-file)
-  - [Run playbook](#run-playbook)
+- [Prerequisites](#prerequisites)
+- [Modifying Configuration File](#modifying-configuration-file)
+- [Run playbook](#run-playbook)
 
 
 <a name = "prerequisites"></a>
@@ -27,43 +27,30 @@ Refer [this guide](../networkyaml-fabric.md) for details on editing the configur
 
 While modifying the configuration file(`network.yaml`) for removing an organization, all the existing organizations should have `org_status` tag as `existing` and to be deleted organization should have `org_status` tag as `delete` under `network.channels` e.g.
 
-    network:
-      channels:
-      - channel:
-        ..
-        ..
-        participants:
-        - organization:
-          ..
-          ..
-          org_status: delete  # delete for to be deleted organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-remove-organization.yaml:62:112"
+```
 
 and under `network.organizations` as
 
-    network:
-      organizations:
-        - organization:
-          ..
-          ..
-          org_status: delete  # delete for to be deleted organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-remove-organization.yaml:117:128"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-remove-organization.yaml:381:389"
+      ..
+      ..
+```
 
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabric-remove-organization.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabric-remove-organization.yaml).
 
 <a name = "run_network"></a>
 ## Run playbook
 
-The [remove-organization.yaml](https://github.com/hyperledger/bevel/platforms/hyperledger-fabric/configuration/remove-organization.yaml) playbook is used to remove organization(s) from the existing network. This can be done using the following command
+The [remove-organization.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/remove-organization.yaml) playbook is used to remove organization(s) from the existing network. This can be done using the following command
 
 ```
 ansible-playbook platforms/hyperledger-fabric/configuration/remove-organization.yaml --extra-vars "@path-to-network.yaml"

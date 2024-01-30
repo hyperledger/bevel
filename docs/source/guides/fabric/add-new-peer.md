@@ -24,51 +24,30 @@ To add a new peer a fully configured Fabric network must be present already, i.e
 <a name = "modifying-configuration-file"></a>
 ## Modifying Configuration File
 
-A Sample configuration file for adding new peer is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv-add-peer.yaml). Please go through this file and all the comments there and edit accordingly.
+A Sample configuration file for adding new peer is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml). Please go through this file and all the comments there and edit accordingly.
 
 For generic instructions on the Fabric configuration file, refer [this guide](../networkyaml-fabric.md).
 
 While modifying the configuration file(`network.yaml`) for adding new peer, all the existing peers should have `peerstatus` tag as `existing` and the new peers should have `peerstatus` tag as `new` under `network.channels` e.g.
 
-    network:
-      channels:
-      - channel:
-        ..
-        ..
-        participants:
-        - organization:
-          peers:
-          - peer:
-            ..
-            ..
-            peerstatus: new  # new for new peers(s)
-            gossipAddress: peer0.xxxx.com # gossip Address must be one existing peer
-          - peer:
-            ..
-            ..
-            peerstatus: existing  # existing for existing peers(s)
-          
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:60:87"
+```
 
 and under `network.organizations` as
 
-    network:
-      organizations:
-        - organization:
-          org_status: existing  # org_status must be existing when adding peer
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:94:103"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:144:144"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:153:159"
           ..
           ..
-          services:
-            peers:
-            - peer:
-              ..
-              ..
-              peerstatus: new   # new for new peers(s)
-              gossipAddress: peer0.xxxx.com # gossip Address must be one existing peer
-            - peer:
-              ..
-              ..
-              peerstatus: existing   # existing for existing peers(s)
-            
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:187:192"
+          ..
+          ..
+```
 
 The `network.yaml` file should contain the specific `network.organization` details. Orderer information is needed if you are going to install/upgrade the existing chaincodes, otherwise it is not needed. And the `org_status` must be `existing` when adding peer.
 
@@ -100,8 +79,8 @@ ansible-playbook platforms/hyperledger-fabric/configuration/add-peer.yaml --extr
 Use the same network.yaml if you need to install chaincode on the new peers.
 
 ---
-**NOTE:** With Fabric 2.2 chaincode lifecyle, re-installing chaincode on new peer is not needed as when the blocks are synced, the new peer will have access to already committed chaincode. If still needed, you can upgrade the version of the chaincode and install on all peers.
+**NOTE:** With Fabric 2.2 and 2.5 chaincode lifecyle, re-installing chaincode on new peer is not needed as when the blocks are synced, the new peer will have access to already committed chaincode. If still needed, you can upgrade the version of the chaincode and install on all peers.
 
 ---
 
-Refer [this guide](./chaincode-operations.md) for details on installing chaincode.
+Refer [Install chaincode guide](./chaincode-operations.md) or [Install external chaincode guide](./external-chaincode-operations.md) for details on installing chaincode.
