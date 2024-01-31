@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # Create script to update capabilities in application channels channel group, modify channel 
 # config, sign channel config by other peers and orderers and update the modified channel configuration
-############################################################################################
+##############################################################################################
 
-# This task creates the capabilities upgrade script for channel group
+# Create the capabilities upgrade script for channel group
 - name: "Create script file to upgrade channel group"
   template:
     src: "channel_group_capability.tpl"
@@ -19,7 +19,7 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# This task updates capability of channel group in application channel
+# Update capability of channel group in application channel
 - name: Update channel group capabilities of application channel
   include_tasks: channel-group/channel_group_capability.yaml
   vars:
@@ -38,6 +38,7 @@
   set_fact:
     is_config_same: false
 
+# Check if required channel config already exists
 - name: Check if required channel config already exists
   set_fact:
     is_config_same: true
@@ -46,7 +47,7 @@
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
 
-# # This task calls sign_block.yaml to generate the cli for the new orderer for the signing of the block
+# Call sign_block.yaml to generate the cli for the new orderer for the signing of the block
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: channel-group/sign_block.yaml
   vars:
@@ -59,7 +60,7 @@
     loop_var: participant
   when: participant.type != "creator" and is_config_same == false
 
-# This task signs the block by orderers
+# Sign the block by orderers
 - name: Call sign_block_orderer.yaml to sign from all orderers
   include_tasks: channel-group/sign_block_orderer.yaml
   vars:
@@ -71,7 +72,7 @@
     loop_var: org
   when: org.type == 'orderer' and is_config_same  == false
 
-# This task updates the block to the channel
+# Update the block to the channel
 - name: Call update_block.yaml to add the new orderer to the existing network
   include_tasks: channel-group/update_block.yaml
   vars:

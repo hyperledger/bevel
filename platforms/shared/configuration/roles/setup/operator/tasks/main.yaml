@@ -1,0 +1,31 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+- name: "Check if bevel-operator-fabric is already installed"
+  k8s_info:
+    kind: Pod
+    namespace: "default"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    label_selectors:
+      - app.kubernetes.io/name=hlf-operator
+    field_selectors:
+      - status.phase=Running
+  register: op_status
+
+- name: Set operator installed fact
+  set_fact:
+    operator_installed: "{{ op_status.resources | length > 0 }}"
+
+- name: Install bevel-operator-fabric CRDs on each cluster
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} helm repo add kfs https://kfsoftware.github.io/hlf-helm-charts --force-update
+    KUBECONFIG={{ kubeconfig_path }} helm upgrade --install hlf-operator --version={{ operator_version }} kfs/hlf-operator
+  when: (not operator_installed)
+
+- name: Install operator plugin via krew locally
+  shell: |
+    kubectl krew install hlf

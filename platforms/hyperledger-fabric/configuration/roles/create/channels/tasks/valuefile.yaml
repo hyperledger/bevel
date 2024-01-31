@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
---- 
-############################################################################################
+##############################################################################################
 # This task is the nested task for main.yaml which helps to create the channels_join files
+##############################################################################################
 
+--- 
 # Check or wait for the Orderer pod
 - name: "Check orderer pod is up"
   include_tasks: orderercheck.yaml
@@ -30,7 +31,7 @@
   loop_control:
     loop_var: org
 
-# This task creates the value file for creator Organization
+# Create the value file for creator Organization
 - name: "Create Create_Channel value file"
   include_role:
     name: helm_component
@@ -49,12 +50,11 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
+    k8s: "{{ org.k8s }}"
     channeltx: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{item.channel_name|lower}}.tx.base64') }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
@@ -65,5 +65,4 @@
     org_query: "organizations[?name=='{{peer.name}}']"
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ org.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing channel-create files"

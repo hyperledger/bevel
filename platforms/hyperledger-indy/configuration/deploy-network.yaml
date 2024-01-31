@@ -56,20 +56,15 @@
   # Create StorageClass
   - name: Create Storage Class
     include_role:
-      name: create/storageclass
+      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
     vars:
-      organization: "{{ organizationItem.name | lower }}"
-      component_ns: "{{ organizationItem.name | lower }}-ns"
-      provider: "{{ organizationItem.cloud_provider }}"
-      storageclass_name: "{{ provider }}-storageclass"
-      component_name: "{{ organization }}-{{ storageclass_name }}"
-      gitops: "{{ organizationItem.gitops }}"
-      kubernetes: "{{ organizationItem.k8s }}"
-      aws: "{{ organizationItem.aws }}"
+      org_name: "{{ org.name | lower }}"
+      sc_name: "{{ org_name }}-bevel-storageclass"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
-      loop_var: organizationItem
-    when: organizationItem.org_status is not defined or organizationItem.org_status == 'new'
+      loop_var: org
+    when: org.org_status is not defined or org.org_status == 'new'
 
   # Admin K8S auth
   - name: Admin K8S auth
@@ -194,6 +189,7 @@
       name: setup/node
     vars:
       organization: "{{ organizationItem.name | lower }}"
+      sc_name: "{{ organization }}-bevel-storageclass"
       component_ns: "{{ organizationItem.name | lower }}-ns"
       services: "{{ organizationItem.services }}"
       kubernetes: "{{ organizationItem.k8s }}"
@@ -225,11 +221,12 @@
     - (organizationItem.type == 'peer')
     - (organizationItem.org_status is not defined or organizationItem.org_status == 'new')
     - (not add_new_org|bool or (add_new_org|bool and add_new_org_new_nyms_on_ledger_present|bool))
-
-  vars: #These variables can be overriden from the command line
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
-    add_new_org: false
-    add_new_org_network_trustee_present: true
-    add_new_org_new_nyms_on_ledger_present: true
+  
+  # These variables can be overriden from the command line
+  vars: 
+    install_os: "linux"                           # Default to linux OS
+    install_arch:  "amd64"                        # Default to amd64 architecture
+    bin_install_dir:  "~/bin"                     # Default to /bin install directory for binaries
+    add_new_org: false                            # Default to false when not defined.
+    add_new_org_network_trustee_present: true     # Default to true when not defined.
+    add_new_org_new_nyms_on_ledger_present: true  # Default to true when not defined.

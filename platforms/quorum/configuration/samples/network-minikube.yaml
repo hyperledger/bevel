@@ -12,7 +12,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: quorum
-  version: 21.4.2 #this is the version of Quorum docker image that will be deployed
+  version: 23.4.0 #this is the version of Quorum
 
   #Environment section for Kubernetes setup
   env:
@@ -43,17 +43,12 @@ network:
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera" # Options are "tessera" and "constellation"
-    tm_version: "21.7.3" # This is the version of "tessera" and "constellation" docker image that will be deployed
+    transaction_manager: "tessera" # Options are "tessera" and "none"
+    tm_version: "23.4.0" # This is the version of "tessera"
     tm_tls: "strict" # Options are "strict" and "off"
     tm_trust: "tofu" # Options are: "ca-or-tofu", "ca", "tofu"
     ## Transaction Manager nodes public addresses should be provided.
     #  For "tessera", all participating nodes should be provided
-    #  For "constellation", only one is bootnode should be provided
-    #
-    # For constellation, use following. This will be the bootnode for all nodes
-    #  - "http://carrier.test.quorum.blockchaincloudpoc.com:15013"
-    # The above domain name is formed by the http://(peer.name).(org.external_url_suffix):(ambassador constellation port)
     # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix):(ambassador default port)
     tm_nodes:
       - "https://carrier.carrier-quo.svc.cluster.local:9001"
@@ -107,7 +102,6 @@ network:
               ambassador: 15010 #Port exposed on ambassador service (use one port per org if using single cluster)
             rpc:
               port: 8546
-              ambassador: 15011 #Port exposed on ambassador service (use one port per org if using single cluster)
             transaction_manager:
               port: 9001
               ambassador: 15012
@@ -160,7 +154,6 @@ network:
               ambassador: 15020 #Port exposed on ambassador service (use one port per org if using single cluster)
             rpc:
               port: 8546
-              ambassador: 15021 #Port exposed on ambassador service (use one port per org if using single cluster)
             transaction_manager:
               port: 9001
               ambassador: 15022
@@ -211,7 +204,6 @@ network:
               ambassador: 15040 #Port exposed on ambassador service (use one port per org if using single cluster)
             rpc:
               port: 8546
-              ambassador: 15041 #Port exposed on ambassador service (use one port per org if using single cluster)
             transaction_manager:
               port: 9001
               ambassador: 15042

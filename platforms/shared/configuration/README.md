@@ -61,9 +61,9 @@ The [site.yaml](./site.yaml) is the main playbook which does basic environment s
 
 ## Miscellenous
 #### Playbook description
-`environment-setup.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the ansible machine with all the pre-requisites as needed by the subsequent playbooks. It will also install specific tools for Cloud Provider like AWS-cli in case AWS-EKS Cluster is used. 
+`setup-enviorment.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the ansible machine with all the pre-requisites as needed by the subsequent playbooks. It will also install specific tools for Cloud Provider like AWS-cli in case AWS-EKS Cluster is used. 
 
-`kubernetes-env-setup.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the Kubernetes cluster pre-requisites like Flux and Ambassador on the provided Kubernetes clusters.
+`setup-k8s-enviorment.yaml` : This playbook takes a properly formatted network.yaml as the input. This playbook will set up the Kubernetes cluster pre-requisites like Flux and Ambassador on the provided Kubernetes clusters.
 
 `site.yaml` : This playbook is the all encompassing playbook. This playbook takes a properly formatted network.yaml as the input. This playbook does the environment, kuebernetes setup and then calls respective DLT Platform deploy-network.yaml depending on the choice of platform to deploy the complete network.
 
@@ -78,5 +78,5 @@ ansible-playbook site.yaml -e "@./network.yaml" -e "reset=true"
 
 Individual playbooks can be run as
 ```
-ansible-playbook environment-setup.yaml -e "@./network.yaml"
+ansible-playbook setup-enviorment.yaml -e "@./network.yaml"
 ```

@@ -19,19 +19,23 @@
 - name: Save cert
   local_action: copy content="{{ vault_output['data'].data.tlscacerts | b64decode }}" dest="{{ cert_path }}/{{ type }}.crt"
   when: type == 'ambassador'
+
 # Save the key file
 - name: Save key
   local_action: copy content="{{ vault_output['data'].data.tlskey | b64decode }}" dest="{{ cert_path }}/{{ type }}.key"
   when: type == 'ambassador'
 
+# Save root keychain
 - name: Save root keychain
   local_action: copy content="{{ vault_output['data'].data.rootcakey | b64decode }}" dest="{{ cert_path }}/keys.jks"
   when: type == 'rootca'
 
+# Save root cert
 - name: Save root cert
   local_action: copy content="{{ vault_output['data'].data.cacerts | b64decode }}" dest="{{ cert_path }}/cordarootca.pem"
   when: type == 'rootca'
 
+# Save root key
 - name: Save root key
   local_action: copy content="{{ vault_output['data'].data.keystore | b64decode }}" dest="{{ cert_path }}/cordarootca.key"
   when: type == 'rootca'

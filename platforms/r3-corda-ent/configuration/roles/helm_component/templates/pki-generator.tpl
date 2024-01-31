@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/generate-pki
+    chart: {{ charts_dir }}/cenm-pki-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -30,9 +30,9 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaent{{ org.name | lower }}
+      authpath: {{ network.env.type }}{{ name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 20
       sleepTimeAfterError: 20
     cenmServices:

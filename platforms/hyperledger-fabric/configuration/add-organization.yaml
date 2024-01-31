@@ -28,52 +28,72 @@
         
     # Create Namespaces and Vault-rbac kubernetes-value files for new organization
     - include_role:
-        name: "create/namespace_vaultauth"
+        name: "create/namespace"
       vars:
         component_name: "{{ item.name | lower }}-net"
         component_type_name: "{{ item.type | lower }}"
         kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
-    
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
-    - include_role: 
-        name: "setup/vault_kubernetes"
-      vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+        release_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.org_status == 'new'
 
+    # Setup script for Vault and OS Package Manager
+    - name: "Setup script for Vault and OS Package Manager"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
+      vars:
+        namespace: "{{ org.name | lower }}-net"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.org_status == 'new'
+
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
+    - include_role: 
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+      vars:
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ network.env.type }}{{ name }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
+        reset_path: "platforms/hyperledger-fabric/configuration"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: org.org_status == 'new'
+
     # Create Storageclass for new organization
     - include_role:
-        name: "create/storageclass"
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
       vars:
-        sc_name: "{{ item.name | lower}}sc"
-        component_type: "{{ item.type | lower}}"
-        kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        org_name: "{{ org.name | lower }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
+        region: "{{ org.k8s.region | default('eu-west-1') }}"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
+      loop_control:
+        loop_var: org
+      when: org.org_status == 'new'
         
     # Create CA Server value files and check-in for new organization
     - include_role:
-        name: "create/ca-server"
+        name: "create/ca_server"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
         docker_url: "{{ network.docker.url }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined and item.org_status == 'new'
 
@@ -105,17 +125,20 @@
     
     # Create CA Tools value files and check-in for new organization
     - include_role:
-        name: "create/ca-tools/peer"
+        name: "create/ca_tools/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        orderer_org: "{{ item.orderer_org | lower }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
         gitops: "{{ item.gitops }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
@@ -139,21 +162,6 @@
         profile_name: "{{ item.channel_name }}"
       loop: "{{ network['channels'] }}"
 
-    # This role adds the new org to the existing consortium and updates the block  
-    
-    - include_role:
-        name: "create/new_organization/syschannel_block"
-      vars:
-        build_path: "./build"
-        orderers: "{{ org.services.orderers }}"
-        docker_url: "{{ network.docker.url }}"
-        channel_name: "syschannel"
-        update_type: "tls"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'orderer' 
-
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
     - include_role:
@@ -169,7 +177,7 @@
         git_branch: "{{ item.gitops.branch }}"
         docker_url: "{{ network.docker.url }}"
         charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer' and item.org_status == 'new'
 
@@ -188,7 +196,6 @@
         name: "setup/config_block/sign_and_update"
       vars:
         build_path: "./build"
-        channel_sys: "syschannel"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"      
@@ -214,8 +221,9 @@
         loop_var: org
       when: org.type == 'peer' and org.org_status == 'new'
 
-  vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+  vars: # These variables can be overriden from the command line
+    privilege_escalate: false           # Default to NOT escalate to root privledges
+    install_os: "linux"                 # Default to linux OS
+    install_arch:  "amd64"              # Default to amd64 architecture
+    bin_install_dir:  "~/bin"           # Default to /bin install directory for binaries
+    add_new_org: "true"                 # Default to true

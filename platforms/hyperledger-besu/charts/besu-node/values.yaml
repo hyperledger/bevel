@@ -1,0 +1,152 @@
+---
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: 
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    
+  # This section contains the proxy ports.
+  proxy:
+    # Mention the proxy provider. Currently ambassador or none is supported.
+    # Eg. provider: ambassador
+    provider: ambassador
+    # Provide the external URL of the proxy. This is not used because Besu does not support DNS names.
+    # Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+    # Mention the p2p port configured on proxy.
+    # NOTE: Make sure that the port is enabled and not already used.
+    # Eg. p2p: 15010
+    p2p: 15010
+
+# Override necessary Subchart values
+storage:
+  size: "2Gi"
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false
+tessera:
+  enabled: false
+tls:
+  enabled: false
+  settings:
+    #Set value to true when transaction manager like tessera uses tls
+    #Eg. tmTls: True
+    tmTls: True # must be enabled for tlsMode=STRICT
+    #Provide the X.509 subject for root CA.
+    #Eg. certSubject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+    certSubject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+image:
+  pullSecret: 
+  pullPolicy: IfNotPresent
+  besu:
+    repository: hyperledger/besu
+    tag: 22.10.2
+  hooks:
+    repository: ghcr.io/hyperledger/bevel-k8s-hooks
+    tag: qgt-0.2.12
+
+node:
+  removeKeysOnDelete: false # this will erase keys - so be careful with this on validators
+  isBootnode: false    # set this to true if this node is a bootnode
+  usesBootnodes: false # set this to true if the network you are connecting to use a bootnode/s that are deployed in the cluster 
+
+  besu:
+    identity: "supplychain"
+    envBesuOpts: ""
+    resources:
+      cpuLimit: 0.25
+      cpuRequest: 0.05
+      memLimit: "1G"
+      memRequest: "300M"
+    dataPath: "/data/besu"
+    keysPath: "/keys"
+    privateKeyPath: "/keys/nodekey"
+    genesisFilePath: "/etc/genesis/genesis.json"
+    logging: INFO
+    customLabels: {}
+    account:
+      password: 'password'
+      passwordPath: "/keys/accountPassword"
+    p2p:
+      enabled: true
+      host: "0.0.0.0"
+      port: 30303
+      discovery: false
+      staticNodes: "/config/static/static-nodes.json"
+      maxPeers: 25
+    rpc:
+      enabled: true
+      host: "0.0.0.0"
+      port: 8545
+      api: '["DEBUG","ETH", "ADMIN", "WEB3", "IBFT", "NET", "TRACE", "EEA", "PRIV", "QBFT", "PERM", "TXPOOL"]'
+      corsOrigins: '["all"]'
+      authenticationEnabled: false
+      # Number of allowed active RPC connections for Besu node
+      maxActiveConnections: 80
+    ws:
+      enabled: true
+      host: "0.0.0.0"
+      port: 8546
+      api: '["DEBUG","ETH", "ADMIN", "WEB3", "IBFT", "NET", "TRACE", "EEA", "PRIV", "QBFT", "PERM", "TXPOOL"]'
+      authenticationEnabled: false
+    graphql:
+      enabled: false
+      host: "0.0.0.0"
+      port: 8547
+      corsOrigins: '["all"]'
+    txPool:
+      retentionHours: 999
+      maxSize: 1024
+    http:
+      allowlist: '["*"]'
+    metrics:
+      enabled: true
+      host: "0.0.0.0"
+      port: 9545
+      # enable if using prometheus-stack metrics monitoring
+      serviceMonitorEnabled: false      
+    metricsPush:
+      enabled: false
+      host: "5.5.5.5"
+      port: 9091
+      interval: 15
+      prometheusJob: "besu"
+    privacy:
+      scheme: "http" # Must use https when TLS is STRICT
+      clientport: 9101
+      pubkeysPath: "/tessera"
+      pubkeyFile: "tm.pub"
+      onchainGroupsEnabled: false
+    permissions:
+      enabled: false
+      filePath: ""
+      nodes:
+        enabled: false
+        allowlist: ["enode://abcd..@1.2.3.3:30303","enode://efba..@1.2.3.4:besu-node-bootnode-1-0.besu-node-bootnode-1.besu.svc.cluster.local:30303"]
+      accounts:
+        enabled: false
+        allowlist: ["0x0000000000000000000000000000000000008888"]
+      nodesContract:
+        enabled: false
+        address: "0x0000000000000000000000000000000000009999"
+      accountsContract:
+        enabled: false
+        address: "0x0000000000000000000000000000000000008888"
+
+# fixes permissions of volumes because besu runs as user `besu` and volumes prefer `root`
+volumePermissionsFix:
+  - minikube
+  - aws
+labels:
+  service: []
+  pvc: []
+  deployment: []

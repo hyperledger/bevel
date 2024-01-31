@@ -1,0 +1,132 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "besu-node.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+    - name: json-rpc
+      port: {{ .Values.node.besu.rpc.port }}
+      targetPort: json-rpc
+      protocol: TCP
+    - name: ws
+      port: {{ .Values.node.besu.ws.port }}
+      targetPort: ws
+      protocol: TCP
+    - name: graphql
+      port: {{ .Values.node.besu.graphql.port }}
+      targetPort: graphql
+      protocol: TCP
+    - name: rlpx
+      port: {{ .Values.node.besu.p2p.port }}
+      targetPort: rlpx
+      protocol: TCP
+    - name: discovery
+      port: {{ .Values.node.besu.p2p.port }}
+      targetPort: discovery
+      protocol: UDP
+    - name: metrics
+      port: {{ .Values.node.besu.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+
+{{- if and .Values.node.besu.metrics.enabled .Values.node.besu.metrics.serviceMonitorEnabled }}
+{{- if $.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "besu-node.fullname" . }}-servicemonitor
+  labels:
+    release: monitoring
+    app: {{ template "besu-node.fullname" . }}
+    chart: {{ template "besu-node.chart" . }}
+    heritage: {{ .Release.Service }}
+    namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/name: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: {{ .Release.Name }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "besu-node.fullname" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: {{ .Release.Name }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    scheme: http
+    honorLabels: true
+{{- end }}
+{{- end }}
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+## Listeners rlpx (p2p) ports
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: {{ include "besu-node.fullname" . }}-rlpx
+  namespace: {{ .Release.Namespace }}
+spec:
+  port: {{ .Values.global.proxy.p2p }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+## Mapping for rpc
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ include "besu-node.fullname" . }}-json-rpc
+  namespace: {{ .Release.Namespace }}
+spec:
+  hostname: '{{ .Release.Name }}rpc.{{ .Values.global.proxy.externalUrlSuffix }}'
+  prefix: /
+  service: http://{{ include "besu-node.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.node.besu.rpc.port }}
+## TCPMapping for rlpx
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ include "besu-node.fullname" . }}-rlpx
+  namespace: {{ .Release.Namespace }}
+spec:
+  port: {{ .Values.global.proxy.p2p }}
+  service: {{ include "besu-node.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.node.besu.p2p.port }}
+{{- end }}

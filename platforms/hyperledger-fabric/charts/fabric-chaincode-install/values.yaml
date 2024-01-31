@@ -1,0 +1,115 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  # HLF network version
+  network:
+    version: 2.2.2
+  #Provide the namespace for organization's peer
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  images:
+    #Provide the valid image name and version for fabric tools
+    #Eg. fabrictools: hyperledger/fabric-tools:1.4.0
+    fabrictools: ghcr.io/hyperledger/bevel-fabric-tools:2.2.2
+    #Provide the valid image name and version to read certificates from vault server
+    #Eg.alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+    alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the custom labels
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name , app.
+  #Eg. labels:
+  #      role: create_channel
+  labels:
+
+
+peer:
+  #Provide the name of the peer as per deployment yaml.
+  #Eg. name: peer0
+  name: peer0
+  #Provide the address of the peer who creates the channel and port to be mentioned is grpc cluster IP port
+  #Eg. address: peer0.org1-net:7051
+  address: peer0.org1-net:7051
+  #Provide the localmspid for organization
+  #Eg. localmspid: Org1MSP
+  localmspid: Org1MSP
+  #Provide the loglevel for organization's peer
+  #Eg. loglevel: info
+  loglevel: info
+  #Provide the value for tlsstatus to be true or false for organization's peer
+  #Eg. tlsstatus: true
+  tlsstatus: true
+
+
+vault:
+  #Provide the vaultrole for an organization
+  #Eg. vaultrole: org1-vault-role
+  role: org1-vault-role
+  #Provide the vault server address
+  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address:
+  #Provide the kubernetes auth backed configured in vault for an organization
+  #Eg. authpath: devorg1-net-auth
+  authpath: devorg1-net-auth
+  #Provide the value for vault secretprefix
+  #Eg. adminsecretprefix: secretsv2/data/crypto/peerOrganizations/.../users/admin
+  adminsecretprefix: secretsv2/data/crypto/peerOrganizations/org1-net/users/admin
+  #Provide the value for vault secretprefix
+  #Eg. orderersecretprefix: secretsv2/data/crypto/peerOrganizations/.../orderer
+  orderersecretprefix: secretsv2/data/crypto/peerOrganizations/org1-net/orderer
+  #Provide the secretgitprivatekey
+  #Eg. secretgitprivatekey: secretsv2/data/credentials/org1-net/git
+  secretgitprivatekey: secretsv2/data/credentials/org1-net/git
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: vault-auth
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  #Eg. tls: vaultca
+  tls: 
+
+
+orderer:
+  #Provide the address for orderer
+  #Eg. address: orderer1.org1proxy.blockchaincloudpoc.com:443
+  address: orderer1.org1proxy.blockchaincloudpoc.com:443
+
+
+chaincode:
+  #Provide a valid chaincode builder image for Fabric
+  #Eg. builder: hyperledger/fabric-ccenv:1.4.8
+  builder: hyperledger/fabric-ccenv:2.2.2
+  #Provide the name of the chaincode to be installed
+  #Eg. name: cc
+  name: example
+  #Provide the chaincode version to be installed
+  #Eg. version: "1.0"
+  version: 1
+  # language of the chaincode
+  lang: golang
+  #Provide the path to the main.go package if it is different from chaincode directory
+  #Eg. maindirectory: cmd
+  maindirectory: cmd
+  repository:
+    #Provide the chaincode remote git repository hostname
+    #Eg. hostname: innersource.accenture.com
+    hostname: "github.com"
+    #Provide the chaincode remote git repository URL
+    #Eg. url: ssh://git@innersource.accenture.com/dlta/dlt-ansible.git
+    url: "github.com/hyperledger/bevel-samples.git"
+    #Provide the chaincode remote git repo branch to be cloned for chaincode
+    #Eg. branch: develop
+    branch: main
+    #Provide the git repository path containing chaincodes.
+    #Eg. path: dlt-chaincodes/go/chaincode_example02/
+    path: "."
+    # Username for the git repo. password is taken from Vault using secretgitprivatekey
+    git_username: "user"

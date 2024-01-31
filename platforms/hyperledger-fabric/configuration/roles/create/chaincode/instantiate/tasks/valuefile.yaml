@@ -4,11 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
----
 ############################################################################################
 # This role creates the instantiate_chaincode value file
+############################################################################################
 
-# Check or Wait if install-chaincode is already run
+---
+# Check or Wait if install-chaincode is already running
 - name: "Waiting for chaincode to be installed on {{ peer.name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -19,7 +20,7 @@
     component_name: "installchaincode-{{ peer.name }}-{{ chaincode.name }}-{{ chaincode.version }}"
   when: chaincode is defined
 
-# Check if instantate-chaincode is already run
+# Check if instantate-chaincode is already running
 - name: 'Check for instantiate-chaincode job'  
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -30,11 +31,12 @@
     component_name: "instantiatechaincode-{{ chaincode.name }}-{{ chaincode.version }}"
   when: chaincode is defined
 
+# Set Variable instantiate_chaincode
 - name: "Set Variable instantiate_chaincode"
   set_fact:
     instantiate_chaincode: "{{ result }}"
 
-# Nested task for chanincode instantiaiton
+# Create value file for chaincode instantiaiton
 - name: "Create value file for chaincode instantiaiton"
   include_role:
     name: helm_component
@@ -50,19 +52,16 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     component_chaincode: "{{ chaincode }}"
     values_dir: "{{ playbook_dir }}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
   when: chaincode is defined and instantiate_chaincode.resources|length == 0
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ org.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing chaincode instantiation files"
   when: instantiate_chaincode.resources|length == 0

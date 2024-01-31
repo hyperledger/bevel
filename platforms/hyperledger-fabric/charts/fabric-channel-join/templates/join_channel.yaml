@@ -1,0 +1,152 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+    app.kubernetes.io/name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+        app.kubernetes.io/name: joinchannel-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret 
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh       
+      containers:
+      - name: joinchannel
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          echo "Joining Channel ${CHANNEL_NAME}"
+          tls_status=${CORE_PEER_TLS_ENABLED}
+          if [ "$tls_status" = "true" ]
+          then
+            peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
+          else
+            peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} 
+          fi
+          CHANNEL_JOIN=$(peer channel list 2>/dev/null)
+          echo $CHANNEL_JOIN | grep -q ${CHANNEL_NAME}
+          if [ $? = 1 ]
+          then
+          peer channel join -b ${CHANNEL_NAME}.block
+          else
+          echo "Peer has already joined the channel"
+          fi
+        workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+        envFrom:
+        - configMapRef:
+            name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true

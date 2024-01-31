@@ -1,8 +1,8 @@
 {
     "display_name": "{{ component_name }} - local",
     "grpcwp_url": "https://{{ peer.name }}-proxy.{{ component_ns }}.{{ item.external_url_suffix }}",
-    "api_url": "grpcs://{{ peer.name }}.{{ component_ns }}.{{ item.external_url_suffix }}:8443",
-    "operations_url": "https://{{ peer.name }}-ops.{{ component_ns }}.{{ item.external_url_suffix }}",
+    "api_url": "grpcs://{{ peer.peerAddress }}",
+    "operations_url": "http://{{ peer.name }}-ops.{{ component_ns }}.{{ item.external_url_suffix }}",
     "msp_id": "{{ item.name | lower }}MSP",
     "name": "{{ component_name }} - local",
     "type": "fabric-peer",

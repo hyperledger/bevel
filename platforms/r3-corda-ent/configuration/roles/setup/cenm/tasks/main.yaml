@@ -7,7 +7,8 @@
 ##############################################################################################
 # This role sets up all cenm services
 ##############################################################################################
-    
+
+# Wait for namespace creation
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -16,16 +17,7 @@
     component_name: "{{ component_ns }}"
     type: "retry"
 
-- name: "Wait for vault-auth creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-auth"
-    type: "retry"
-  tags:
-    - notest    
-
+# Wait for vault-reviewer creation
 - name: "Wait for vault-reviewer creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -34,27 +26,16 @@
     component_name: "vault-reviewer"
     type: "retry"
   tags:
-    - notest    
+    - notest
 
-- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ClusterRoleBinding"
-    component_name: "{{ component_ns }}-role-tokenreview-binding"
-    type: "retry"
-  tags:
-    - notest    
-
-# ----------------------------------------------------------------------  
-# create vault access policies
+# Create vault access policies
 - name: "Setup vault access for cenm"
   include_role: 
-    name: setup/vault_kubernetes
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
   vars:
-    component_name: "{{ org.name | lower }}"
-    component_path: "{{ org.name | lower }}/"
-    component_auth: "cordaent{{ org.name | lower }}"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ org.name | lower }}-vaultk8s-job"
+    component_auth: "{{ network.env.type }}{{ name }}"
     component_type: "{{ org.type | lower }}"
 
 # Check if the certs are already created
@@ -82,7 +63,7 @@
 - name: Deploy gateway service
   include_role:
     name: setup/gateway
- 
+
 # Deploy Zone service
 - name: Deploy Zone service
   include_role:

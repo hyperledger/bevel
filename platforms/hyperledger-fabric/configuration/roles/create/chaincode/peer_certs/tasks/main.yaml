@@ -1,0 +1,22 @@
+############################################################################################
+# Clean up the temp folder for certificate generation
+- name: Clean up temp folder
+  file:
+    state: absent
+    path: ./build/tmp/certs
+
+# Clean up variable for the next org
+- name: Clean up peer0_cert_generated variable
+  set_fact:
+    peer0_cert_generated: false
+    
+# Create certs for peer for external chaincode
+- name: Creates client certs for peer for external chaincode
+  include_tasks: nested_main.yaml
+  vars:
+    temp_peer_cert_folder: ./build/tmp/certs/crypto-config
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: 
+    - peer.chaincodes is defined

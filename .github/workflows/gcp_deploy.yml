@@ -1,0 +1,173 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Deploy DLT network supported by Hyperledger Bevel on GCP environment
+# Prerequisites
+#   - A GKE Cluster accessible from GitHub Runner
+#   - A Vault instance accessible from GitHub Runner
+#   - A completed network.yaml file on Github Secrets
+# This workflow can triggered manually
+# 
+# In summary, this pipeline does the following
+# 1. Prepare deployment environment files
+# 2. Depending on the branch, deploys DLT network
+
+name: Deploy DLT network
+
+on:
+  workflow_dispatch:    
+  push:
+    # Only allow the workflow to run in the following branches on push
+    branches: 
+      - 'substrate'
+      - 'vitalam'
+    # Ignore the releases and charts as that is deployed by Flux
+    paths-ignore:
+      - 'docs/**'
+      - '**/charts/**'
+      - '**/releases/**'
+
+env:
+  GCLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}      # Add your Google project name here.
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}         # Add your GKE cluster name here.
+  GKE_REGION: ${{ secrets.GKE_REGION }}           # Add your cluster zone here.
+  GITOPS_CREDS: ${{ secrets.GITOPS_PRIVATE_KEY }} # If using ssh for Gitops, provide private key
+  VAULT_CREDS: ${{ secrets.VAULT_PRIVATE_KEY }}   # Private key for access to Vault via Bastion
+  VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}         # Vault Token
+  VAULT_SERVER: ${{ secrets.VAULT_SERVER }}       # Vault Server DNS name
+  VAULT_PORT: ${{ secrets.VAULT_PORT }}           # Vault Port
+  VAULT_BASTION: ${{ secrets.VAULT_BASTION }}     # Bastion IP or DNS
+  GKE_CONTEXT: ${{ secrets.GKE_CONTEXT }}         # GKE Context
+  GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}       # GitHub token with right access to this repo
+  SSH_SERVER_ALIVE_INTERVAL: 60
+  SSH_SERVER_ALIVE_COUNT_MAX: 20
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    environment: gcp_development      # Provide environment with environment secrets as defined above
+    strategy:
+      max-parallel: 1
+    steps:
+    # checkout git repo
+    - name: Git checkout
+      uses: actions/checkout@v2.4.0
+    # Install dependencies
+    - name: Set up gcloud Cloud SDK environment
+      uses: google-github-actions/setup-gcloud@v0.2.0
+      with:
+        project_id: ${{ env.GCLOUD_PROJECT }}
+    # GCP Authentication
+    - name: Authenticate to Google Cloud
+      uses: 'google-github-actions/auth@v0.4.1'
+      with:
+        credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+    # Get current branch
+    - name: Set output
+      id: vars
+      run: echo ::set-output name=branch::${GITHUB_REF#refs/heads/}
+    # Get GKE kubeconfig file
+    - uses: google-github-actions/get-gke-credentials@v0
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_REGION }}
+    # Prepare the build environment and network.yaml
+    - name: Prepare build environment
+      run: |
+        mkdir -p build
+        mkdir -p ~/.ssh
+              
+        LOCAL_BUILD_PATH=$(pwd)/build        
+        curl https://ipv4.icanhazip.com/ > ./build/localip
+        # Move Kubeconfig to build dir
+        mv $KUBECONFIG ./build/config
+        
+        # Add ssh access to Bastion Firewall rule -- `allow-github-ssh` should already be created and service account must have rights to get-update
+        gcloud compute firewall-rules update allow-github-ssh --source-ranges=$(cat ./build/localip)/32
+
+        # Get the base64 encoded Private keys from secrets
+        set +x
+        echo -n "${GITOPS_CREDS}" | base64 --decode > ${LOCAL_BUILD_PATH}/gitops        
+        echo -n "${VAULT_CREDS}" | base64 --decode > ~/.ssh/vault.pem
+        set -x
+        chmod 400 ${LOCAL_BUILD_PATH}/gitops
+        chmod 400 ~/.ssh/vault.pem
+        
+        # Update ssh configs for access
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        ssh-keyscan ${VAULT_BASTION} >> ~/.ssh/known_hosts
+        cp /etc/hosts hosts
+
+        # Add vault dns mapping to localhost as we are using an ssh tunnel via bastion
+        echo "127.0.0.1 ${VAULT_SERVER}" >> hosts
+        sudo mv hosts /etc/hosts
+        echo "ServerAliveInterval ${SSH_SERVER_ALIVE_INTERVAL}" >> ~/.ssh/config
+        echo "ServerAliveCountMax ${SSH_SERVER_ALIVE_COUNT_MAX}" >> ~/.ssh/config
+
+        # Create the ssh tunnel to Vault server via Bastion host
+        ssh -i ~/.ssh/vault.pem -f -q -N -L "${VAULT_PORT}:${VAULT_SERVER}:${VAULT_PORT}" "ubuntu@${VAULT_BASTION}"
+
+        # Copy and update the network.yaml with secrets
+        cp platforms/substrate/configuration/samples/network-${{ steps.vars.outputs.branch }}.yaml build/network.yaml
+
+        git config --global user.email "bevel@inteli-poc.com"
+        git config --global user.name "bevel"
+        git config --global push.default matching
+
+        sed -i -e s+/BUILD_DIR+${LOCAL_BUILD_PATH}+g build/network.yaml
+        sed -i -e s*VAULT_TOKEN*${VAULT_TOKEN}*g build/network.yaml
+        sed -i -e s*VAULT_URL*${VAULT_SERVER}*g build/network.yaml
+        sed -i -e s*VAULT_PORT*${VAULT_PORT}*g build/network.yaml
+        sed -i -e s*GKE_CONTEXT*${GKE_CONTEXT}*g build/network.yaml
+        sed -i -e s*GIT_TOKEN*${GITOPS_TOKEN}*g build/network.yaml
+    # Add upterm session when trying to debug ( add 'debug' in the commit message )
+    - name: Setup upterm session
+      if: ${{ contains(github.event.head_commit.message, 'debug') }}
+      uses: lhotari/action-upterm@v1
+      with:
+        ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+        limit-access-to-actor: true
+
+    # Deploy dlt platform using ansible. 
+    - name: Deploy DLT platform
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        ANSIBLE_STDOUT_CALLBACK: "yaml"        
+      run: |
+        mkdir -p ~/bin
+        export PATH=$PATH:~/bin
+        # Openshift has to be deployed using pip3
+        pip3 install openshift=='0.12.0'
+        ansible-galaxy collection install -r platforms/shared/configuration/requirements.yaml
+        # Required, playbook filepath
+        ansible-playbook platforms/shared/configuration/site.yaml \
+          -i platforms/shared/inventory/ansible_provisioners      \
+          -e "@build/network.yaml"  \
+          -e "no_ansible_log=true"
+  post-deployment:
+    if: ${{ always() }}
+    needs: [deployment]
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+    steps:  
+    # Install dependencies
+    - name: Set up gcloud Cloud SDK environment
+      uses: google-github-actions/setup-gcloud@v0.2.0
+      with:
+        project_id: ${{ env.GCLOUD_PROJECT }}
+    # GCP Authentication
+    - name: Authenticate to Google Cloud
+      uses: 'google-github-actions/auth@v0.4.1'
+      with:
+        credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+    # Cleanup
+    - name: Remove github runner in firewall rule and secrets
+      continue-on-error: true
+      run: |
+        rm -rf build
+        rm -f ~/.ssh/vault.pem
+        gcloud compute firewall-rules update allow-github-ssh --source-ranges= 

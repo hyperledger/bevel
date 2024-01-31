@@ -1,0 +1,98 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role registers the users using bevel-operator-fabric
+#############################################################################################
+
+# Wait for ca server to be reachable
+- name: "Wait for ca server to be reachable"
+  uri:
+    url: "https://{{ item.ca_data.url }}/cainfo"
+    validate_certs: no
+  register: this
+  until: this.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 20
+  ignore_errors: yes
+
+# Create main user for orderer org
+- name: "Create main user for orderer org"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf ca register --name={{ ca_name }} --namespace={{ namespace }} \
+      --user=orderer --secret=ordererpw --type=orderer \
+      --enroll-id enroll --enroll-secret=enrollpw \
+      --mspid={{ component_name }}MSP --ca-url="https://{{ ca_url }}"
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  when: 
+  - component_type == 'orderer'
+  - user_type == 'default'
+  ignore_errors: yes
+
+# Create main user for peer org
+- name: "Create main user for peer org"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf ca register --name={{ ca_name }} --namespace={{ namespace }} \
+      --user=peer --secret=peerpw --type=peer \
+      --enroll-id enroll --enroll-secret=enrollpw \
+      --mspid={{ component_name }}MSP --ca-url="https://{{ ca_url }}"
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  when: 
+  - component_type == 'peer'
+  - user_type == 'default'
+
+# Create admin user for org
+- name: "Create admin user for org"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf ca register --name={{ ca_name }} --namespace={{ namespace }} \
+      --user=admin --secret=adminpw --type=admin \
+      --enroll-id enroll --enroll-secret=enrollpw \
+      --mspid={{ component_name }}MSP --ca-url="https://{{ ca_url }}"
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  when:
+  - user_type == 'admin'
+  ignore_errors: yes
+
+# Create admin user identity for orderer
+- name: "Create admin user identity for orderer"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf identity create --name={{ user_id }} --namespace={{ namespace }} \
+      --ca-name {{ ca_name }} --ca-namespace {{ namespace }} \
+      --ca tlsca --enroll-id admin --enroll-secret adminpw \
+      --mspid={{ component_name }}MSP
+  vars:
+    user_id: "{{ component_name }}-admin"
+    ca_name: "{{ component_name }}-ca"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  when:
+  - user_type == 'admin'
+  - component_type == 'orderer'
+
+# Create admin user identity for peer
+- name: "Create admin user identity for peer"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf identity create --name={{ user_id }} --namespace={{ namespace }} \
+      --ca-name {{ ca_name }} --ca-namespace {{ namespace }} \
+      --ca ca --enroll-id admin --enroll-secret adminpw \
+      --mspid={{ component_name }}MSP
+  vars:
+    user_id: "{{ component_name }}-admin"
+    ca_name: "{{ component_name }}-ca"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  when:
+  - user_type == 'admin'
+  - component_type == 'peer'

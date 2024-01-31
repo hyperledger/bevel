@@ -13,22 +13,33 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: besu
-  version: 21.10.6  #this is the version of Besu docker image that will be deployed.
+  version: 22.10.2  #this is the version of Besu docker image that will be deployed.
 
   #Environment section for Kubernetes setup
   env:
-    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "besu"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Besu
+    proxy_namespace: "ambassador"
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:              # For a range of ports
         from: 15020
         to: 15023
-    # ports: 15020,15021      # For specific ports
+    # ports: [15020,15021]      # For specific ports; needs to be an array or list
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+
+  # Prometheus setup section
+  prometheus:
+    enabled: true                   # Set to "true" to enable Prometheus monitoring, or "false" to disable it.
+    ambassador_mapping: enabled     # Choose "enabled" to make Prometheus publically accessible through Ambassador, or "disabled" to restrict access to local use via port-forwarding.
+    prometheus_prefix: bevelprom    # The prefix added to the organization's external_url_suffix to create the hostname.
+    port: 80                        # The port will be used by Ambassador for Prometheus. Supported values include 80, 443, or any unused port from the network.env.ambassadorPorts range.
+    # To access Prometheus publicly:
+    # Use <prometheus_prefix>.<organization's external_url_suffix> if using port 80 or 443.
+    # Use <random-string>.<organization's external_url_suffix>:<port> if selecting a port from network.env.ambassadorPorts range.   
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -40,37 +51,31 @@ network:
 
   # Following are the configurations for the common Besu network
   config:
-    consensus: "ibft"                 # Options are "ibft", "qbft", "ethash" and "clique".
+    consensus: "qbft"                 # Options are "ibft2", "qbft", "ibft" and "clique".
     ## Certificate subject for the root CA of the network.
     #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
     #  Production systems should generate proper certificates and configure truststores accordingly.
     subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "orion"    # Transaction manager is "orion"
-    # This is the version of "orion" docker image that will be deployed
+    transaction_manager: "tessera"    # Transaction manager is "tessera" or "none"
+    # This is the version of "tessera" docker image that will be deployed
     tm_version: "21.7.3"
-    # TLS can be True or False for the orion tm
+    # TLS can be True or False for the tessera tm
     tm_tls: True
     # Tls trust value
     tm_trust: "ca-or-tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
-    ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be fetched
-    # Add public key of accounts without 0x which will have 90000 ETH at genesis. Accounts created on external system like Metamask
-    accounts:
-      - "75a3505cd50Cfc418e59458d0E23c8bd9f6B52a0"
-      - "e668554c28e81535B8679ff9de128203Fdedc212"
     ## Transaction Manager nodes public addresses should be provided.
-    #  - "https://node.test.besu.blockchaincloudpoc-develop.com:15013"
-    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador orion node port)
+    #  - "https://node.test.besu.blockchaincloudpoc-develop.com"
+    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix)
     tm_nodes:
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:15022"
+      - "https://carrier.test.besu.blockchaincloudpoc-develop.com:443"
     # Besu rpc public address list for existing validator and member nodes
-    #  - "http://node.test.besu.blockchaincloudpoc-develop.com:15011"
-    # The above domain name is formed by the (http)://(peer.name).(org.external_url_suffix):(ambassador node rpc port)
+    #  - "http://noderpc.test.besu.blockchaincloudpoc-develop.com:15011"
+    # The above domain name is formed by the (http)://(peer.name)rpc.(org.external_url_suffix):(ambassador node rpc port)
     besu_nodes:
-      - "http://validator1.test.besu.blockchaincloudpoc-develop.com:15011"
-      - "http://validator2.test.besu.blockchaincloudpoc-develop.com:15013"
-      - "http://validator3.test.besu.blockchaincloudpoc-develop.com:15015"
-      - "http://validator4.test.besu.blockchaincloudpoc-develop.com:15017"
+      - "http://validator-1rpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://validator-2rpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://validator-3rpc.test.besu.blockchaincloudpoc-develop.com"
+      - "http://validator-4rpc.test.besu.blockchaincloudpoc-develop.com"
 
 
   # Allows specification of one or many organizations that will be connecting to a network.
@@ -84,7 +89,7 @@ network:
       #Providing issuer as letsencrypt would create tls certificate using letsencrypt CA, 
       #This is Optional, if no value or default is provided, self signed certificates will be created
       issuer: default
-      
+      org_status: existing   # Choose from new | existing
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
@@ -118,7 +123,7 @@ network:
       services:
         validators:
         - validator:
-          name: validator1
+          name: validator-1
           status: existing        # needed to know which  validator node exists
           bootnode: true          # true if the validator node is used also a bootnode for the network
           cactus_connector: enabled  # set to enabled to create a cactus connector for Besu
@@ -127,11 +132,14 @@ network:
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator2
+          name: validator-2
           status: existing        # needed to know which  validator node exists
           bootnode: true          # true if the validator node is used also a bootnode for the network
           p2p:
@@ -139,11 +147,14 @@ network:
             ambassador: 15012       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator3
+          name: validator-3
           status: existing        # needed to know which  validator node exists
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
@@ -151,11 +162,14 @@ network:
             ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
-          name: validator4
+          name: validator-4
           status: existing        # needed to know which  validator node exists
           bootnode: false          # true if the validator node is used also a bootnode for the network
           p2p:
@@ -163,9 +177,12 @@ network:
             ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15017       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
         - validator:
           name: validator5
           status: new        # needed to know which  validator node exists
@@ -176,6 +193,9 @@ network:
             ambassador: 15018       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8545
-            ambassador: 15019       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 80       # Will only support port 80
           ws:
             port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 

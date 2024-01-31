@@ -10,31 +10,13 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Example Folder Structure ###
 ```
-/node_constellation
+/quorum-member-node
 |-- templates
 |   |-- _helpers.tpl
 |   |-- configmap.yaml
 |   |-- deployment.yaml
 |   |-- ingress.yaml
 |   |-- service.yaml
-|   |-- volume.yaml
 |-- Chart.yaml
 |-- values.yaml
 ```
-
-## Pre-requisites
-
- Helm to be installed and configured 
-
-## Charts description ##
-
-### 1. node_constellation ###
-- This folder contains chart templates and default values for deploying a node with Constellation transaction manager.
-### 2. node_tessera ###
-- This folder contains chart templates and default values for deploying a node with Tessera transaction manager.
-### 3. node_validator ###
-- This folder contains chart templates and default values for deploying Quorum validator nodes.
-### 3. node_quorum ###
-- This folder contains chart templates and default values for deploying Quorum transactions nodes with tessera transaction manager.
-### 4. crypto_ibft ###
-- This folder contains chart templates and default values for generating the crypto materials for ibft consensus.

@@ -6,9 +6,10 @@
 
 ############################################################################################
 # This role creates the upgrade_chaincode value file
+############################################################################################
 
-# Check or Wait if install-chaincode is already run
 ---
+# Check or Wait if install-chaincode is already run
 - name: 'Check/Wait for install-chaincode job'
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
@@ -35,17 +36,14 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     component_chaincode: "{{ chaincode }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ org.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing chaincode upgrade files"

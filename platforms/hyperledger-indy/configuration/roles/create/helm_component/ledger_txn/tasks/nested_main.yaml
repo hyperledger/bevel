@@ -4,8 +4,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-################################################################################################
-# This tasks gets data from vault
+# Get data from vault
 - name: Get identity data from vault
   shell: |
     rm data.yaml
@@ -35,14 +34,14 @@
     echo "${identity_data}" >> data.yaml
   register: identity_data
 
+# Inserting file into Variable
 - name: "Inserting file into Variable"
   include_vars:
     file: data.yaml
     name: file_var
 
-##############################################################################################
-# This task creates deployment file for new identities.
-- name: "create value file for {{ new_component_name }} {{ component_type }}"
+# Create deployment file for new identities.
+- name: "Create value file for {{ new_component_name }} {{ component_type }}"
   template:
     src: "{{ dlt_templates[component_type] }}"
     dest: "{{ values_file }}"
@@ -57,7 +56,7 @@
     rm data.yaml
 
 ################################################################################################
-# This task tests the value file for syntax errors/ missing values
+# Test the value file for syntax errors/ missing values
 # This is done by calling the helm_lint role and passing the value file parameter
 # When a new k8_component is added, changes should be made in helm_lint role as well
 - name: Helm lint

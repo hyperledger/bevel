@@ -1,0 +1,37 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This role creates the peer nodes using bevel-operator-fabric
+##############################################################################################
+
+# Wait for ca server to be reachable
+- name: "Wait for ca server to be reachable"
+  uri:
+    url: "https://{{ item.ca_data.url }}/cainfo"
+    validate_certs: no
+  register: this
+  until: this.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 20
+  ignore_errors: yes
+
+# Create peer node
+- name: "Create peer node"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf peer create --statedb=couchdb --image=hyperledger/fabric-peer --version={{ network.version }} \
+    --enroll-id=peer --enroll-pw=peerpw --mspid={{ component_name }}MSP \
+    --storage-class={{ storageclass }} --capacity={{ storage }} --name={{ peer_name }} --ca-name={{ ca_name }}.{{ namespace }} \
+    --hosts={{ peer.peerAddress.split(':')[0] }} --istio-port=443 --namespace={{ namespace }}
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    peer_name: "{{ component_name }}-{{ peer.name }}"
+    storageclass: "{{ component_name }}-bevel-storageclass"
+    storage: "2Gi"
+    kubeconfig_path: "{{ item.k8s.config_file }}"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer

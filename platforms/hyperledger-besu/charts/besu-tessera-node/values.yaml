@@ -1,0 +1,120 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: 
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "ambassador" or "none"
+    #Eg. provider: "ambassador"
+    provider: "ambassador"
+    #This field contains the external URL of the node
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+    # Following are the ports that are exposed externally via the proxy
+    tmport: 443
+
+storage:
+  enabled: true
+  #Provide the memory for node
+  #Eg. size: 1Gi
+  size: 1Gi
+  #Provide the memory for database
+  #Eg. dbSize: 1Gi
+  dbSize: 1Gi
+  allowedTopologies:
+    enabled: false
+
+#These are the various docker images being used by this chart. update them as needed
+image:  
+  #Provide the valid image name and version to read certificates from vault server 
+  #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine-ext:latest
+  alpineutils: 
+    repository: ghcr.io/hyperledger/bevel-alpine-ext
+    tag: latest
+  #Provide the valid image name and version for tessera
+  #Eg. tessera: quorumengineering/tessera:0.9.2
+  tessera: 
+    repository: quorumengineering/tessera
+    tag: 22.1.7
+  #Provide the valid image name and version for busybox
+  busybox: busybox
+  #Provide the valid image name and version for MySQL. This is used as the DB for TM
+  mysql: 
+    repository: mysql/mysql-server
+    tag: 5.7
+  hooks:
+    repository: ghcr.io/hyperledger/bevel-k8s-hooks
+    tag: qgt-0.2.12
+  #Provide the docker secret name in the namespace
+  #Eg. pullSecret: regcred
+  pullSecret: 
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent
+
+tessera:
+  removeKeysOnDelete: true
+  #Provide the mysql DB name
+  #Eg. dbName: demodb
+  dbName: demodb 
+  #Provide the Database username
+  #Eg. dbUsername: demouser
+  dbUsername: demouser
+  #Provide the list of tessera nodes to connect in url: <value> format. This should be reachable from this node
+  #Eg. peerNodes: 
+  #     - url: "https://node1.quo.demo.aws.blockchaincloudpoc.com"
+  #     - url: "https://node2.quo.demo.aws.blockchaincloudpoc.com"
+  peerNodes:
+  resources:
+    cpuLimit: 0.25
+    cpuRequest: 0.05
+    memLimit: "2G"
+    memRequest: "1G"
+  password: "password"
+  passwordPath: "/keys/tm.password"
+  dataPath: "/data/tessera"
+  keysPath: "/keys"
+  port: 9000
+  tpport: 9080
+  q2tport: 9101
+  dbport: 3306
+  metrics:
+    enabled: true
+    host: "0.0.0.0"
+    port: 9545
+    # enable if using prometheus-stack metrics monitoring
+    serviceMonitorEnabled: false
+  #Provide if tessera will use tls. 
+  # Options:
+  ##   - STRICT: All connections to and from this node must use TLS with mutual
+  ##     authentication. 
+  ##   - OFF: Mutually authenticated TLS is not used for in- and outbound
+  ##     connections, although unauthenticated connections to HTTPS hosts are
+  ##     still possible. This should only be used if another transport security
+  ##     mechanism like WireGuard is in place.
+  #Eg. tlsMode: 'STRICT'
+  tlsMode: "STRICT"
+  #Provide the server/client  trust configuration for transaction manager nodes. 
+  # options are: "WHITELIST", "CA_OR_TOFU", "CA", "TOFU"
+  # Eg: trust: "TOFU"
+  trust: "CA_OR_TOFU"
+
+labels:
+  service: []
+  pvc: []
+  deployment: []

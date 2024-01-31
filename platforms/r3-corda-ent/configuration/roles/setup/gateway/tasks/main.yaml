@@ -23,7 +23,7 @@
     kubernetes: "{{ org.k8s }}"
   when: idman_certs.failed
 
-  # Create ambassador certificates for idman
+# Create ambassador certificates for idman
 - name: Create gateway ambassador certificates
   include_role:
     name: create/certificates/cenm
@@ -44,18 +44,15 @@
     component_name: "{{ org.services.gateway.name }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    component_auth: "cordaent{{ org.name | lower }}"        
+    component_auth: "{{ network.env.type }}{{ name }}"
     values_dir: "{{playbook_dir}}/../../../{{ org.gitops.release_dir }}"
     helm_lint: "true"
 
-# Git Push : Pushes the above generated files to git directory 
+# Git Push : Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ org.gitops }}"
-    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing gateway service files"
-
-

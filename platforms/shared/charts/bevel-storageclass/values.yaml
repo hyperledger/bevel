@@ -1,0 +1,57 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# The name of the cloud provider. Supported values are: aws, gcp, or minikube.
+# The `aws` value specifies that the StorageClass will be used for provisioning PersistentVolumes on AWS.
+# The `gcp` value specifies that the StorageClass will be used for provisioning PersistentVolumes on GCP.
+# The `minikube` value specifies that the StorageClass will be used for provisioning PersistentVolumes on Minikube.
+global:
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+
+# This "provisioner" is an optional field.
+# Fill it only if you want to use a specific provisioner of your choice. 
+# Otherwise, leave it empty to use the default provisioner based on the value of "cluster.provider" field.
+provisioner: 
+
+# The parameters that will be passed to the storage provisioner.
+# The `aws` key specifies the parameters that will be passed to the AWS storage provisioner.
+# The `gcp` key specifies the parameters that will be passed to the GCP storage provisioner.
+# The `minikube` key specifies the parameters that will be passed to the Minikube storage provisioner.
+parameters:
+  aws:
+    encrypted: "true"
+  gcp:
+    type: pd-standard
+    fstype: ext4
+    replicationtype: none
+  minikube:
+    encrypted: "true"
+  azure:
+    skuName: StandardSSD_LRS
+    kind: Managed
+
+
+# The policy for deleting PersistentVolumes that are provisioned by this StorageClass. Supported values are: Delete or Retain.
+# The `Delete` value specifies that PersistentVolumes that are provisioned by this StorageClass will be deleted when they are no longer in use.
+# The `Retain` value specifies that PersistentVolumes that are provisioned by this StorageClass will not be deleted when they are no longer in use.
+reclaimPolicy: Delete
+
+# The mode for binding PersistentVolumes that are provisioned by this StorageClass. Supported values are: Immediate or WaitForFirstConsumer.
+# The `Immediate` value specifies that PersistentVolumes that are provisioned by this StorageClass will be bound to Pods immediately.
+# The `WaitForFirstConsumer` value specifies that PersistentVolumes that are provisioned by this StorageClass will not be bound to Pods until a Pod requests a PersistentVolume of that StorageClass.
+volumeBindingMode: Immediate
+
+# A list of allowed topologies for PersistentVolumes that are provisioned by this StorageClass.
+# The `allowedTopologies` list specifies the zones in which PersistentVolumes that are provisioned by this StorageClass can be created.
+allowedTopologies:
+  enabled: true
+  # A label expression that specifies the allowed zones.
+  matchLabelExpressions:
+    - key: failure-domain.beta.kubernetes.io/zone
+      values:
+        # The allowed zones.
+        - "eu-west-1a"

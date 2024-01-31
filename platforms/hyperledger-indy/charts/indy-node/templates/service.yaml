@@ -9,11 +9,6 @@ kind: Service
 metadata:
   name: "{{ $.Values.metadata.name }}"
   namespace: "{{ $.Values.metadata.namespace }}"
-  {{ if $.Values.ambassador.annotations }}
-  annotations:
-    getambassador.io/config: | 
-    {{ $.Values.ambassador.annotations  | nindent 6 }}
-  {{ end }}
 spec:
   type: {{ $.Values.service.type }}
   ports:
@@ -31,3 +26,52 @@ spec:
     {{ end }}
   selector:
     app: "{{ $.Values.metadata.name }}"
+
+{{- if eq $.Values.proxy.provider "ambassador" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: "{{ .Values.node.name }}-node-listener"
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.node.ambassadorPort }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: "{{ .Values.node.name }}-node-mapping"
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.node.ambassadorPort }}
+  service: "{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.targetPort }}"
+
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: "{{ .Values.node.name }}-client-listener"
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.client.ambassadorPort }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: "{{ .Values.node.name }}-client-mapping"
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.client.ambassadorPort }}
+  service:  "{{ .Values.client.name }}.{{ .Values.metadata.namespace }}:{{ .Values.client.targetPort }}"
+{{- end }}
+

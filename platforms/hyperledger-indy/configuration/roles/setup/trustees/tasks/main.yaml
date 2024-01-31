@@ -8,43 +8,41 @@
 # This role creates the deployment files for trustees and pushes them to repository
 ###################################################################################################
 
-  - name: "Wait for namespace creation for identities"
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-    vars:
-      component_type: "Namespace"
-      component_name: "{{ component_ns }}"
-      type: "retry"
+# Wait for namespace creation for identities
+- name: "Wait for namespace creation for identities"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
 
-# ---------------------------------------------------------------------
-# create image pull secrets
-  - name: "Create image pull secret for identities"
-    include_role:
-      name: create/imagepullsecret
+# Create image pull secrets
+- name: "Create image pull secret for identities"
+  include_role:
+    name: create/imagepullsecret
 
-# ---------------------------------------------------------------------
 # Create Deployment files for new Identities
-  - name: "Create Deployment files"
-    include_tasks: nested_main.yaml
-    vars:
-      component_type: "identity"
-      component_name: "{{ organizationItem.name }}"
-      indy_version: "indy-{{ network.version }}"
-      release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
-      newIdentity: "{{ neworg.services.trustees }}"
-      org_vault_url: "{{ organizationItem.vault.url }}"
-    when: organizationItem is defined and organizationItem.services.trustees is defined
+- name: "Create Deployment files"
+  include_tasks: nested_main.yaml
+  vars:
+    component_type: "identity"
+    component_name: "{{ organizationItem.name }}"
+    indy_version: "indy-{{ network.version }}"
+    release_dir: "{{playbook_dir}}/../../../{{organizationItem.gitops.release_dir}}/{{ organizationItem.name | lower }}"
+    newIdentity: "{{ neworg.services.trustees }}"
+    org_vault_url: "{{ organizationItem.vault.url }}"
+  when: organizationItem is defined and organizationItem.services.trustees is defined
 
-# ---------------------------------------------------------------------
 # Wait until identities are creating
-  - name: "Wait until identities are creating"
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
-    vars:
-      component_type: "Job"
-      namespace: "{{ component_ns }}"
-      component_name: "{{ organizationItem.name }}-{{ trusteeItem.name }}-transaction"
-    loop: "{{ neworg.services.trustees }}"
-    when: neworg is defined and neworg.services.trustees is defined
-    loop_control:
-      loop_var: trusteeItem
+- name: "Wait until identities are creating"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ component_ns }}"
+    component_name: "{{ organizationItem.name }}-{{ trusteeItem.name }}-transaction"
+  loop: "{{ neworg.services.trustees }}"
+  when: neworg is defined and neworg.services.trustees is defined
+  loop_control:
+    loop_var: trusteeItem

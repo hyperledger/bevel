@@ -4,12 +4,12 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # This task creates valuefiles for the cli of first peer creator organization
 # Creates the CLI and to fetch the latest configuration block to add new config details
-############################################################################################
+##############################################################################################
 
-# checking for fabric cli
+# Check for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
     kind: Pod
@@ -23,10 +23,10 @@
 # Creeate the value file for creater org first peer
 - name: "start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
   when: existing_cli.resources|length == 0
 
-# waiting for fabric cli
+# Wait for fabric cli
 - name: "Check if fabric cli is present"
   k8s_info:
     kind: Pod
@@ -40,10 +40,9 @@
   retries: "{{ network.env.retry_count}}"
   delay: 40
 
-############################################################################################
-# This task fetch the config block from blockchain by executing the create_block.sh script file
+# Fetch the config block from blockchain by executing the create_block.sh script file
 # from first peer of creator cli
-- name: fetch and copy the configuration block from the blockchain
+- name: Fetch and copy the configuration block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ org.name }}-net | grep "cli" | head -n 1 | awk '{print $1}')
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} -- peer channel fetch config {{ channel_name }}_config_block.pb -o {{ participantx.ordererAddress }} -c {{ channel_name }} --tls --cafile ${ORDERER_CA}

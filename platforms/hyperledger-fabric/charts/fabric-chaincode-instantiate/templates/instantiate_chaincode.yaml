@@ -1,0 +1,171 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: instantiatechaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: instantiatechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app.kubernetes.io/name: instantiatechaincode-{{ $.Values.chaincode.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: instantiatechaincode-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+        app.kubernetes.io/name: instantiatechaincode-{{ $.Values.chaincode.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: instantiatechaincode
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          echo $INSTANTIATION_ARGUMENTS>INSTANTIATION_ARGUMENTS.txt
+          INSTANTIATION_ARGUMENTS=$(< INSTANTIATION_ARGUMENTS.txt)
+          {{ if $.Values.chaincode.endorsementpolicies  }}
+            peer chaincode instantiate -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -c '{"Args":['${INSTANTIATION_ARGUMENTS}']}' -P {{ $.Values.chaincode.endorsementpolicies | quote}} --lang ${CC_RUNTIME_LANGUAGE}
+          {{ else }}
+            peer chaincode instantiate -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} -C ${CHANNEL_NAME} -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -c '{"Args":['${INSTANTIATION_ARGUMENTS}']}' --lang ${CC_RUNTIME_LANGUAGE}
+          {{ end }}
+        env:
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.peer.loglevel }}
+        - name: CORE_PEER_ID
+          value: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+        - name: CORE_PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $.Values.peer.localmspid }}
+        - name: CORE_PEER_TLS_ENABLED
+          value: "{{ $.Values.peer.tlsstatus }}"
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
+        - name: ORDERER_CA
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+        - name: ORDERER_URL
+          value: {{ $.Values.orderer.address }}
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+        - name: CHAINCODE_NAME
+          value: "{{ $.Values.chaincode.name }}"
+        - name: CHAINCODE_VERSION
+          value: "{{ $.Values.chaincode.version }}"
+        - name: CORE_CHAINCODE_BUILDER
+          value: "{{ $.Values.chaincode.builder }}"
+        - name: CHANNEL_NAME
+          value: "{{ $.Values.channel.name }}"
+        - name: INSTANTIATION_ARGUMENTS
+          value: '{{ $.Values.chaincode.instantiationargs }}'
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true

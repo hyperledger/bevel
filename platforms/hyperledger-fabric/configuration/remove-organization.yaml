@@ -25,7 +25,7 @@
         path: "./build"
         state: absent
 
-    #Generate script to modify the fetched configuration block
+    # Generate script to modify the fetched configuration block
     - include_role:
         name: "create/delete_org_script"
       vars:
@@ -46,7 +46,7 @@
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
 
-    # #This role fetch the block from the ansible host and get it signed from each existing organization admin
+    # This role fetch the block from the ansible host and get it signed from each existing organization admin
     - include_role:
         name: "setup/config_block/sign_and_update"
       vars:
@@ -68,31 +68,34 @@
       loop: "{{ network['organizations'] }}"
       when: item.org_status == 'delete'
     
-    # Change this file if you have new Helreleases to delete
+    # Delete k8s resources.
     - include_role:
-        name: "delete/flux_releases"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/k8s_resources"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        org_name: "{{ item.name | lower }}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        kubernetes: "{{ item.k8s }}"
+        organization_ns: "{{ organizationItem.name | lower }}-net"
+        organization: "{{ organizationItem.name | lower }}"
+        kubernetes: "{{ organizationItem.k8s }}"
       loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'delete'
+      loop_control:
+        loop_var: organizationItem
+      when: organizationItem.org_status == 'delete'
 
     # Delete Gitops file and check-in
     - include_role:
-        name: "delete/gitops_files"
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/gitops"
       vars:
         gitops: "{{ item.gitops }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name|lower }}"
-        flux_mainfest_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/flux-{{ network.env.type }}"
+        organization: "{{ item.name | lower }}"
+        organization_ns: "{{ organization }}-net"
+        release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization }}"
+        release_ns_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ organization_ns }}"
+        flux_mainfest_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/flux-{{ network.env.type }}"
       loop: "{{ network['organizations'] }}"
       when: item.org_status == 'delete'
 
-  vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"           #Default to /bin install directory for binaries
-    remove_org: true                    #Default for this playbook is true
+  vars: # These variables can be overriden from the command line
+    privilege_escalate: false           # Default to NOT escalate to root privledges
+    install_os: "linux"                 # Default to linux OS
+    install_arch:  "amd64"              # Default to amd64 architecture
+    bin_install_dir:  "~/bin"           # Default to /bin install directory for binaries
+    remove_org: true                    # Default for this playbook is true

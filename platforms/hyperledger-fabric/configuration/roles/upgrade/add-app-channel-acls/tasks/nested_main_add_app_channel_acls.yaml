@@ -4,11 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # Create script to generate modified channel config, signs and update channel configuration
-#############################################################################################
+##############################################################################################
 
-# This task create script file to add acls to application channel
+# Create script file to add acls to application channel
 - name: "Create script file to add policies to application channel"
   template:
     src: "add_app_channel_acls.tpl"
@@ -19,7 +19,7 @@
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
 
-# This task updates the acls to application channel
+# Update the acls to application channel
 - name: Update channel group capabilities of application channel
   include_tasks: add_app_channel_acls.yaml
   vars:
@@ -32,12 +32,13 @@
     loop_var: participant
   when: participant.type == "creator"
 
-# check if original channel config and modified config is same
+# Check if original channel config and modified config is same
 # if that is the case we dont have to proceed doing the channel update
 - name: Intialize the variable
   set_fact:
     is_config_same: false
 
+# Check if required channel config already exists
 - name: Check if required channel config already exists
   set_fact:
     is_config_same: true
@@ -46,7 +47,7 @@
     modified_config: "{{ lookup('file', '{{ build_path }}/config_modified.json' ) }}"
   when: original_config == modified_config
 
-# This task signs the acls to application channel
+# Sign the acls to application channel
 - name: Call sign_block.yaml to sign from all other peers
   include_tasks: sign_block.yaml
   vars:
@@ -59,7 +60,7 @@
     loop_var: participant
   when: participant.type != "creator" and is_config_same == false
 
-# This task commits the acls to application channel
+# Commit the acls to application channel
 - name: Call update_block.yaml to update channel configuration
   include_tasks: update_block.yaml
   vars:

@@ -5,31 +5,31 @@
 ##############################################################################################
 
 #############################################################################################
-# This role creates the assets which can be imported into fabric operations console
+# This role Create the assets which can be imported into fabric operations console
 #############################################################################################
 
 ############################################################################################
-# This task creates directory for CA json files
+# Create directory for CA json files
 - name: Create CA directory if it does not exist
   file:
     path: "{{ build_path }}/Certificate_Authorities"
     state: directory
 
-# This task gets CA info from public url
+# Get CA info from public url
 - name: Get CA data info
   uri:
-    url: "https://{{ item.ca_data.url }}/cainfo"
+    url: "https://{{ item.ca_data.url }}"
     validate_certs: no
     return_content: yes
   register: url_output
 
-# This task sets the ca_info with the json output from above task
+# Set the ca_info with the json output from above task
 - name: Set ca_info variable
   set_fact:
     ca_info: "{{ url_output.json.result }}"
   when: not url_output.failed
 
-# This task creates the json files for CA servers
+# Create the json files for CA servers
 - name: "Create json file for ca {{ component_name }}"
   template:
     src: "{{ templates[type] | default('helm_component.tpl') }}"
@@ -41,13 +41,13 @@
   - item.services.ca is defined
   - not url_output.failed
 
-# This task creates directory for orderer json files
+# Create directory for orderer json files
 - name: Create Orderer directory if it does not exist
   file:
     path: "{{ build_path }}/Ordering_Services"
     state: directory
 
-# This task creates the json files for Orderers
+# Create the json files for Orderers
 - name: "Create json file for orderer {{ component_name }}"
   template:
     src: "{{ templates[type] | default('helm_component.tpl') }}"
@@ -62,13 +62,13 @@
   - item.type == 'orderer'
   - not url_output.failed
 
-# This task creates directory for OrgMSP json files
+# Create directory for OrgMSP json files
 - name: Create Org directory if it does not exist
   file:
     path: "{{ build_path }}/Organizations"
     state: directory
 
-# This task creates the json files for OrgMSPs
+# Create the json files for OrgMSPs
 - name: "Create json file for Org {{ component_name }}"
   template:
     src: "{{ templates[type] | default('helm_component.tpl') }}"
@@ -79,13 +79,13 @@
   when: 
   - not url_output.failed
 
-# This task creates directory for Peer json files
+# Create directory for Peer json files
 - name: Create Peers directory if it does not exist
   file:
     path: "{{ build_path }}/Peers"
     state: directory
 
-# This task creates the json files for Peers
+# Create the json files for Peers
 - name: "Create json file for peer {{ component_name }}"
   template:
     src: "{{ templates[type] | default('helm_component.tpl') }}"

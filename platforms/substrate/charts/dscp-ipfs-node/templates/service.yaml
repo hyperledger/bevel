@@ -1,0 +1,66 @@
+{{ $fullname :=  include "dscp-ipfs.fullname" . }}
+{{- if .Values.service.swarm.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-swarm
+  annotations:
+  {{- with .Values.service.swarm.annotations }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.service.swarm.port }}
+      targetPort: {{ .Values.config.ipfsSwarmPort }}
+{{- end }}
+---
+{{- if .Values.service.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dscp-ipfs.fullname" . }}-api
+  {{- with .Values.service.api.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "dscp-ipfs.labels" . | nindent 4 }}
+spec:
+  selector:
+    name: {{ include "dscp-ipfs.fullname" . }}
+  ports:
+    - protocol: 'TCP'
+      port: {{ .Values.service.api.port }}
+      targetPort: {{ .Values.config.ipfsApiPort }}
+{{- end }}
+
+{{- if eq $.Values.proxy.provider "ambassador" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: "{{ $fullname }}-listener"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.port }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: "{{ $fullname }}-tcpmapping"
+  namespace: {{ $.Values.namespace }}
+spec:
+  port: {{ $.Values.proxy.port }}
+  service: "{{ $fullname }}-swarm.{{ $.Values.namespace }}:{{ $.Values.config.ipfsSwarmPort }}"
+{{- end }}

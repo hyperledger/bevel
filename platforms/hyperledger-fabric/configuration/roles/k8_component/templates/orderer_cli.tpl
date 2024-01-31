@@ -1,17 +1,17 @@
 metadata:
   namespace: {{ component_ns }}
   images:
-    fabrictools: {{ fabrictools_image }}
-    alpineutils: {{ alpine_image }}
+    fabrictools: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
+    alpineutils: {{ docker_url }}/{{ alpine_image }}
 storage:
   class: {{ storage_class }}
   size: 256Mi
 vault:
   role: vault-role
   address: {{ vault.url }}
-  authpath: {{ network.env.type }}{{ component_ns }}-auth
-  adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/users/admin
-  orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer_component }}
+  authpath: {{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ org.name | lower }}
+  adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/ordererOrganizations/{{ component_ns }}/users/admin
+  orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer_component }}
   serviceaccountname: vault-auth
   imagesecretname: regcred
   tls: false

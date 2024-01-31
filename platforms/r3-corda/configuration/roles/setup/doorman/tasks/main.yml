@@ -7,8 +7,9 @@
 ##############################################################################################
 # This role creates the value file for doorman
 ##############################################################################################
-    
-- name: "Wait for namespace creation for {{ organisation }}"
+
+# Wait for namespace creation
+- name: "Wait for namespace creation for {{ name }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
@@ -16,53 +17,7 @@
     component_name: "{{ component_ns }}"
     type: "retry"
 
-- name: "Wait for vault-auth creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-auth"
-    type: "retry"
-  tags:
-    - notest    
-
-- name: "Wait for vault-reviewer creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-reviewer"
-    type: "retry"
-  tags:
-    - notest    
-
-- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ClusterRoleBinding"
-    component_name: "{{ component_ns }}-role-tokenreview-binding"
-    type: "retry"
-  tags:
-    - notest    
-
-# Setup Vault-Kubernetes accesses and Regcred for docker registry
-- name: "Setup vault for doorman"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    policy_type: "cordaos"
-    name: "{{ services.doorman.name | lower }}"
-    component_ns: "{{ item.name | lower }}-ns"
-    component_name: "{{ services.doorman.name | lower }}-vaultk8s-job"
-    component_auth: "corda{{ services.doorman.name | lower }}"
-    component_type: "organization"
-    kubernetes: "{{ item.k8s }}"
-    vault: "{{ item.vault }}"
-    gitops: "{{ item.gitops }}"
-    reset_path: "platforms/r3-corda/configuration"
-
-# generate Doorman certificates
+# Generate Doorman certificates
 - name: "Create certificates for doorman" 
   include_role: 
     name: create/certificates/doorman
@@ -81,13 +36,14 @@
   vars:
     component_name: "doormanmongodb"
     component_type: "mongodb"
+    org_name: "{{ item.name | lower }}"
     helm_lint: "true"
     nodename: "{{ services.doorman.name }}"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.doorman.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "mongodb"
+    chart: "corda-mongodb"
   when: services.doorman.tls == 'off'
 
 # Create deployment file for doorman mongodb node when tls is on
@@ -97,13 +53,14 @@
   vars:
     component_name: "doormanmongodb"
     component_type: "mongodb"
+    org_name: "{{ item.name | lower }}"
     helm_lint: "true"
     nodename: "{{ services.doorman.name }}"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.doorman.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "mongodb-tls"
+    chart: "corda-mongodb-tls"
   when: services.doorman.tls == 'on'
 
 # create deployment file for doorman node
@@ -112,13 +69,14 @@
     name: create/k8_component
   vars:
     component_name: "{{ services.doorman.name }}"
+    org_name: "{{ item.name | lower }}"
     component_type: "doorman"
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.doorman.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "doorman"
+    chart: "corda-doorman"
     chart_tls: "false"
   when: services.doorman.tls == 'off'
 
@@ -128,13 +86,14 @@
     name: create/k8_component
   vars:
     component_name: "{{ services.doorman.name }}"
+    org_name: "{{ item.name | lower }}"
     component_type: "doorman"
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.doorman.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "doorman-tls"
+    chart: "corda-doorman-tls"
     chart_tls: "true"
   when: services.doorman.tls == 'on'
 
@@ -144,7 +103,6 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_RESET_PATH: "platforms/r3-corda/configuration"
     msg: "[ci skip] Pushing deployment files for doorman node and doorman mongodb node"
   tags:
     - notest

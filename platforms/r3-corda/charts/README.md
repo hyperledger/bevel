@@ -10,7 +10,7 @@ This folder contains helm charts which are used by the ansible playbooks for the
 
 ## Example Folder Structure ###
 ```
-/doorman
+/corda-doorman
 |-- templates
 |   |--_helpers.tpl
 |   |-- volumes.yaml

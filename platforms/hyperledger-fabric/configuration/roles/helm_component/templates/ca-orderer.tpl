@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/ca    
+      chart: {{ charts_dir }}/fabric-ca-server   
   values:
 {% if network.env.annotations is defined %}
     deployment:
@@ -42,8 +42,8 @@ spec:
     metadata:
       namespace: {{ component_name | e }}
       images:
-        alpineutils: {{ alpine_image }}
-        ca: {{ ca_image }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+        ca: {{ docker_url }}/{{ ca_image[network.version] }}
     server:
       name: {{ component_services.ca.name }}
       tlsstatus: true
@@ -52,22 +52,27 @@ spec:
       configpath: conf/fabric-ca-server-config-{{ component }}.yaml
 {% endif %}        
     storage:
-      storageclassname: {{ component | lower }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi 
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name | e }}/ca/{{ component }}?user
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretadminpass: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ component_name | e }}/ca/{{ component }}?user
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined  %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
     service:
       servicetype: ClusterIP
       ports:
         tcp:
-          port: {{ component_services.ca.grpc.port }}
+          clusteripport: {{ component_services.ca.grpc.port }}
 {% if component_services.ca.grpc.nodePort is defined %}
           nodeport: {{ component_services.ca.grpc.nodePort }}
 {% endif %}

@@ -1,0 +1,125 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.peer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  {{- if or $.Values.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+  {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
+    cloud.google.com/load-balancer-type: "Internal"
+  {{- end }}
+  {{- end }}
+  labels:
+    run: {{ $.Values.peer.name }}
+    app.kubernetes.io/name: {{ $.Values.peer.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    app: {{ $.Values.peer.name }}
+  ports:
+  - name: grpc
+    protocol: TCP
+    targetPort: 7051
+    port: {{ $.Values.service.ports.grpc.clusteripport }}
+    {{- if $.Values.service.ports.grpc.nodeport }}
+    nodePort: {{ $.Values.service.ports.grpc.nodeport }}
+    {{- end }}
+  - name: events
+    protocol: TCP
+    targetPort: 7053
+    port: {{ $.Values.service.ports.events.clusteripport }}
+    {{- if $.Values.service.ports.events.nodeport }}
+    nodePort: {{ $.Values.service.ports.events.nodeport }}
+    {{- end }}
+  - protocol: TCP
+    name: couchdb
+    targetPort: 5984
+    port: {{ $.Values.service.ports.couchdb.clusteripport }}
+    {{- if $.Values.service.ports.couchdb.nodeport }}
+    nodePort: {{ $.Values.service.ports.couchdb.nodeport }}
+    {{- end }}
+  - name: grpc-web
+    protocol: TCP
+    targetPort: 7443
+    port: 7443
+  - name: operations
+    protocol: TCP
+    targetPort: 9443
+    port: {{ $.Values.service.ports.metrics.clusteripport }}
+  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
+  clusterIP: None
+  {{- end }}
+  {{- if $.Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
+  {{- end }}
+
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.peer.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"  
+spec:
+  rules:
+  - host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: {{ $.Values.service.ports.grpc.clusteripport }}
+  - host: {{ $.Values.peer.name }}-proxy.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: 7443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.peer.name }}-ops
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+spec:
+  rules:
+  - host: {{ $.Values.peer.name }}-ops.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.peer.name }}
+            port:
+              number: 9443
+{{- end }}

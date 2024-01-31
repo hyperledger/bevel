@@ -5,7 +5,7 @@
 ##############################################################################################
 
 
-# This tasks checks for the crypto material to the vault
+# Check for the crypto material to the vault
 - name: Check the crypto material to Vault
   shell: |
     vault kv get -field=privateKey {{ vault.secret_path | default('secretsv2') }}/{{ component_ns }}/crypto/{{ item.name }}/tm
@@ -16,7 +16,7 @@
   register: vault_result
   ignore_errors: yes
 
-# This sets a fact vault_result
+# Set a fact based on vault_result
 - set_fact:
     generate_crypto_tessera: True
   when: vault_result.failed is defined and vault_result.failed == True

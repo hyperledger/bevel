@@ -1,0 +1,45 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value files for namespaces of organizations and ordererers
+#############################################################################################
+
+# Check if namespace created
+- name: "Checking if the namespace {{ item.name | lower }}-net already exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ item.name | lower }}-net"
+    type: "no_retry"
+  register: get_namespace
+  tags:
+    - notest
+
+# Set a variable
+- name: "Set Variable"
+  set_fact:
+    get_namespace: "{{ result }}"
+
+# Create the value file of Namespace for Organizations
+- name: Create namespaces
+  include_role:
+    name: k8_component
+  vars:    
+    component_type: "namespace"    
+  when: get_namespace.resources|length == 0
+
+# Git Push : Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    msg: "[ci skip] Pushing deployment files for namespace, service accounts and clusterrolebinding"
+  tags:
+    - notest

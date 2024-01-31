@@ -23,7 +23,7 @@ For each organization in the DLT network you need to set up the following:
 3. A Git User with write access to all the branches in the chosen Git repository; as well as an access token.
 4. The network configuration file (`network.yaml`) which has been filled in according to your requirements. A sample `network.yaml` for Hyperledger Fabric can be found in [this folder](./samples/).
 
-For other general pre-quisites, such as Docker images, Ambassador and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html).
+For other general pre-requisites, such as Docker images, Haproxy and DNS setup, please refer to the ['Configure Pre-requisites' guide](https://hyperledger-bevel.readthedocs.io/en/latest/operations/configure_prerequisites.html).
 
 ## Execution 
 ### Step 1

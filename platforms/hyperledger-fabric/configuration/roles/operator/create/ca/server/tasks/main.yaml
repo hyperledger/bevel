@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates the CA Server using bevel-operator-fabric
+#############################################################################################
+
+# Create CA server for org
+- name: "Create CA server for org"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf ca create --image=hyperledger/fabric-ca --version={{ version }} \
+      --storage-class={{ storageclass }} --capacity={{ storage }} --name={{ ca_name }} \
+      --enroll-id=enroll --enroll-pw=enrollpw --hosts={{ ca_url }} \
+      --istio-port=443 --istio-ingressgateway=ingressgateway --namespace={{ namespace }}
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    version: "{{ ca_image_version[network.version] }}"
+    storageclass: "{{ component_name }}-bevel-storageclass"
+    storage: "1Gi"
+    ca_url: "{{ item.ca_data.url }}"
+    kubeconfig_path: "{{ item.k8s.config_file }}"

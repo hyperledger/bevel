@@ -15,15 +15,16 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/install_chaincode
+      chart: {{ charts_dir }}/fabric-chaincode-install
   values:
     metadata:
       namespace: {{ namespace }}
       network:
         version: {{ network.version }}
       images:
-        fabrictools: {{ fabrictools_image }}
-        alpineutils: {{ alpine_image }}
+        fabrictools: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+
     peer:
       name: {{ peer_name }}
       address: {{ peer_address }}
@@ -33,12 +34,17 @@ spec:
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ network.env.type }}{{ namespace | e }}-auth
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/users/admin 
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/orderer
-      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/git
+      authpath: {{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ org.name | lower }}
+      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ namespace }}/users/admin 
+      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ namespace }}/orderer
+      secretgitprivatekey: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/credentials/{{ namespace }}/git
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       tls: false
     orderer:
       address: {{ orderer_address }}

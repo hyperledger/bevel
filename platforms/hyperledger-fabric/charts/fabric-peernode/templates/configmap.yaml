@@ -1,0 +1,93 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Values.peer.name }}-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.peer.name }}-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
+  CORE_PEER_ID: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+  FABRIC_LOGGING_SPEC: "grpc=debug:{{ $.Values.peer.loglevel }}"
+  CORE_LEDGER_STATE_STATEDATABASE: CouchDB
+  CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: localhost:5984
+  CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME: "{{ $.Values.peer.couchdb.username }}"
+  CORE_PEER_ADDRESS: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}
+  CORE_PEER_GOSSIP_BOOTSTRAP: {{ $.Values.peer.gossippeeraddress }}
+  {{ if $.Values.peer.gossipexternalendpoint }}
+  CORE_PEER_GOSSIP_EXTERNALENDPOINT: {{ $.Values.peer.gossipexternalendpoint }}
+  {{ end }}
+  CORE_PEER_LOCALMSPID: {{ $.Values.peer.localmspid }}
+  CORE_PEER_TLS_ENABLED: "{{ $.Values.peer.tlsstatus }}"
+  CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/fabric/crypto/tls/server.crt
+  CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/fabric/crypto/tls/server.key
+  CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/fabric/crypto/msp/tlscacerts/tlsca.crt
+  CORE_PEER_GOSSIP_USELEADERELECTION: "true"
+  CORE_PEER_GOSSIP_ORGLEADER: "false"
+  CORE_PEER_PROFILE_ENABLED: "true"
+  CORE_PEER_ADDRESSAUTODETECT: "true"
+  CORE_PEER_NETWORKID: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+  CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/fabric/crypto/msp
+  GODEBUG: "netdns=go"
+  CORE_PEER_GOSSIP_SKIPHANDSHAKE: "true"
+  CORE_CHAINCODE_BUILDER: "{{ $.Values.peer.builder }}"
+  CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9443
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Values.peer.name }}-msp-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Values.peer.name }}-msp-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  mspconfig: |
+    {{if  ($.Values.peer.mspconfig.organizationalunitidentifiers) }}
+      OrganizationalUnitIdentifiers:{{ range $.Values.peer.mspconfig.organizationalunitidentifiers }}
+        - Certificate: cacerts/ca.crt
+          OrganizationalUnitIdentifier: {{ . }}{{ end }}{{end}}
+      NodeOUs:
+        Enable: true
+        ClientOUIdentifier:
+          Certificate: cacerts/ca.crt
+          OrganizationalUnitIdentifier: {{ $.Values.peer.mspconfig.nodeOUs.clientOUidentifier.organizationalunitidentifier }}
+        PeerOUIdentifier:
+          Certificate: cacerts/ca.crt
+          OrganizationalUnitIdentifier: {{ $.Values.peer.mspconfig.nodeOUs.peerOUidentifier.organizationalunitidentifier }}
+        AdminOUIdentifier:
+          Certificate: cacerts/ca.crt
+          OrganizationalUnitIdentifier: {{ $.Values.peer.mspconfig.nodeOUs.adminOUidentifier.organizationalunitidentifier }}
+        OrdererOUIdentifier:
+          Certificate: cacerts/ca.crt
+          OrganizationalUnitIdentifier: {{ $.Values.peer.mspconfig.nodeOUs.ordererOUidentifier.organizationalunitidentifier }}
+
+{{ if $.Values.peer.configpath }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: builders-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: builders-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  core.yaml.base64: {{ .Values.peer.core | quote }}
+{{ end }}

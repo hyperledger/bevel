@@ -1,0 +1,18 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Create helm release files for validator nodes
+- name: Create helm release files for validator nodes
+  include_tasks: validator_main.yaml
+  vars:
+    peer_query: "peers[?type=='validator']"
+    validator_node: "{{ org.services | json_query(peer_query) | first | default() }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+  when:
+    - validator_node | length > 0
+    - peer.type == 'validator'

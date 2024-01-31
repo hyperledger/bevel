@@ -8,6 +8,7 @@
 # This role creates the value file for nms
 ##############################################################################################
 
+# Wait for namespace creation
 - name: "Wait for namespace creation for {{ organisation }}"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -17,52 +18,6 @@
     type: "retry"
   tags:
     - notest
-
-- name: "Wait for vault-auth creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-auth"
-    type: "retry" 
-  tags:
-    - notest   
-
-- name: "Wait for vault-reviewer creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-reviewer"
-    type: "retry"
-  tags:
-    - notest
-
-- name: "Wait for ClusterRoleBinding creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ClusterRoleBinding"
-    component_name: "{{ component_ns }}-role-tokenreview-binding"
-    type: "retry"
-  tags:
-    - notest
-
-# Setup Vault-Kubernetes accesses and Regcred for docker registry
-- name: "Setup vault for nms"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    policy_type: "cordaos"
-    name: "{{ services.nms.name | lower }}"
-    component_ns: "{{ item.name | lower }}-ns"
-    component_name: "{{ services.nms.name | lower }}-vaultk8s-job"
-    component_auth: "corda{{ services.nms.name | lower }}"
-    component_type: "organization"
-    kubernetes: "{{ item.k8s }}"
-    vault: "{{ item.vault }}"
-    gitops: "{{ item.gitops }}"
-    reset_path: "platforms/r3-corda/configuration"
 
 # generate NMS certificates
 - name: "Create certificates for nms" 
@@ -86,10 +41,11 @@
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source}}"
     nodename: "{{ services.nms.name | lower }}"
-    component_auth: "corda{{ services.nms.name | lower }}"
+    org_name: "{{ item.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "mongodb"
+    chart: "corda-mongodb"
   when: services.nms.tls == 'off'
 
 # Create deployment file for nms mongodb node when tls is on
@@ -99,15 +55,15 @@
   vars:
     component_name: "networkmapmongodb"
     component_type: "mongodb"
+    org_name: "{{ item.name | lower }}"
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source}}"
     nodename: "{{ services.nms.name | lower }}"
-    component_auth: "corda{{ services.nms.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "mongodb-tls"
+    chart: "corda-mongodb-tls"
   when: services.nms.tls == 'on'
-
 
 # create deployment file for networkmap node when tls is off
 - name: "create nms"
@@ -115,13 +71,14 @@
     name: create/k8_component
   vars:
     component_name: "{{ services.nms.name | lower }}"
-    component_type: "nms" 
+    component_type: "nms"
+    org_name: "{{ item.name | lower }}" 
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.nms.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "nms"
+    chart: "corda-networkmap"
     chart_tls: "false"
   when: services.nms.tls == 'off'
 
@@ -131,13 +88,14 @@
     name: create/k8_component
   vars:
     component_name: "{{ services.nms.name | lower }}"
-    component_type: "nms" 
+    component_type: "nms"
+    org_name: "{{ item.name | lower }}" 
     helm_lint: "true"
     charts_dir: "{{ gitops.chart_source }}"
-    component_auth: "corda{{ services.nms.name | lower }}"
+    component_auth: "{{ network.env.type }}{{ org_name }}"
     org: "{{ item }}"
     release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-    chart: "nms-tls"
+    chart: "corda-networkmap-tls"
     chart_tls: "true"
   when: services.nms.tls == 'on'
 
@@ -148,6 +106,4 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_RESET_PATH: "platforms/r3-corda/configuration"
     msg: "[ci skip] Pushing deployment files for networkmap node and networkmapmongodb node"
-    

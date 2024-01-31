@@ -1,0 +1,44 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  CHANNEL_NAME: {{ $.Values.channel.name }}
+  FABRIC_LOGGING_SPEC: {{ $.Values.peer.loglevel }}
+  CORE_PEER_ID: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+  CORE_PEER_ADDRESS: {{ $.Values.peer.address }}
+  CORE_PEER_LOCALMSPID: {{ $.Values.peer.localmspid }}
+  CORE_PEER_TLS_ENABLED: "{{ $.Values.peer.tlsstatus }}"
+  CORE_PEER_TLS_ROOTCERT_FILE: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
+  ORDERER_CA: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+  ORDERER_URL: {{ $.Values.orderer.address }}
+  CORE_PEER_MSPCONFIGPATH: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+  NETWORK_VERSION: {{ $.Values.metadata.network.version }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+data:
+  anchors.tx.base64: {{ .Values.anchorstx | quote }}

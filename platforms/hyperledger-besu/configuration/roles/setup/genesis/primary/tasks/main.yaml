@@ -1,0 +1,45 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# create build directory
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}"
+    state: directory
+
+# Get number of validators
+- name: Validator count
+  set_fact:
+    validator_count={{ validator_count | default(0) | int + 1  }}
+  loop: "{{ org.services.validators | default([]) }}"
+
+- name: Fail when no validators detected
+  ansible.builtin.fail:
+    msg: The first organization must have Validators.
+  when: validator_count == 0
+
+- name: Get the kubernetes server url
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
+  register: kubernetes_server_url
+
+# This task runs the genesis job
+- name: Genesis job helm install
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars:
+    component_name: "genesis"
+    type: "primary_genesis"
+    kubernetes_url: "{{ kubernetes_server_url.stdout }}"
+
+# Wait for Genesis job to complete
+- name: "Wait for the genesis job to complete"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "genesis"
+    component_type: Job
+    namespace: "{{ component_ns }}"

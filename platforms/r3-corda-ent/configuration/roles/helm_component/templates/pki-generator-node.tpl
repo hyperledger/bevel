@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/generate-pki-node
+    chart: {{ charts_dir }}/corda-ent-node-pki-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -31,10 +31,10 @@ spec:
       address: {{ vault.url }}
       floatVaultAddress: {{ org.services.float.vault.url }}
       role: vault-role
-      authpath: cordaent{{ org.name | lower }}
-      authpathFloat: cordaent{{ org.name | lower }}float
+      authpath: {{ network.env.type }}{{ name }}
+      authpathFloat: {{ network.env.type }}{{ name }}float
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     subjects:

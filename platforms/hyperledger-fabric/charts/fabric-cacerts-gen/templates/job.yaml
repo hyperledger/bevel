@@ -1,0 +1,213 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $.Values.metadata.name }}-cacerts-job"
+  namespace: "{{ $.Values.metadata.namespace }}"
+  labels:
+    app: "{{ $.Values.metadata.name }}-cacerts-job"
+    app.kubernetes.io/name: "{{ $.Values.metadata.name }}-cacerts-job"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ $.Values.metadata.name }}-cacerts-job"
+        app.kubernetes.io/name: "{{ $.Values.metadata.name }}-cacerts-job"
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      - name: certcheck
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
+      initContainers:
+        - name: init-check-certificates
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_CRYPTO_PATH
+            value: {{ $.Values.vault.secretcryptoprefix }}
+          - name: VAULT_SECRET_CREDENTIALS_PATH
+            value: {{ $.Values.vault.secretcredentialsprefix }}
+          - name: MOUNT_PATH
+            value: "/certcheck"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env sh
+              . /scripts/bevel-vault.sh
+
+              # Calling a function to retrieve the vault token.
+              vaultBevelFunc "init"
+
+              mkdir -p ${MOUNT_PATH}
+
+              # Calling a function to retrieve secrets from Vault only if they exist.
+              vaultBevelFunc "readJson" "${VAULT_SECRET_CRYPTO_PATH}"
+
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_cacert.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_cacert.txt
+              fi
+
+              # Check if CA server admin credentials already present in the vault
+              vaultBevelFunc "readJson" "${VAULT_SECRET_CREDENTIALS_PATH}"
+
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_creds.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_creds.txt
+              fi
+
+              echo "Done checking for certificates in vault."
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+      containers:
+        - name:  "cacerts"
+          image: {{ $.Values.metadata.images.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_CRYPTO_PATH
+            value: {{ $.Values.vault.secretcryptoprefix }}
+          - name: VAULT_SECRET_CREDENTIALS_PATH
+            value: {{ $.Values.vault.secretcredentialsprefix }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.component_name }}
+          - name: ORG_NAME
+            value: {{ $.Values.metadata.name }}
+          - name: CA_SUBJECT
+            value: "{{ $.Values.ca.subject }}"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+              . /scripts/bevel-vault.sh
+              . /scripts/package-manager.sh
+
+              # Define the packages to install
+              packages_to_install="jq curl openssl"
+              install_packages "$packages_to_install"
+
+              if [ -e /certcheck/absent_cacert.txt ]
+              then
+                # Create openssl.conf file
+                echo "[req]
+                req_extensions = v3_req
+                distinguished_name = dn
+
+                [dn]
+
+                [v3_req]
+                basicConstraints = critical, CA:TRUE
+                keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+                subjectKeyIdentifier = hash
+                " > openssl.conf
+
+                # this commands generate the CA certificate
+                openssl ecparam -name prime256v1 -genkey -noout -out  ${COMPONENT_NAME}-CA.key
+                openssl req -x509 -config "openssl.conf" -new -nodes -key ${COMPONENT_NAME}-CA.key -days 1024 -out ca.${COMPONENT_NAME}-cert.pem -extensions v3_req -subj "${CA_SUBJECT}"
+
+                # This commands put the certificates with correct format for the curl command
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < ${COMPONENT_NAME}-CA.key > ./cakey_formatted.txt
+        
+                while IFS= read -r line
+                do
+                  echo "$line\n"
+                done < ca.${COMPONENT_NAME}-cert.pem > ./capem_formatted.txt
+
+                PEM_CERTIFICATE=$(cat capem_formatted.txt)
+                KEY_CERTIFICATE=$(cat cakey_formatted.txt)
+                
+                echo "
+                  {
+                    \"data\": 
+                      {
+                        \"ca.${COMPONENT_NAME}-cert.pem\": \"${PEM_CERTIFICATE}\",
+                        \"${COMPONENT_NAME}-CA.key\": \"${KEY_CERTIFICATE}\"
+                      }  
+                  }" > payload.json
+
+                # Calling a function to retrieve the vault token.
+                vaultBevelFunc "init"
+                # Calling a function to write secrets to the vault.
+                vaultBevelFunc 'write' "${VAULT_SECRET_CRYPTO_PATH}" 'payload.json'
+                rm payload.json
+              fi
+
+              if [ -e /certcheck/absent_creds.txt ]
+              then
+                # Calling a function to retrieve the vault token.
+                vaultBevelFunc "init"
+                echo "
+                {
+                  \"data\": 
+                  {
+                    \"user\": \"${ORG_NAME}-adminpw\"
+                  }
+                }" > payload.json
+
+                # Calling a function to write a secret to the vault.
+                vaultBevelFunc 'write' "${VAULT_SECRET_CREDENTIALS_PATH}" 'payload.json'
+                # Calling a function to retrieve secrets from Vault only if they exist.
+                vaultBevelFunc "readJson" "${VAULT_SECRET_CREDENTIALS_PATH}"
+              fi
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh

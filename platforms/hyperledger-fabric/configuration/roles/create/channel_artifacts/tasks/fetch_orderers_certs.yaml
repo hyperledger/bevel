@@ -1,0 +1,43 @@
+
+# Fetch msp files from Vault 
+- name: Check if orderers tls certs already created
+  shell: |
+    vault kv get -field=server.crt {{ organization.vault.secret_path | default('secretsv2') }}/{{ organization.name | lower }}/ordererOrganizations/{{ organization.name | lower }}-net/orderers/{{ orderer.name }}.{{ organization.name | lower }}-net/tls > server.crt
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/orderers/{{ orderer.name }}.{{ organization.name | lower }}-net/tls
+    mv server.crt ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/orderers/{{ orderer.name }}.{{ organization.name | lower }}-net/tls
+  environment:
+    VAULT_ADDR: "{{ organization.vault.url }}"
+    VAULT_TOKEN: "{{  organization.vault.root_token }}"   
+  loop: "{{ orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Fetch msp files from Vault 
+- name: Check if msp admincerts already created
+  shell: |
+    vault kv get -field=admincerts {{ organization.vault.secret_path | default('secretsv2') }}/{{ organization.name | lower }}/ordererOrganizations/{{ organization.name | lower }}-net/users/admin/msp > Admin@{{ organization.name | lower }}-net-cert.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+    mv Admin@{{ organization.name | lower }}-net-cert.pem ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ organization.vault.url }}"
+    VAULT_TOKEN: "{{ organization.vault.root_token }}"   
+
+# Fetch msp files from Vault 
+- name: Check if msp cacerts already created
+  shell: |
+    vault kv get -field=cacerts {{ organization.vault.secret_path | default('secretsv2') }}/{{ organization.name | lower }}/ordererOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ organization.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ organization.services.ca.grpc.port }}.pem ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ organization.vault.url }}"
+    VAULT_TOKEN: "{{ organization.vault.root_token }}"   
+
+# Fetch msp files from Vault 
+- name: Check if msp tlscacerts already created
+  shell: |
+    vault kv get -field=tlscacerts {{ organization.vault.secret_path | default('secretsv2') }}/{{ organization.name | lower }}/ordererOrganizations/{{ organization.name | lower }}-net/users/admin/msp > ca-{{ organization.name | lower }}-net-{{ organization.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+    mv ca-{{ organization.name | lower }}-net-{{ organization.services.ca.grpc.port }}.pem ./build/crypto-config/ordererOrganizations/{{ organization.name | lower }}-net/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ organization.vault.url }}"
+    VAULT_TOKEN: "{{ organization.vault.root_token }}"   

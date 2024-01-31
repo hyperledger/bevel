@@ -31,14 +31,11 @@
         name: "roottoken"
         namespace: "{{ namespace }}"
       stringData:
-        config.yaml: |-
         token: "{{ vault.root_token }}"
     state: present
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   when: check == "token_secret" and root_token_secret.resources|length == 0
-  tags:
-  - molecule-idempotence-notest
 
 #####################################################################################################################
 # Check if Docker credentials exist already
@@ -47,6 +44,7 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
   vars:
     check: "docker_credentials"
+    component_name: "{{ namespace }}"
   register: get_regcred
   when: check == "docker_credentials"
 

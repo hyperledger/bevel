@@ -18,7 +18,6 @@
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
   tasks:
-  
     # delete build directory
     - name: Remove build directory
       file:
@@ -28,46 +27,64 @@
     # Create Namespaces and Vault-rbac kubernetes-value files
     - name: Create namespace and Vault auth for each organization
       include_role:
-        name: "create/namespace_vaultauth"
+        name: "create/namespace"
       vars:
         component_name: "{{ item.name | lower }}-net"
         component_type_name: "{{ item.type | lower }}"
         kubernetes: "{{ item.k8s }}"
         release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-    
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry
+
+    # Setup script for Vault and OS Package Manager
+    - name: "Setup script for Vault and OS Package Manager"
+      include_role:
+        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
+      vars:
+        namespace: "{{ org.name | lower }}-net"
+        kubernetes: "{{ org.k8s }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+
+    # Setup Vault-Kubernetes accesses and Regcred for docker registry
     - name: Setup Vault Kubernetes for each organization
       include_role: 
-        name: "setup/vault_kubernetes"
+        name: "{{playbook_dir}}/../../shared/configuration/roles/setup/vault_kubernetes"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
+        name: "{{ org.name | lower }}"
+        component_name: "{{ org.name | lower }}-vaultk8s-job"
+        component_type: "{{ org.type | lower }}"
+        component_ns: "{{ org.name | lower }}-net"
+        component_auth: "{{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ name }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        gitops: "{{ org.gitops }}"
       loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
 
     # Create Storageclass 
     - name: Create storageclass for each organization
       include_role:
-        name: "create/storageclass"
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
       vars:
-        sc_name: "{{ item.name | lower}}sc"
-        component_type: "{{ item.type | lower}}"
-        kubernetes: "{{ item.k8s }}"
-        release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+        org_name: "{{ org.name | lower }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
+        region: "{{ org.k8s.region | default('eu-west-1') }}"
       loop: "{{ network['organizations'] }}"
-        
+      loop_control:
+        loop_var: org
+
     # Create CA Server helm-value files and check-in
     - name: Create CA server for each organization
       include_role:
-        name: "create/ca-server"
+        name: "create/ca_server"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
@@ -76,13 +93,13 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.services.ca is defined
-        
+
     # Create generate_crypto script for each organization
     - name: Create generate_crypto.sh for each organization
       include_role:
         name: "create/crypto_script"
       vars:
-        component_type: "{{ item.type | lower}}"        
+        component_type: "{{ item.type | lower }}"        
         orderers: "{{ item.services.orderers }}"
       loop: "{{ network['organizations'] }}"
 
@@ -91,19 +108,21 @@
     - pause:
         prompt: "Sleeping... so that the client certificates are valid"
         minutes: 6
-    
-     # Create CA Tools helm-value files and check-in
+
+    # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
-        name: "create/ca-tools/orderer"
+        name: "create/ca_tools/orderer"
       vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
+        component_name: "{{ item.name | lower }}-net"
+        component: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
         component_services: "{{ item.services }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
@@ -112,16 +131,18 @@
     # Create CA Tools helm-value files and check-in
     - name: Create CA tools for each organization
       include_role:
-        name: "create/ca-tools/peer"
+        name: "create/ca_tools/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
         component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         orderer_org: "{{ item.orderer_org | lower }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
         ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
         gitops: "{{ item.gitops }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
@@ -153,6 +174,7 @@
       vars:
         build_path: "./build"
         genesis: "{{ item.genesis }}"
+        sys_channel_name: "syschannel"
       loop: "{{ network['channels'] }}"
     
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
@@ -165,6 +187,7 @@
         component_type: "{{ item.type | lower}}"
         component_services: "{{ item.services }}"
         vault: "{{ item.vault }}"
+        sys_channel_name: "syschannel"
         git_protocol: "{{ item.gitops.git_protocol }}"
         git_url: "{{ item.gitops.git_url }}"
         git_branch: "{{ item.gitops.branch }}"
@@ -204,6 +227,18 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
+
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - name: Create all create-channel jobs
+      include_role:
+        name: "create/osnchannels"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and '2.5.' in network.version
 
     # This role creates the value file for joining channel from each participating peer
     # to the vault.

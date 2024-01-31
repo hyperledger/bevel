@@ -1,0 +1,16 @@
+# ##############################################################################################
+# #  Copyright Accenture. All Rights Reserved.
+# #
+# #  SPDX-License-Identifier: Apache-2.0
+# ##############################################################################################
+
+# Extracting Prometheus target URLs for active organizations' peers or validators.
+- name: Extracting the prometheus targets 
+  vars:
+    prom_url: "{{ node.name }}.{{ component_name }}:{{ node.metrics.port }}"
+  set_fact:
+    targets: "{{ targets + [prom_url] }}"
+  loop: "{{ nodes }}"
+  loop_control:
+    loop_var: node
+  when: node.metrics.enabled == true

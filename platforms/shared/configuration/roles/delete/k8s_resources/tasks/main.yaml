@@ -1,0 +1,58 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get all Helm releases of organization
+- name: Get Helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls -drq -n {{ organization_ns }}
+  register: helm_info
+
+# Remove all Helm releases of organization except genesis
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info.stdout_lines }}"
+  when: 
+  - item != "genesis"
+
+# Remove genesis release at last and ignore errors for now
+- name: Delete Genesis Helm release at last
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "genesis"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  ignore_errors: yes # Ignore failure until all platforms have genesis similar to Besu
+
+- name: Get Helm releases
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} helm ls -drq -n {{ organization_ns }}
+  register: helm_info_extra
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info_extra.stdout_lines }}"
+
+# Remove an existing Namespace
+- name: Remove an existing Namespace {{ organization_ns }}
+  k8s:
+    state: absent
+    kind: Namespace
+    kubeconfig: "{{ kubernetes.config_file }}"
+    namespace: "{{ organization_ns }}"
+    name: "{{ organization_ns }}"
+    
+# Delete the existing build directory for StorageClass
+- name: Delete build directory for storageclass
+  file:
+    path: "{{ playbook_dir }}/../../../platforms/shared/configuration/build"
+    state: absent

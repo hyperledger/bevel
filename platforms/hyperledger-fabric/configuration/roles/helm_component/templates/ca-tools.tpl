@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/catools
+      chart: {{ charts_dir }}/fabric-catools
   values:
     metadata:
       namespace: {{ component_name }}
@@ -47,31 +47,33 @@ spec:
     replicaCount: 1
 
     image:
-      repository: hyperledger/fabric-ca-tools
-      tag: 1.2.1
+      alpineutils: {{ docker_url }}/{{ alpine_image }}
+      catools: {{ docker_url }}/{{ ca_tools_image }}
       pullPolicy: IfNotPresent
-      alpineutils: {{ alpine_image }}
-      
+    
     storage:
-      storageclassname: {{ component | lower }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi
     
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ network.env.type }}{{ component_name }}-auth
-      secretmsp: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/msp
-      secrettls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls
-      secretorderer: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderers
-      secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/peers
-      secretpeerorderertls: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
-      secretambassador: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name }}/ambassador
-      secretcert: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
-      secretkey: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
-      secretcouchdb: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component_name }}/couchdb/{{ org_name }}
-      secretconfigfile: {{ vault.secret_path | default('secret') }}/data/crypto/{{ component_type }}Organizations/{{ component_name | e }}/msp/config
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretusers: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/users
+      secretorderer: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/orderers
+      secretpeer: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/peers
+      secretpeerorderertls: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/orderer/tls
+      secretcert: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name | e }}/ca?ca.{{ component_name | e }}-cert.pem
+      secretkey: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name | e }}/ca?{{ component_name | e }}-CA.key
+      secretcouchdb: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
+      secretconfigfile: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name | e }}/msp/config
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
     
     healthcheck: 
       retries: 10
@@ -93,18 +95,20 @@ spec:
 {% if item.type  == 'peer' %}
     orderers_info:
 {% for orderer in orderers_list %}
-{% for key, value in orderer.items() %}
-{% if key == 'name' %}
-      - {{ key }}: {{ value }}
-        path: "certs/{{ value }}-ca.crt"
-{% endif %}
-{% endfor %}
+      - name: {{ orderer.name }}
+        path: "{{ lookup('file', orderer.certificate) | b64encode }}"
 {% endfor %}
 
     peers:
       name: {% for peer in peers_list %}{% for key, value in peer.items() %}{% if key == 'name' %}{{ value }},{% endif %}{% if key == 'peerstatus' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
       
     peer_count: "{{ peer_count }}"
+{% if item.users is defined %}
+    users: 
+      users_list: "{{ user_list | b64encode }}"
+      users_identities: {% for user in user_list %}{% for key, value in user.items() %}{% if key == 'identity' %}{{ value }}{% endif %}{% endfor %}-{% endfor %}
+{% endif %}
+
 {% if add_peer_value  == 'true' %}
     new_peer_count: "{{ new_peer_count }}"
 {% endif %}

@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # Create modified channel configuration block for orderer end points
-#############################################################################################
+##############################################################################################
 
+# Check if fabric cli is already present
 - name: Check if fabric cli is already present
   k8s_info:
     kind: Pod
@@ -31,19 +32,17 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
-    storage_class: "{{ org.name }}sc"
+    storage_class: "{{ org.name | lower }}-bevel-storageclass"
     release_dir: "{{ build_path }}"
     orderer_component: "{{ orderer.name | lower }}.{{ org.name | lower }}-net"
-    orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+    orderer_address: "{{ orderer.ordererAddress }}"
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
 - name: "Start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
   when: existing_cli.resources|length == 0
 
 # Waiting for fabric cli to be up
@@ -60,7 +59,7 @@
   retries: "{{ network.env.retry_count }}"
   delay: 40
 
-# This task fetch , modify, update and copy the configuration block
+# Fetch, modify, update and copy the configuration block
 - name: Fetch, modify, sign and copy the configuration block from the blockchain
   shell: |
     export PEER_CLI=$(KUBECONFIG={{ org.k8s.config_file }} kubectl get po -n {{ component_ns }} | grep "cli" | head -n 1 | awk '{print $1}')

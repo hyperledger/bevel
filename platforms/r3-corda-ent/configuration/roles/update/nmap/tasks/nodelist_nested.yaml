@@ -22,7 +22,7 @@
     path: "{{ build_path }}/{{ notary_org.name }}/{{ peer.name }}/nodeInfo"
   register: file_status
 
-# This task creates the build directory if it does not exist
+# Create the build directory if it does not exist
 - name: Create build directory if it does not exist
   file:
     path: "{{ build_path }}/{{ notary_org.name }}/{{ peer.name }}"
@@ -40,6 +40,7 @@
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: file_status.stat.exists == False
 
+# Get the nodeinfoFilename from vault
 - name: Get the nodeinfoFilename from vault
   shell: |
     vault kv get -field=nodeInfoName {{ vault.secret_path | default('secretsv2') }}/{{ notary_org.name }}/{{ peer.name }}/nodeInfo

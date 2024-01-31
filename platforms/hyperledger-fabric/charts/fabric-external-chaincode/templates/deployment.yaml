@@ -1,0 +1,138 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cc-{{ $.Values.chaincode.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    name: cc-{{ $.Values.chaincode.name }}
+    app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cc-{{ $.Values.chaincode.name }}
+      app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: cc-{{ $.Values.chaincode.name }}
+        app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:   
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+    {{ if .Values.chaincode.tls }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_CHAINCODE_SECRET_PREFIX
+          value: "{{ $.Values.vault.chaincodesecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: CHAINCODE_TLS_ENABLED
+          value: "{{ $.Values.chaincode.tls }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          if [ "${CHAINCODE_TLS_ENABLED}" == "true" ]; then
+            echo "Getting chaincode certificates from Vault using key ${VAULT_CHAINCODE_SECRET_PREFIX}"
+            vaultBevelFunc "readJson" "${VAULT_CHAINCODE_SECRET_PREFIX}"
+            
+            CACERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+            CLIENT_CERT=$(echo ${VAULT_SECRET} | jq -r '.["client.crt"]')
+            CLIENT_KEY=$(echo ${VAULT_SECRET} | jq -r '.["client.key"]')
+
+            mkdir -p ${MOUNT_PATH}
+            echo "${CACERT}" > ${MOUNT_PATH}/ca.crt
+            echo "${CLIENT_CERT}" > ${MOUNT_PATH}/client.crt
+            echo "${CLIENT_KEY}" > ${MOUNT_PATH}/client.key
+          fi
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+    {{ end  }}
+      containers:
+        - image: {{ $.Values.metadata.images.external_chaincode }}
+          name: "{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}"
+          imagePullPolicy: Always
+          env:
+            - name: CHAINCODE_ID
+              value: "{{ $.Values.chaincode.ccid }}"
+            - name: CHAINCODE_SERVER_ADDRESS
+              value: "0.0.0.0:9999"
+            - name: CHAINCODE_TLS_DISABLED
+              value: "{{ not $.Values.chaincode.tls }}"
+            {{ if .Values.chaincode.tls }}
+            - name: CHAINCODE_TLS_KEY
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/client.key"
+            - name: CHAINCODE_TLS_CERT
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/client.crt"
+            - name: CHAINCODE_CLIENT_CA_CERT
+              value: "{{ $.Values.chaincode.crypto_mount_path }}/ca.crt"
+            {{ end }}
+          ports:
+            - containerPort: 9999
+          {{ if .Values.chaincode.tls }}
+          volumeMounts:
+          - name: certificates
+            mountPath: {{ $.Values.chaincode.crypto_mount_path }}
+            readOnly: true
+          {{ end }}

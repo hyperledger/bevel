@@ -45,7 +45,7 @@
     then
       echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name | lower }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
     else
-      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name | lower }}.{{ org.external_url_suffix }}\",\"port\":8443,\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.ordererAddress.split(":")[0] | to_json }}\",\"port\":\"{{ orderer.ordererAddress.split(":")[1] | to_json }}\",\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
     fi
   when: update_type == "tls"
 
@@ -56,7 +56,7 @@
     then
       echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
     else
-      echo -n '"{{ orderer.name }}.{{ org.external_url_suffix }}:8443"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer 
+      echo -n '"{{ orderer.ordererAddress }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
     fi    
   when: update_type == "address"
 
@@ -100,17 +100,13 @@
 # This task creates the genesis block by consuming the latest config block
 - name: "Create genesis block"
   shell: |
-    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/genesis.block.base64
+    cat {{ build_path }}/{{ channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64
   when: update_type == "tls"
-  tags:
-    - molecule-idempotence-notest
 
 # add new genesis block to the vault
 - name: "Write genesis block to Vault"  
   shell: |
-    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ component_ns }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/genesis.block.base64)"
+    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/ordererOrganizations/{{ component_ns }}/{{ channel_name }}  {{ network.env.type }}GenesisBlock="$(cat {{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64)"
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
-  tags:
-    - molecule-idempotence-notest

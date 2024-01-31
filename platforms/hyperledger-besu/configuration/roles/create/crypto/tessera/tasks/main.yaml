@@ -4,13 +4,14 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This tasks checks the crypto material in the vault
+# Check the crypto material in the vault
 - name: Check for the crypto material in the vault
   include_tasks: check_vault.yaml
   vars:    
     vault: "{{ org.vault }}"
     peers: "{{ org.services.peers }}"
 
+# Wait for namespace creation for members
 - name: "Wait for namespace creation for members"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
@@ -22,14 +23,13 @@
   - generate_crypto_tessera is defined 
   - generate_crypto_tessera
 
-# ---------------------------------------------------------------------
-# generate Tessera crypto helmrelease file
+# Generate Tessera crypto helmrelease file
 - name: "Create tessera crypto file"
   include_role:
     name: create/helm_component
   vars:    
     component_type: "crypto"    
-    type: "crypto_tessera"    
+    type: "besu_crypto_tessera"
     name: "{{ org.name | lower }}"
     component_name: "{{ peer.name }}-tessera-job"    
   loop: "{{ org.services.peers }}"
@@ -39,14 +39,12 @@
   - generate_crypto_tessera is defined 
   - generate_crypto_tessera
 
-# ---------------------------------------------------------------------
-# push the created deployment files to repository
+# Push the created deployment files to repository
 - name: "Push the created deployment files to repository"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_RESET_PATH: "platforms/hyperledger-besu/configuration"
     msg: "[ci skip] Pushing tessera job files for {{ component_ns }}"
   when: 
   - generate_crypto_tessera is defined 

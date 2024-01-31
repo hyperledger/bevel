@@ -1,7 +1,4 @@
 # Hyperledger Bevel [![join the chat][chat-image]][chat-url]
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-6-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 [chat-url]: https://discord.gg/hyperledger
 [chat-image]: https://img.shields.io/discord/905194001349627914?logo=Hyperledger&style=plastic.svg
@@ -31,9 +28,18 @@ Hyperledger Bevel delivers an automation framework for rapidly and consistently 
 
 ![What is Hyperledger Bevel?](./docs/images/hyperledger-bevel-overview.png "What is Hyperledger Bevel?")
 
-Hyperledger Bevel makes use of Ansible, Helm, and Kubernetes to deploy production DLT networks. Specifically, it makes use of Ansible for configuration of the network by DevOps Engineers. It then uses Helm charts as instructions for deploying the necessary components to Kubernetes. Kubernetes was chosen to allow for Hyperledger Bevel to deploy the DLT networks to any cloud that supports Kubernetes.
+Hyperledger Bevel is an accelerator/tool that helps developers rapidly set up and deploy secure, scalable and production-ready DLT network(s) that also allows new organizations to be easily on-boarded on the network. Bevel facilitates a safe and secure way of deploying and operating different DLT platforms.
 
-Hyperledger Bevel currently supports Corda, Hyperledger Fabric, Hyperledger Indy and Quorum. It is the intention to add support for Hyperledger Besu and Corda Enterprise in the near future. Other DLT platforms can easily be added.
+It includes: 
+- Helm charts to deploy different DLT nodes and to generate the related crypto/identities. 
+- Helm charts for various operational features like adding new nodes, and deploying smart contracts.
+- Helm charts to deploy Hyperledger Cacti connectors for Fabric, Quorum and Besu networks. 
+- Ansible playbooks and modular role definitions to automate the deployment of Helm charts.
+- Ansible playbooks and roles to automate deployment of Hyperledger fabric using  bevel-operator-fabric(Kubernetes operator for managing Hyperledger Fabric networks).
+- Integrated CD using GitOps so that once the network is set up, all changes can be done via git PRs/merges.
+- Configuration for Ambassador Edge Stack, HAProxy (for Hyperledger Fabric) and Isto Ingress (for Substrate) to act as Ingress Controller. 
+
+Hyperledger Bevel currently supports R3 Corda OS and Enterprise, Hyperledger Fabric, Hyperledger Indy, Hyperledger Besu, Quorum and Substrate. Other DLT platforms can easily be added.
 
 ### Getting Started
 
@@ -64,7 +70,7 @@ For Hyperledger Indy, we build Docker containers from our source code. A number 
 ![Hyperledger Bevel - Indy](./docs/images/hyperledger-bevel-indy.png "Hyperledger Bevel for Hyperledger Indy")
 
 ### Quorum
-For Quorum, we use the official Docker containers provided by Quorum. A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus (between IBFT and RAFT) and a choice of Transaction Manager (between Tessera and Constellation).
+For Quorum, we use the official Docker containers provided by Quorum. A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus (between IBFT and RAFT) and a transaction Manager.
 
 ![Hyperledger Bevel - Quorum](./docs/images/hyperledger-bevel-quorum.png "Hyperledger Bevel for Quorum")
 
@@ -73,6 +79,10 @@ For Hyperledger Besu, we use the official Docker containers provided by that pro
 
 ![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
 
+### Substrate
+For Substrate, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to create a new network (across clouds).
+
+![Hyperledger Bevel - Substrate](./docs/images/hyperledger-bevel-substrate.png "Hyperledger Bevel for Substrate")
 ## Contact
 We welcome your questions & feedback on our [Discord channel](https://discord.com/channels/905194001349627914/941739691336679454). [Please join our Discord first](https://discord.gg/hyperledger).
 
@@ -85,10 +95,10 @@ Please review [contributing](./CONTRIBUTING.md) guidelines to get started.
 If you are not using the provided Jenkins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.
 ```
 # Build provisioning image
-docker build . -t hyperledgerlabs/baf-build
+docker build . -t ghcr.io/hyperledger/bevel-build
 
 # Run the provisioning scripts
-docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
+docker run -it -v $(pwd):/home/bevel/ ghcr.io/hyperledger/bevel-build
 ```
 
 ## Initial Committers
@@ -99,28 +109,3 @@ docker run -it -v $(pwd):/home/bevel/ hyperledgerlabs/baf-build
 
 ## Sponsor
 Mark Wagner (Github: [n1zyz](https://github.com/n1zyz), email: [mwagner@redhat.com](mailto:mwagner@redhat.com)) - TSC Member
-
-## Contributors ✨
-
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/alvaropicazo"><img src="https://avatars.githubusercontent.com/u/76157062?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alvaro Picazo</b></sub></a><br /><a href="#maintenance-alvaropicazo" title="Maintenance">🚧</a></td>
-    <td align="center"><a href="https://github.com/suvajit-sarkar"><img src="https://avatars.githubusercontent.com/u/55580532?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Suvajit Sarkar</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=suvajit-sarkar" title="Code">💻</a> <a href="https://github.com/hyperledger/bevel/commits?author=suvajit-sarkar" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/deepakkumardbd"><img src="https://avatars.githubusercontent.com/u/57094817?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Deepak Kumar</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=deepakkumardbd" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/jagpreetsinghsasan"><img src="https://avatars.githubusercontent.com/u/56861721?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jagpreet Singh Sasan</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=jagpreetsinghsasan" title="Code">💻</a> <a href="#maintenance-jagpreetsinghsasan" title="Maintenance">🚧</a></td>
-    <td align="center"><a href="https://github.com/angelaalagbe"><img src="https://avatars.githubusercontent.com/u/54588164?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Angela.Alagbe</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=angelaalagbe" title="Documentation">📖</a> <a href="#content-angelaalagbe" title="Content">🖋</a></td>
-    <td align="center"><a href="https://github.com/mgCepeda"><img src="https://avatars.githubusercontent.com/u/83813093?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marina Gómez Cepeda</b></sub></a><br /><a href="https://github.com/hyperledger/bevel/commits?author=mgCepeda" title="Code">💻</a></td>
-  </tr>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

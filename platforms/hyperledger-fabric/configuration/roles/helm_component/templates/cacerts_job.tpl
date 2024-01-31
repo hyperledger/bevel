@@ -15,24 +15,27 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/generate_cacerts
+      chart: {{ charts_dir }}/fabric-cacerts-gen
   values:
     metadata:
       name: {{ component }}
       component_name: {{ component }}-net
       namespace: {{ component_ns }}    
       images:
-        fabrictools: {{ fabrictools_image }}
-        alpineutils: {{ alpine_image }}
-
+       alpineutils: {{ docker_url }}/{{ alpine_image }}
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ network.env.type }}{{ component_ns }}-auth
-      secretcryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/{{ component_type }}Organizations/{{ component }}-net/ca
-      secretcredentialsprefix: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ component }}-net/ca/{{ component }}
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretcryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component }}-net/ca
+      secretcredentialsprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ component }}-net/ca/{{ component }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       
     ca:
       subject: {{ subject }}

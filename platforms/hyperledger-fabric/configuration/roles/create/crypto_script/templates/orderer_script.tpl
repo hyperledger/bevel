@@ -55,7 +55,7 @@ fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FO
 mkdir ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 
 if [ "{{ proxy }}" != "none" ]; then
-	mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}-8443.pem
+	mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
 fi
 cp ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 

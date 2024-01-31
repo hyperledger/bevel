@@ -1,0 +1,153 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  #Provide the namespace for orderer
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  # HLF Network Version
+  network:
+    version: 2.2.2
+  images:
+    #Provide the valid image name and version for fabric orderer
+    #Eg.  orderer: hyperledger/fabric-orderer:1.4.0
+    orderer: ghcr.io/hyperledger/bevel-fabric-orderer:2.2.2
+    #Provide the valid image name and version to read certificates from vault server
+    #Eg.alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+    alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+    #Provide the valid image name and version for healthcheck of kafka
+    #Eg. healthcheck: busybox
+    healthcheck: busybox
+  #Provide the custom labels
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name , run
+  #These lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes
+  #Eg. labels:
+  #      role: orderer
+  labels:
+  
+orderer:
+  #Provide the name for the orderer node
+  #Eg. name: orderer
+  name: orderer
+  #Provide the loglevel for orderer deployment
+  #Eg. loglevel: info
+  loglevel: info
+  #Provide the localmspid for orderer deployment
+  #Eg. localmspid: OrdererMSP
+  localmspid: OrdererMSP
+  #Provide the value for tlsstatus to be true or false for orderer deployment
+  #Eg. tlsstatus: true
+  tlsstatus: true
+  #Provide the interval in which the orderer to signal the connection has kept alive  
+  #Eg. keepaliveserverinterval: 10s
+  keepaliveserverinterval: 10s
+  #Provide the address for orderer
+  #Eg. address: orderer1.org1proxy.blockchaincloudpoc.com:443
+  ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+
+consensus:
+  #Provide name of the consensus. Currently support raft and kafka
+  #Eg. name: raft
+  name: raft
+  
+storage:
+  #Provide the storageclassname for orderer
+  #Eg. storageclassname: aws-storage
+  storageclassname: aws-storageclass
+  #Provide the storagesize for storage class
+  #Eg. storagesize: 512Mi
+  storagesize: 512Mi
+
+
+service:
+  #Provide the servicetype a peer
+  #Eg. servicetype: NodePort
+  servicetype: ClusterIP
+  ports:
+    grpc:
+      #Provide a nodeport for orderer in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30001
+      nodeport: 
+      #Provide a cluster IP port for orderer to be exposed.
+      #Eg. clusteripport: 7050
+      clusteripport: 7050
+    metrics:
+      enabled: false
+      clusteripport: 9443
+annotations:
+  #Extra annotations
+  service: {}
+  deployment: {}
+
+vault:
+  #Provide the vault server address
+  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address:
+  #Provide the vaultrole for orderer deployment
+  #Eg. vaultrole: orderer-vault-role
+  role: vault-role
+  #Provide the kubernetes auth backed configured in vault for orderer deployment
+  #Eg. authpath: devorg1-net-auth
+  authpath: devorg1-net-auth
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
+  #Provide the value for vault secretprefix
+  #Eg. secretprefix: secretsv2/data/crypto/ordererOrganizations/.../orderers/....
+  secretprefix: secretsv2/data/crypto/ordererOrganizations/org1-net/orderers/orderer.org1-net
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: vault-auth
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  #Eg. tls: vaultca
+  tls: 
+
+
+kafka:
+  #Provide the interval in seconds you want to iterate till all  kafka services to be ready
+  #Eg. readinesscheckinterval: 5
+  readinesscheckinterval: 5
+  #Provide the threshold till you want to check if all specified kafka brokers are up and running
+  #Eg. readinessthreshold: 4
+  readinessthreshold: 4
+  #Provide the kafka broker list
+  #Eg.  brokers:
+  #       - kafka-0.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-1.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-2.broker.org1-net.svc.cluster.local:9092
+  #       - kafka-3.broker.org1-net.svc.cluster.local:9092
+  brokers:
+
+proxy:
+  #This will be the proxy/ingress provider. Can have values "none" or "haproxy"
+  #Eg. provider: "haproxy"
+  provider: "haproxy"
+  #This field contains the external URL of the organization
+  #Eg. external_url_suffix: org1.blockchaincloudpoc.com
+  external_url_suffix: org1proxy.blockchaincloudpoc.com:443
+
+config:
+  # Set limits and requests of pod  
+  pod:  
+    resources:
+      limits:
+      # Provide the limit memory for node
+      # Eg. memory: 512M
+        memory: 512M
+      # Provide the limit cpu for node
+      # Eg. cpu: 1
+        cpu: 1
+      requests:
+      # Provide the requests memory for node
+      # Eg. memory: 512M
+        memory: 512M
+      # Provide the requests cpu for node
+      # Eg. cpu: 0.25
+        cpu: 0.25

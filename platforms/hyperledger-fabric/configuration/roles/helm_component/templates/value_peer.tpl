@@ -15,7 +15,7 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/peernode    
+      chart: {{ charts_dir }}/fabric-peernode    
   values:
 {% if network.upgrade is defined %}
     upgrade: {{ network.upgrade }}
@@ -23,9 +23,10 @@ spec:
     metadata:
       namespace: {{ peer_ns }}
       images:
-        couchdb: {{ couchdb_image }}
-        peer: {{ peer_image }}
-        alpineutils: {{ alpine_image }}
+        couchdb:  {{ docker_url }}/{{ couchdb_image[network.version] }}
+        peer:  {{ docker_url }}/{{ peer_image[network.version] }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
+
 {% if network.env.annotations is defined %}
     annotations:  
       service:
@@ -53,7 +54,7 @@ spec:
 {% if provider == 'none' %}
       gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}:7051
 {% else %}
-      gossipexternalendpoint: {{ peer_name }}.{{ peer_ns }}.{{item.external_url_suffix}}:8443
+      gossipexternalendpoint: {{ peer.peerAddress }}
 {% endif %}
       localmspid: {{ name }}MSP
       loglevel: info
@@ -61,24 +62,33 @@ spec:
       builder: hyperledger/fabric-ccenv:{{ network.version }}
       couchdb:
         username: {{ name }}-user
+{% if peer.configpath is defined %}
+      configpath: conf/{{ peer_name }}_{{ name }}_core.yaml
+      core: |-
+{{ core_file | indent(width=8, first=True) }}
+{% endif %}
 
     storage:
       peer:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 512Mi
       couchdb:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 1Gi
 
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ network.env.type }}{{ namespace }}-auth
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
-      secretambassador: {{ vault.secret_path | default('secretsv2') }}/data/crypto/peerOrganizations/{{ namespace }}/ambassador
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/peerOrganizations/{{ namespace }}/peers/{{ peer_name }}.{{ namespace }}
       serviceaccountname: vault-auth
+      type: {{ vault.type | default("hashicorp") }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
-      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/credentials/{{ namespace }}/couchdb/{{ name }}?user
+{% else %}
+      imagesecretname: ""
+{% endif %}
+      secretcouchdbpass: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ namespace }}/couchdb/{{ name }}?user
 
     service:
       servicetype: ClusterIP
@@ -113,4 +123,4 @@ spec:
             cpu: 1
           requests:
             memory: 512M
-            cpu: 0.5
+            cpu: 0.25

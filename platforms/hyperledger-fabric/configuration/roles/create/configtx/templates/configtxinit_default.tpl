@@ -6,7 +6,11 @@ Capabilities:
   Orderer: &OrdererCapabilities
     V2_0: true
   Application: &ApplicationCapabilities
+{% if '2.5' in network.version %}
+    V2_5: true
+{% else %}
     V2_0: true
+{% endif %}
 {% endif %}
 {% if '1.4' in network.version %}
 {% if consensus.name == 'kafka' %}

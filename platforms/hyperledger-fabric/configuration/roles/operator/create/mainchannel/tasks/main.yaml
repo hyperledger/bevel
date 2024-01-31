@@ -1,0 +1,14 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Create the channels using bevel-operator-fabric
+- name: Call createchannel when participant is creator
+  include_tasks: createchannel.yaml
+  vars:
+    channelcreator_query: "participants[?type=='creator']"
+  loop: "{{ item | json_query(channelcreator_query) }}"
+  loop_control:
+    loop_var: peer

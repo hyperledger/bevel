@@ -1,0 +1,48 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This role creates the orderer nodes using bevel-operator-fabric
+##############################################################################################
+
+# Wait for ca server to be reachable
+- name: "Wait for ca server to be reachable"
+  uri:
+    url: "https://{{ item.ca_data.url }}/cainfo"
+    validate_certs: no
+  register: this
+  until: this.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 20
+  ignore_errors: yes
+
+# Create orderer node
+- name: "Create orderer node"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl hlf ordnode create --image=hyperledger/fabric-orderer --version={{ network.version }} \
+    --storage-class={{ storageclass }} --enroll-id=orderer --enroll-pw=ordererpw --mspid={{ component_name }}MSP \
+    --capacity={{ storage }} --name={{ orderer.name }} --ca-name={{ ca_name }}.{{ namespace }} \
+    --hosts={{ orderer.ordererAddress.split(':')[0] }} --istio-port=443 --namespace={{ namespace }}
+  vars:
+    ca_name: "{{ component_name }}-ca"
+    storageclass: "{{ component_name }}-bevel-storageclass"
+    storage: "2Gi"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Wait for orderers to start
+- name: Wait for orderers to start
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl wait --timeout=180s --for=condition=Running fabricorderernodes.hlf.kungfusoftware.es --all --namespace={{ namespace }}
+
+# Save orderer tls certs
+- name: "Save orderer tls certs"
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl get fabricorderernodes {{ orderer.name }} --namespace={{ namespace }} -o=jsonpath='{.status.tlsCert}' > {{ orderer.certificate }}
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer

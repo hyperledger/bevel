@@ -1,0 +1,51 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Release.Name }}-svc
+  annotations:
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}-svc
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: http
+    protocol: TCP
+    port: {{ .Values.service.port }}
+    targetPort: http
+  selector:
+    name: {{ .Release.Name }}-cactus-connector
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-svc
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  rules:
+  - host: {{ .Release.Name }}-svc.{{ .Values.proxy.external_url }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Release.Name }}-svc
+            port:
+              number: {{ .Values.service.port }}
+{{- end }}

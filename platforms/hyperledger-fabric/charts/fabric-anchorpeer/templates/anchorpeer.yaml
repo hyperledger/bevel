@@ -1,0 +1,181 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: anchorpeer-{{ $.Values.peer.name }}-{{ $.Values.channel.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: anchorpeer-artifacts
+        configMap:
+          name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh     
+      containers:
+      - name: anchorpeer
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+        
+          version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+
+          if [ $version2_5 = 1 ]
+          then
+            echo "Fetching the most recent configuration block for the channel"
+            peer channel fetch config config_block.pb -o ${ORDERER_URL} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
+
+            echo "Decoding config block to JSON and isolating config to ${CORE_PEER_LOCALMSPID}config.json"
+            configtxlator proto_decode --input config_block.pb --type common.Block --output config_block.json 
+            jq .data.data[0].payload.data.config config_block.json >"${CORE_PEER_LOCALMSPID}config.json"
+
+            PORT="${CORE_PEER_ADDRESS##*:}"
+            HOST="${CORE_PEER_ADDRESS%%:*}"
+            jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'$HOST'","port": '$PORT'}]},"version": "0"}}' ${CORE_PEER_LOCALMSPID}config.json > ${CORE_PEER_LOCALMSPID}modified_config.json
+
+            configtxlator proto_encode --input "${CORE_PEER_LOCALMSPID}config.json" --type common.Config --output original_config.pb
+            configtxlator proto_encode --input "${CORE_PEER_LOCALMSPID}modified_config.json" --type common.Config --output modified_config.pb
+            configtxlator compute_update --channel_id "${CHANNEL_NAME}" --original original_config.pb --updated modified_config.pb --output config_update.pb
+            configtxlator proto_decode --input config_update.pb --type common.ConfigUpdate --output config_update.json
+            echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat config_update.json)'}}}' | jq . >config_update_in_envelope.json
+            configtxlator proto_encode --input config_update_in_envelope.json --type common.Envelope --output "${CORE_PEER_LOCALMSPID}anchors.tx"
+
+            peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile ${ORDERER_CA}      
+          else
+            echo "Updating anchor peer for the channel ${CHANNEL_NAME}"
+            tls_status=${CORE_PEER_TLS_ENABLED}
+            if [ "$tls_status" = "true" ]
+            then
+              peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
+            else
+              peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} 
+            fi
+            cat ./channel-artifacts/anchors.tx.base64 | base64 -d > ${CORE_PEER_LOCALMSPID}anchors.tx
+            if [ "$tls_status" = "true" ]
+            then
+              peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile ${ORDERER_CA}
+            else
+              peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx
+            fi
+          fi
+        workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+        envFrom:
+        - configMapRef:
+            name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
+        - name: anchorpeer-artifacts
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+          readOnly: true

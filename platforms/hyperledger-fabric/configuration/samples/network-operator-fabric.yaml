@@ -1,0 +1,521 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# yaml-language-server: $schema=../../../../platforms/network-schema.json
+# This is a sample configuration file for setting up initial Fabric network with 1 RAFT Orderer and 5 Nodes.
+network:
+  # Network level configuration specifies the attributes required for each organization
+  # to join an existing network.
+  type: fabric
+  version: 2.5.3                 # currently tested on 2.5.3
+
+  #Environment section for Kubernetes setup
+  env:
+    type: "operator"          # Do not change this for using 'bevel-operator-fabric'. Any other value will trigger Flux based deployment
+    proxy: istio              # values can be 'istio' only. No other proxy is supported at the moment
+    retry_count: 20           # Retry count for the checks
+    external_dns: enabled     # Should be enabled if using external-dns for automatic route configuration
+    annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
+      service: 
+       - example1: example2
+      deployment: {} 
+      pvc: {}
+  # For providing Custom Templates to generate configtx.yaml
+  configtx:
+    custom: false               # true : when custom tpl(s) are to be provided | false : when the default tpl(s) are to be used
+    folder_path: /absolute/path/to/folder             # path to folder where the tpl(s) are placed e.g. /home/bevel/build/configtx_tpl/
+
+  # Docker registry details where images are stored. This will be used to create k8s secrets
+  # Please ensure all required images are built and stored in this registry.
+  # Do not check-in docker_password.
+  docker:
+    url: "ghcr.io/hyperledger"
+    username: "docker_username"
+    password: "docker_password"
+
+  # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
+  # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
+  consensus:
+    name: raft
+  orderers:
+    - orderer:
+      type: orderer
+      name: orderer1
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer1.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer2
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer2.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
+    - orderer:
+      type: orderer
+      name: orderer3
+      org_name: supplychain               #org_name should match one organization definition below in organizations: key            
+      uri: orderer3.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
+      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
+
+  # The channels defined for a network with participating peers in each channel
+  channels:
+  - channel:
+    consortium: SupplyChainConsortium
+    channel_name: AllChannel
+    chaincodes:
+      - "not_supported"
+    orderers:
+      - supplychain
+    participants:
+    - organization:
+      name: carrier
+      type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
+        peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
+    - organization:
+      name: store
+      type: joiner        # joiner organization will only join the channel and install chaincode
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+    - organization:
+      name: warehouse
+      type: joiner
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+    - organization:
+      name: manufacturer
+      type: joiner
+      org_status: new
+      peers:
+      - peer:
+        name: peer0
+        gossipAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+    endorsers:
+    # Only one peer per org required for endorsement
+    - organization:
+      name: carrier
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443
+        certificate: "/path/carrier/server.crt" # certificate path for peer
+    - organization:
+      name: warehouse
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443
+        certificate: "/path/warehouse/server.crt" # certificate path for peer
+    - organization:
+      name: manufacturer
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
+        certificate: "/path/manufacturer/server.crt" # certificate path for peer
+    - organization:
+      name: store
+      peers:
+      - peer:
+        name: peer0
+        corepeerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443
+        certificate: "/path/store/server.crt" # certificate path for peer
+    genesis:
+      name: OrdererGenesis
+
+  # Allows specification of one or many organizations that will be connecting to a network.
+  # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
+  # then these services should be listed in this section as well.
+  organizations:
+
+    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: supplychain
+      country: UK
+      state: London
+      location: London
+      subject: "O=Orderer,OU=Orderer,L=51.50/-0.13/London,C=GB"
+      type: orderer
+      external_url_suffix: org1proxy.blockchaincloudpoc.com
+      org_status: new
+      fabric_console: enabled               # To deploy Fabric console for this organization
+      ca_data:
+        url: ca.supplychain-net.org1proxy.blockchaincloudpoc.com
+        certificate: /path/supplychain/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
+
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample is an orderer service and includes a raft consensus
+      services:
+        ca:
+          name: ca
+          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1proxy.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+
+        consensus:
+          name: raft
+        orderers:
+        # This sample has multiple orderers as an example.
+        # You can use a single orderer for most production implementations.
+        # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
+        - orderer:
+          name: orderer1
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+          ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+        - orderer:
+          name: orderer2
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+          ordererAddress: orderer2.org1proxy.blockchaincloudpoc.com:443
+        - orderer:
+          name: orderer3
+          type: orderer
+          consensus: raft
+          grpc:
+            port: 7050
+          ordererAddress: orderer3.org1proxy.blockchaincloudpoc.com:443
+
+    # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: manufacturer
+      country: CH
+      state: Zurich
+      location: Zurich
+      subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+      type: peer
+      external_url_suffix: org2proxy.blockchaincloudpoc.com
+      org_status: new
+      orderer_org: supplychain # Name of the organization that provides the ordering service
+      fabric_console: enabled               # To deploy Fabric console for this organization
+      ca_data:
+        url: ca.manufacturer-net.org2proxy.blockchaincloudpoc.com
+        certificate: /path/manufacturer/server.crt
+
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
+      # The participating nodes are peers
+      # This organization hosts it's own CA server
+      services:
+        ca:
+          name: ca
+          subject: "/C=CH/ST=Zurich/L=Zurich/O=Manufacturer/CN=ca.manufacturer-net.org2proxy.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+        peers:
+        - peer:
+          name: peer0
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
+          gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
+          peerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer 
+          certificate: /path/manufacturer/peer0.crt # Path to peer Certificate
+          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:           # This is for the rest-api server
+            targetPort: 20001
+            port: 20001
+          expressapi:           # This is for the express api server
+            targetPort: 3000
+            port: 3000
+          chaincodes:
+            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
+              version: "1" #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
+              lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel-samples.git"
+                branch: main
+                path: "chaincode_src"   #The path to the chaincode 
+              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
+              endorsements: "" #Endorsements (if any) provided along with the chaincode
+    
+    - organization:
+      name: carrier
+      country: GB
+      state: London
+      location: London
+      subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+      type: peer
+      external_url_suffix: org3proxy.blockchaincloudpoc.com
+      org_status: new
+      orderer_org: supplychain # Name of the organization that provides the ordering service
+      fabric_console: disabled               # To not deploy Fabric console for this organization
+      ca_data:
+        url: ca.carrier-net.org3proxy.blockchaincloudpoc.com
+        certificate: /path/carrier/server.crt
+
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
+      services:
+        ca:
+          name: ca
+          subject: "/C=GB/ST=London/L=London/O=Carrier/CN=ca.carrier-net.org3proxy.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+        peers:
+        - peer:
+          name: peer0          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer
+          peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+          certificate: /path/carrier/peer0.crt   # Path to peer Certificate
+          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincodes:
+            - name: "chaincode_name"   #This has to be replaced with the name of the chaincode
+              version: "1"   #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"    #The main directory where chaincode is needed to be placed
+              lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel-samples.git"
+                branch: main 
+                path: "chaincode_src"    #The path to the chaincode 
+              arguments: 'chaincode_args'       #Arguments to be passed along with the chaincode parameters
+              endorsements: ""          #Endorsements (if any) provided along with the chaincode
+    - organization:
+      name: store
+      country: US
+      state: New York
+      location: New York
+      subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
+      type: peer
+      external_url_suffix: org4proxy.blockchaincloudpoc.com
+      org_status: new
+      orderer_org: supplychain # Name of the organization that provides the ordering service
+      fabric_console: disabled               # To not deploy Fabric console for this organization
+      ca_data:
+        url: ca.store-net.org4proxy.blockchaincloudpoc.com
+        certificate: /path/store/server.crt
+
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
+      services:
+        ca:
+          name: ca
+          subject: "/C=US/ST=New York/L=New York/O=Store/CN=ca.store-net.org4proxy.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+        peers:
+        - peer:
+          name: peer0
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
+          gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
+          peerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+          certificate: /path/store/peer0.crt # Path to peer Certificate
+          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincodes:
+            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
+              version: "1" #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
+              lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel-samples.git"
+                branch: main
+                path: "chaincode_src"   #The path to the chaincode 
+              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
+              endorsements: "" #Endorsements (if any) provided along with the chaincode
+
+    - organization:
+      name: warehouse
+      country: US
+      state: Massachusetts
+      location: Boston
+      subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
+      type: peer
+      external_url_suffix: org5proxy.blockchaincloudpoc.com
+      org_status: new
+      orderer_org: supplychain # Name of the organization that provides the ordering service
+      fabric_console: disabled               # To not deploy Fabric console for this organization
+      ca_data:
+        url: ca.warehouse-net.org5proxy.blockchaincloudpoc.com
+        certificate: /path/warehouse/server.crt
+
+      cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
+      aws:
+        access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
+        secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
+
+      # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        region: "cluster_region"
+        context: "cluster_context"
+        config_file: "cluster_config"
+
+      # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
+      users:
+      - user:
+        identity: user1
+        attributes:
+          - key: "hf.Revoker"
+            value: "true"
+      services:
+        ca:
+          name: ca
+          subject: "/C=US/ST=Massachusetts/L=Boston/O=Warehouse/CN=ca.warehouse-net.org5proxy.blockchaincloudpoc.com"
+          type: ca
+          grpc:
+            port: 7054
+        peers:
+        - peer:
+          name: peer0          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
+          gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
+          peerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer 
+          certificate: /path/warehouse/peer0.crt # Path to peer Certificate
+          cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
+          grpc:
+            port: 7051
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001
+          expressapi:
+            targetPort: 3000
+            port: 3000
+          chaincodes:
+            - name: "chaincode_name"     #This has to be replaced with the name of the chaincode
+              version: "1"     #This has to be replaced with the version of the chaincode
+              maindirectory: "chaincode_main"   #The main directory where chaincode is needed to be placed
+              lang: "golang"  # The language in which the chaincode is written ( golang/java/node )
+              repository:
+                username: "git_username"          # Git Service user who has rights to check-in in all branches
+                password: "git_access_token"
+                url: "github.com/<username>/bevel-sample.git"
+                branch: develop
+                path: "chaincode_src"   #The path to the chaincode 
+              arguments: 'chaincode_args'     #Arguments to be passed along with the chaincode parameters
+              endorsements: ""        #Endorsements (if any) provided along with the chaincode

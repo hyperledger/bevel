@@ -8,22 +8,19 @@
 # This role creates the job value file for stewards
 ##############################################################################################
 
-##############################################################################################
-# This tasks ensures the directory of auth job existance, if not exits it creates a new one
-- name: Ensures {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
+# Ensure the directory of auth job existance, if not exits it creates a new one
+- name: Ensure {{ release_dir }}/{{ component_type }}/{{ component_name }} dir exists
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
   vars:
     path: "{{ release_dir  }}/{{ component_type }}/{{ component_name }}"
 
-##############################################################################################
-# This tasks gets the kubernetes server url
+# Get the kubernetes server url
 - name: Get the kubernetes server url
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
 
-##############################################################################################
 # Generate vault policy and role for trustee
 - name: Trustee vault policy and role generating
   template:
@@ -41,7 +38,6 @@
     loop_var: trusteeItem
   when: services.trustees is defined
 
-##############################################################################################
 # Generate Indy vault policy and role for stewards
 - name: Stewards vault policy and role generating
   template:
@@ -59,7 +55,6 @@
     loop_var: stewardItem
   when: services.stewards is defined
 
-##############################################################################################
 # Generate Indy vault policy and role for endorser
 - name: Endorser vault policy and role generating
   template:
@@ -77,7 +72,6 @@
     loop_var: endorserItem
   when: services.endorsers is defined
 
-##############################################################################################
 # Generate Indy vault policy and role for bevel-ac
 - name: bevel-ac vault policy and role generating
   template:

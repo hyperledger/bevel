@@ -1,0 +1,342 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: installchaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: installchaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+    app.kubernetes.io/name: installchaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: installchaincode-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}
+        app.kubernetes.io/name: installchaincode-{{ $.Values.chaincode.name }}{{ $.Values.chaincode.version }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          source /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+
+          # GIT user creds
+          vault_secret_key={{ $.Values.vault.secretgitprivatekey }}
+
+          # Calling a function to retrieve secrets from Vault only if they exist.
+          vaultBevelFunc "readJson" "${vault_secret_key}"
+          
+          VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"git_password\"]")         
+          echo "${VALUE_OF_SECRET}" >> ${MOUNT_PATH}/user_cred
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: installchaincode
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/bin/bash sh
+
+          . /scripts/package-manager.sh
+
+          ## Git repository clone for chaincode
+          version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+          if [ $version2_5 = 1 ]
+          then
+            GOPATH="/root/go"
+            mkdir -p $GOPATH 
+            # Define the packages to install
+            packages_to_install="openssh-client git"
+            install_packages "$packages_to_install"
+          else 
+            # Define the packages to install
+            packages_to_install="curl openssh"
+            install_packages "$packages_to_install"
+          fi 
+
+          mkdir -p /root/.ssh/     
+          ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
+          git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
+          cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode > git.log 2>&1
+          ## Check if the repository was cloned correctly
+          if [ $? -ne 0 ];
+          then
+            cat git.log
+            exit 1
+          fi
+          ls
+          echo $GOPATH
+          if [ ${CC_RUNTIME_LANGUAGE} = "golang" ]
+          then
+            ## Copying desired chaincode to a location relative to $GOPATH/src
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            # Get dependencies
+            mkdir -p $GOPATH/bin && curl https://raw.githubusercontent.com/hyperledger/bevel/main/platforms/hyperledger-fabric/scripts/install.sh | sh
+            if [ $version2_5 = 1 ]
+            then
+              export PATH=$PATH:$GOPATH/bin
+              go env -w GO111MODULE=auto
+            fi
+            cd $GOPATH/src/github.com/chaincode && dep ensure
+
+            #chaincode path
+            CC_SRC_PATH="github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}"
+
+            if ! [ -d "vendor" ];then
+              GO111MODULE=on go mod vendor
+              CC_SRC_PATH="${PWD}"
+            fi
+
+          elif [ ${CC_RUNTIME_LANGUAGE} = "java" ]
+          then
+            ## Copying desired chaincode to a location 
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            # Get dependencies: Define the packages to install
+            packages_to_install="openjdk8"
+            install_packages "$packages_to_install"
+
+            java -version
+
+            # Define the packages to install
+            packages_to_install="gradle"
+            install_packages "$packages_to_install"
+
+            gradle -v
+            cd $GOPATH/src/github.com/chaincode && dep ensure
+
+            CC_SRC_PATH="/$GOPATH/src/github.com/chaincode/"
+
+            echo "CC_SRC_PATH= $CC_SRC_PATH"
+            current_path=`pwd`
+            echo $current_path
+
+            echo "Compiling Java code..."
+            chmod +x gradlew
+            ./gradlew installDist --stacktrace
+            cd $current_path
+            echo "Finished compiling Java code"
+
+            #chaincode path
+            CC_SRC_PATH=$CC_SRC_PATH/build/install/${CHAINCODE_NAME}
+
+            echo $CC_SRC_PATH
+          elif [ ${CC_RUNTIME_LANGUAGE} = "node" ]
+          then
+            ## Copying desired chaincode to a location relative to $GOPATH/src
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+
+            #chaincode path
+            CC_SRC_PATH="${GOPATH}/src/github.com/chaincode/${CHAINCODE_NAME}/${CHAINCODE_MAINDIR}"
+          fi
+          version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
+          if [ $version1_4 = 1 ];then
+
+            ## Checking installed chaincode
+            INSTALLED=$(peer chaincode list --installed | grep "Name: ${CHAINCODE_NAME}, Version: ${CHAINCODE_VERSION},")
+            if [ -n "${INSTALLED}" ]
+            then
+              echo "chaincode ${CHAINCODE_NAME} version ${CHAINCODE_VERSION} is installed, skipping... "
+              exit 0
+            fi
+
+            echo "Installing Chaincode for ${NETWORK_VERSION}"
+            ## Installing chaincode on a peer
+            peer chaincode install -n ${CHAINCODE_NAME} -v ${CHAINCODE_VERSION} -p ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE}
+            echo "Chaincode installed for Fabric v.1.4.X"         
+          else
+            ## Checking installed chaincode
+            INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
+              jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
+            if [ -n "${INSTALLED}" ]
+            then
+              echo "chaincode ${CHAINCODE_NAME}_${CHAINCODE_VERSION} is installed, skipping... "
+              exit 0
+            fi
+
+            echo "Installing Chaincode for ${NETWORK_VERSION}"
+            if [ $PEER_NAME = "peer0" ];then
+              ## packaging chaincode
+              echo "Packaging chaincode for the first peer"
+              peer lifecycle chaincode package ${CHAINCODE_NAME}.tar.gz --path ${CC_SRC_PATH} --lang ${CC_RUNTIME_LANGUAGE} --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
+            else
+              export CORE_PEER_ADDRESS=${PEER0_ADDRESS}
+              echo "Extracting package id"
+              peer lifecycle chaincode queryinstalled > log.txt
+              PACKAGE_ID=$(cat log.txt | grep "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" | sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}")
+              echo "Package Id Extracted ${PACKAGE_ID}"
+              peer lifecycle chaincode getinstalledpackage --package-id ${PACKAGE_ID}
+              export CORE_PEER_ADDRESS=${PEER_ADDRESS}
+              export CHAINCODE_NAME=${PACKAGE_ID}
+              echo "installing ${CHAINCODE_NAME} on ${CORE_PEER_ADDRESS}"
+            fi
+            ## Installing Chaincode
+            peer lifecycle chaincode install ${CHAINCODE_NAME}.tar.gz
+            echo "Chaincode installed for Fabric v.2.X"
+            ## Check if chaincode got installed 
+            INSTALLED=$(peer lifecycle chaincode queryinstalled -O json | jq '.installed_chaincodes?' | \
+              jq --arg CCLABEL "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" '.[]? | select(.label==$CCLABEL)')
+            if ! [ -n "${INSTALLED}" ]
+            then
+              echo "Error while installing chaincode, exiting.."
+              exit 1
+            fi
+          fi
+
+          #query installed
+          echo "peer query installed"
+          peer lifecycle chaincode queryinstalled
+        env:
+        - name: PEER_NAME
+          value: {{ $.Values.peer.name }}
+        - name: PEER0_ADDRESS
+          value: peer0.{{ $.Values.metadata.namespace }}:7051
+        - name: PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.peer.loglevel }}
+        - name: CORE_PEER_ID
+          value: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+        - name: CORE_PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $.Values.peer.localmspid }}
+        - name: CORE_PEER_TLS_ENABLED
+          value: "{{ $.Values.peer.tlsstatus }}"
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
+        - name: ORDERER_CA
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+        - name: ORDERER_URL
+          value: {{ $.Values.orderer.address }}
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+        - name: CHAINCODE_NAME
+          value: "{{ $.Values.chaincode.name }}"
+        - name: CHAINCODE_MAINDIR
+          value: "{{ $.Values.chaincode.maindirectory }}"
+        - name: CHAINCODE_VERSION
+          value: "{{ $.Values.chaincode.version }}"
+        - name: CORE_CHAINCODE_BUILDER
+          value: "{{ $.Values.chaincode.builder }}"
+        - name: NETWORK_VERSION
+          value: "{{ $.Values.metadata.network.version }}"
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
+        - name: package-manager
+          mountPath: /scripts/package-manager.sh
+          subPath: package-manager.sh

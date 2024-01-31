@@ -18,13 +18,7 @@ network:
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy                  # values can be 'haproxy' or 'ambassador'
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010 
-        to: 15020
-    # ports: 15020,15021      # For specific ports
-    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    proxy: haproxy                  # values can be 'haproxy' or 'none'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
     annotations:              # Additional annotations that can be used for some pods (ca, ca-tools, orderer and peer nodes)
@@ -37,10 +31,10 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
-  
+
   # Remote connection information for orderer (will be blank or removed for orderer hosting organization)
   # For RAFT consensus, have odd number (2n+1) of orderers for consensus agreement to have a majority.
   consensus:
@@ -50,27 +44,27 @@ network:
       type: orderer
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer1.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer2.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer3
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer3.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer3.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
     - orderer:
       type: orderer
       name: orderer4
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer4.org1ambassador.blockchaincloudpoc.com:8443   # Can be external or internal URI for orderer which should be reachable by all peers
+      uri: orderer4.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
       certificate: /home/bevel/build/orderer4.crt           # Ensure that the directory exists
-  
+
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
@@ -84,45 +78,45 @@ network:
     - organization:
       name: carrier
       type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443  # External or internal URI of the gossip peer
-        peerAddress: peer0.carrier-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443             # External or internal URI of the orderer
-    - organization:      
+        gossipAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
+        peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
+    - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.store-net.org4ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: warehouse
       type: joiner
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.warehouse-net.org5ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: manufacturer
       type: joiner
-      org_status: new
+      org_status: existing
       peers:
       - peer:
         name: peer0
-        gossipAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443
-        peerAddress: peer0.manufacturer-net.org2ambassador.blockchaincloudpoc.com:8443 # External URI of the peer
-      ordererAddress: orderer1.org1ambassador.blockchaincloudpoc.com:8443
+        gossipAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
+        peerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
+      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
     genesis:
-      name: OrdererGenesis  
+      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -137,17 +131,17 @@ network:
       location: London
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
       type: orderer
-      external_url_suffix: org1ambassador.blockchaincloudpoc.com
-      org_status: new
+      external_url_suffix: org1proxy.blockchaincloudpoc.com
+      org_status: existing
       ca_data:
-        url: ca.supplychain-net.org1ambassador.blockchaincloudpoc.com:8443
-        certificate: file/server.crt        # This has not been implemented in 0.2.0.0
-  
+        url: ca.supplychain-net.org1proxy.blockchaincloudpoc.com
+        certificate: /path/supplychain/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
+
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
         access_key: "aws_access_key"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "aws_secret_key"        # AWS Secret key, only used when cloud_provider=aws
-  
+
       # Kubernetes cluster deployment variables. The config file path and name has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -180,14 +174,14 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1ambassador.blockchaincloudpoc.com"
+          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1proxy.blockchaincloudpoc.com"
           type: ca
           grpc:
             port: 7054
-        
+
         consensus:
           name: raft
-                
+        
         orderers:
         # This sample has multiple orderers as an example.
         # You can use a single orderer for most production implementations.
@@ -199,6 +193,7 @@ network:
           consensus: raft
           grpc:
             port: 7050
+          ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer2
           status: existing
@@ -206,17 +201,20 @@ network:
           consensus: raft
           grpc:
             port: 7050
+          ordererAddress: orderer2.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer3
           status: existing
           type: orderer
           consensus: raft
           grpc:
-            port: 7050  
+            port: 7050
+          ordererAddress: orderer3.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer4
           status: new
           type: orderer
           consensus: raft
           grpc:
-            port: 7050    
+            port: 7050
+          ordererAddress: orderer4.org1proxy.blockchaincloudpoc.com:443

@@ -8,49 +8,44 @@
 # Creates peer value file, adds it to git repo and wait for peer to come up
 #############################################################################################
 
-# This task creates the value file for the peer as per requirements mentioned in
-# network.yaml
+# Create the value file for the peer as per requirements mentioned in network.yaml
 - name: Upgrade Value files for Organization peer
   include_role:
     name: helm_component
   vars:
     name: "{{ item.name | lower }}"
+    sc_name: "{{ name }}-bevel-storageclass"
     type: "value_peer"
     component_name: values-{{ peer.name }}
-    couchdb_image: "{{ couchdb_image_version[network.version] }}"
-    peer_image: "hyperledger/fabric-peer:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     peer_name: "{{ peer.name }}"
     peer_ns: "{{ namespace }}"
     provider: "{{ network.env.proxy }}"
 
-#Git Status : check if there is any files modified in the directory
+# Git Status : check if there is any files modified in the directory
 - name: Git Status
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_status"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Checking git status"
     files_dir: "{{ values_dir }}"
   tags:
     - notest
 
-#Git Push : Pushes the above generated files to git directory
+# Git Push : Push the above generated files to git directory
 - name: Git Push
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Peer files"
   when: git_updated is defined
   tags:
     - notest
 
-# wait until the pod is not in running state as there is a time lag between when pod is recreated
+# Wait until the pod is not in running state as there is a time lag between when pod is recreated
 - name: 'Wait for {{ peer.name }} in {{ item.name | lower }}-net to terminate'
   k8s_info:
     kind: "Pod"

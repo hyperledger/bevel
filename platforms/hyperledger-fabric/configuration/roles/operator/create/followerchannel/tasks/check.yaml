@@ -1,0 +1,18 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Check or wait for the join channel job to complete
+- name: 'Wait for {{ channel_name }} channel to be in Running state'
+  k8s_info:
+    kind: "FabricFollowerChannel"
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ channel_name }}-{{ org.name | lower }}"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  register: component_data
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: component_data.resources|length > 0 and (component_data.resources[0].status.status is defined and component_data.resources[0].status.status == "RUNNING")

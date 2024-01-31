@@ -4,11 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # Signs the modified configuration block
-#############################################################################################
+##############################################################################################
 
-# Checking for fabric cli
+# Check for fabric cli
 - name: "Check if fabric cli is already present"
   k8s_info:
     kind: Pod
@@ -29,17 +29,15 @@
     component_name: "cli-{{ channel_name }}-{{ org.name }}-{{ peer.name }}"
     peer_name: "{{ peer.name }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     channel_name: "{{ channel_name }}"
-    storage_class: "{{ org.name }}sc"
+    storage_class: "{{ org.name | lower }}-bevel-storageclass"
     release_dir: "{{ build_path }}"
   when: existing_cli.resources|length == 0
 
 # Start the cli using the value file created in the previous step
 - name: "Start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
   when: existing_cli.resources|length == 0
 
 # Waiting for fabric cli to be up

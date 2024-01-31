@@ -1,0 +1,195 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role creates value file for the deployment of CA Tools CLI
+#############################################################################################
+
+# Check if CA server is available
+- name: "waiting for the CA server to be created in {{ item.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ item.name | lower }}-net"
+    component_name: "{{ component_services.ca.name }}"
+    label_selectors:
+      - name = {{ component_name }}
+  when: add_peer is not defined or add_peer != 'true'
+
+# Reset ca-tools pod
+- name: "Reset ca-tools pod"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "ca-tools"
+    file_path: "{{ values_dir }}/{{ pod_name }}/{{ component_name }}.yaml"
+    gitops_value: "{{ item.gitops }}"
+    component_ns: "{{ component_name }}"
+    kubernetes: "{{ item.k8s }}"
+    hr_name: "{{ component_name }}-ca-tools"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+- name: "Delete old certificates"
+  include_tasks: delete_old_certs.yaml
+  vars:
+    org_name: "{{ item.name | lower }}"
+  when: refresh_cert is defined and refresh_cert == 'true'
+
+# Create the CA-tools value files
+- name: "Create CA-tools Values for orderer"
+  include_role:
+    name: helm_component
+  vars:
+    name: "ca-tools"
+    type: "ca-tools"
+    org_name: "{{ item.name | lower }}"
+    component_type: "{{ item.type | lower }}"
+    vault: "{{ item.vault }}"
+    external_url_suffix: "{{ item.external_url_suffix }}"
+    component_subject: "{{ item.subject }}"
+    cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+    component_country: "{{ item.country }}"
+    component_state: "{{ item.state }}"
+    component_location: "{{ item.location }}"
+    ca_url: "{{ item.ca_data.url }}"
+    proxy: "{{ network.env.proxy }}"
+    git_protocol: "{{ gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    orderers_list: "{{ item.services.orderers }}"
+
+# Git Push : Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    msg: "[ci skip] Pushing CA-tools files"
+
+# Wait for key certs exists in vault.
+- name: Wait for CA key exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "{{ component_name }}-CA.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/ca"
+    check: "crypto_materials"
+
+# Wait for admin tls exists in vault.
+- name: Wait for admin tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "client.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/users/admin/tls"
+    check: "crypto_materials"
+
+# Wait for orderers tls exists in vault.
+- name: Wait for orderers tls exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "server.key"
+    vault_path: "{{ vault.secret_path | default('secretv2') }}/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name}}/tls"
+    check: "crypto_materials"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Copy the msp admincerts from vault
+- name: Fetch the msp admincerts from vault
+  shell: |
+    vault kv get -field=admincerts {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp > Admin@{{ component_name }}-cert.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/admincerts/
+    mv Admin@{{ component_name }}-cert.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/admincerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+
+# Copy the msp cacerts from vault
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'  
+
+# Copy the msp tlscacerts from vault
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.external_url_suffix }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.external_url_suffix }}.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy != 'none'
+
+# Copy the msp cacerts from vault proxy is none
+- name: Fetch the msp cacerts from vault
+  shell: |
+    vault kv get -field=cacerts {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/cacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/cacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'  
+
+# Copy the msp tlscacerts from vault when proxy is none
+- name: Fetch the msp tlscacerts from vault
+  shell: |
+    vault kv get -field=tlscacerts {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp > ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/tlscacerts/
+    mv ca-{{ component_name }}-{{ item.services.ca.grpc.port }}.pem ./build/crypto-config/ordererOrganizations/{{ component_name }}/msp/tlscacerts/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  when: network.env.proxy == 'none'
+
+# Copy the tls server.crt from vault to the build directory
+- name: Fetch the tls server.crt from vault
+  shell: |
+    vault kv get -field=server.crt {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls > server.crt
+    mkdir -p ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls
+    mv server.crt ./build/crypto-config/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls/
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: orderer  
+
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ orderer.certificate | dirname }}"
+    state: directory
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: add_new_org == 'false' and add_peer is not defined
+
+# Copy the tls ca.crt file from the respective CA Tools CLI to the address specified in network.yaml
+- name: Fetch the tls ca.crt file from vault
+  shell: |
+    vault kv get -field=ca.crt {{ vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/orderers/{{ orderer.name }}.{{ component_name }}/tls > ca.crt
+    mv ca.crt {{ orderer.certificate }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  loop: "{{ network.orderers }}"
+  loop_control:
+    loop_var: orderer
+  when: 
+    - add_new_org == 'false' and add_peer is not defined
+    - component == orderer.org_name

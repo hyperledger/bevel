@@ -1,0 +1,193 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  #Provide the namespace for organization's peer
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  images:
+    #Provide the valid image name and version for fabric couchdb
+    #Eg. couchdb: hyperledger/fabric-couchdb:0.4.14
+    couchdb: ghcr.io/hyperledger/bevel-fabric-couchdb:2.2.2
+    #Provide the valid image name and version for fabric peer
+    #Eg. hyperledger/fabric-peer:2.2.2
+    peer: ghcr.io/hyperledger/bevel-fabric-peer:2.2.2
+    #Provide the valid image name and version to read certificates from vault server 
+    #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+    alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the custom labels  
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name, run
+  #These lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes
+  #Eg. labels:
+  #      role: peer
+  labels:
+annotations:
+  #Extra annotations
+  service: {}
+  pvc: {}
+  deployment: {}
+peer:
+  #Provide the name of the peer as per deployment yaml.
+  #Eg. name: peer0
+  name: peer0
+  #Provide the url of gossipping peer and port to be mentioned is grpc cluster IP port
+  #Eg. gossippeeraddress: peer1.org1-net.svc.cluster.local:7051
+  gossippeeraddress: peer1.org1-net.svc.cluster.local:7051
+  #Provide the url of gossip external endpoint and  port to be mentioned is haproxy https service port
+  #Eg. gossipexternalendpoint: peer1-ext.org1-net:443
+  gossipexternalendpoint: peer0.org1-net.org1proxy.blockchaincloudpoc.com:443
+  #Provide the localmspid for organization
+  #Eg. localmspid: Org1MSP
+  localmspid: Org1MSP
+  #Provide the loglevel for organization's peer
+  #Eg. loglevel: info
+  loglevel: info
+  #Provide the value for tlsstatus to be true or false for organization's peer
+  #Eg. tlsstatus: true
+  tlsstatus: true
+  #Provide a valid chaincode builder image for Fabric
+  #Eg. builder: hyperledger/fabric-ccenv:1.4.8
+  builder: hyperledger/fabric-ccenv:2.2.2
+  couchdb:
+    #Provide the username for couchdb login
+    #If couchdb username is provided, it is mandatory to provide password for the same
+    #Eg. username: org1-user
+    username: org1-user
+  configpath:
+  core: 
+  mspconfig:
+    #Provide the members of the MSP in organizational unit identifiers
+    #Eg.organizationalunitidentifiers:
+    #     - client
+    #     - peer
+    # following for 2.2.x
+    #     - admin
+    #     - orderer
+    organizationalunitidentifiers:
+    nodeOUs:
+      clientOUidentifier:
+        #Provide OU which will be used to identify node as client
+        #Eg.organizationalunitidentifier: client
+        organizationalunitidentifier: client
+      peerOUidentifier:
+        #Provide OU which will be used to identify node as peer
+        #Eg.organizationalunitidentifier: peer
+        organizationalunitidentifier: peer
+      # following for 2.2.x
+      adminOUidentifier:
+        organizationalunitidentifier: admin
+      ordererOUidentifier:
+        organizationalunitidentifier: orderer
+
+storage:
+  peer:
+    #Provide the storageclassname for peer
+    #Eg. storageclassname: aws-storage
+    storageclassname: aws-storageclass
+    #Provide the storagesize for storage class
+    #Eg. storagesize: 512Mi
+    storagesize: 512Mi
+  couchdb:
+    #Provide the storageclassname for couchdb
+    #Eg. storageclassname: aws-storage
+    storageclassname: aws-storageclass
+    #Provide the storagesize for storage class
+    #Eg. storagesize: 512Mi
+    storagesize: 512Mi
+
+
+
+vault:
+  #Provide the vaultrole for an organization
+  #Eg. vaultrole: org1-vault-role
+  role: vault-role
+  #Provide the vault server address
+  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address: 
+  #Provide the kubernetes auth backed configured in vault for an organization
+  #Eg. authpath: devorg1-net-auth
+  authpath: devorg1-net-auth
+  #Provide the value for vault secretprefix
+  #Eg. secretprefix: secretsv2/data/crypto/peerOrganizations/.../peers/...
+  secretprefix: secretsv2/data/crypto/peerOrganizations/org1-net/peers/peer0.org1-net
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: vault-auth
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Provide the vault path for secret couchdb password
+  #Eg. secretcouchdbpass: secretsv2/data/credentials/org1-net/couchdb/org1?user
+  secretcouchdbpass: secretsv2/data/credentials/org1-net/couchdb/org1?user
+  #Kuberenetes secret for vault ca.cert
+  #Enable or disable TLS for vault communication if value present or not
+  #Eg. tls: vaultca
+  tls: 
+
+
+service:
+  #Provide the servicetype for a peer
+  #Eg. servicetype: NodePort
+  servicetype: ClusterIP 
+  loadBalancerType: ""
+  ports:
+    grpc:
+      #Provide a nodeport for grpc service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30001
+      nodeport:
+      #Provide a cluster IP port for grpc service to be exposed
+      #Eg. clusteripport: 7051
+      clusteripport: 7051
+    events:
+      #Provide a nodeport for event service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30002
+      nodeport:
+      #Provide a cluster IP port for event service to be exposed
+      #Eg. clusteripport: 7053
+      clusteripport: 7053
+    couchdb:
+      #Provide a nodeport for couchdb service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30003
+      nodeport:
+      #Provide a cluster IP port for couchdb service to be exposed
+      #Eg. clusteripport: 5984
+      clusteripport: 5984
+    metrics:
+      enabled: false
+      clusteripport: 9443
+
+proxy:
+  #This will be the proxy/ingress provider. Can have values "none" or "haproxy"
+  #Eg. provider: "haproxy"
+  provider: "none"
+  #This field contains the external URL of the organization
+  #Eg. external_url_suffix: org1.blockchaincloudpoc.com
+  external_url_suffix: org1proxy.blockchaincloudpoc.com
+  #This field contains the external port on haproxy
+  #Eg. port: 443
+  port: 443
+  
+config:
+  # Set limits and requests of pod  
+  pod:  
+    resources:
+      limits:
+      # Provide the limit memory for node
+      # Eg. memory: 512M
+        memory: 512M
+      # Provide the limit cpu for node
+      # Eg. cpu: 1
+        cpu: 1
+      requests:
+      # Provide the requests memory for node
+      # Eg. memory: 512M
+        memory: 512M
+      # Provide the requests cpu for node
+      # Eg. cpu: 0.25
+        cpu: 0.25

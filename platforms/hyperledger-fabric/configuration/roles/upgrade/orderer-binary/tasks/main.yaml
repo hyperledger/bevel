@@ -23,7 +23,7 @@
 # Get genesis block from Vault
 - name: Get genesis block from Vault
   shell: |
-    vault kv get -field={{ network.env.type }}GenesisBlock {{ vault.secret_path | default('secretsv2') }}/crypto/ordererOrganizations/{{ item.name }}-net
+    vault kv get -field={{ network.env.type }}GenesisBlock {{ vault.secret_path | default('secretsv2') }}/{{ item.name }}/ordererOrganizations/{{ item.name }}-net
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
@@ -35,9 +35,9 @@
 
 # Store the genesis block
 - name: Save genesis block
-  local_action: copy content="{{ genesis_block }}" dest=./build/channel-artifacts/genesis.block.base64
+  local_action: copy content="{{ genesis_block }}" dest=./build/channel-artifacts/{{ channel_name }}.genesis.block.base64
 
-# This role creates value file for each orderer
+# Create value file for each orderer
 - name: Create value file for each orderer in org
   include_tasks: create_orderer_value.yaml
   loop: "{{ component_services.orderers }}"

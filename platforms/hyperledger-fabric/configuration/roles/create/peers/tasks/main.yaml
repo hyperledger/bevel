@@ -4,13 +4,19 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-#############################################################################################
+##############################################################################################
 # This role creates the value file for peers of organisations and write couch db credentials
 # to the vault.
-#############################################################################################
+##############################################################################################
 
-############################################################################################
+# This task creates the build directory if it does not exist
+- name: Create build directory if it does not exist
+  file:
+    path: "./build"
+    state: directory
+
 # This task reset peers pods
+# Reset peers pods
 - name: "Reset peers pods"
   include_role:
     name: create/refresh_certs/reset_pod
@@ -25,41 +31,27 @@
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
-  when: refresh_cert is defined and refresh_cert == 'true'
+  when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
 
-############################################################################################
-# This task is the nested task for main.yaml which helps to iterate over all peers
-- name: Create Value files for Organization Peers
-  include_role:
-    name: helm_component
-  vars:
-    name: "{{ item.name | lower }}"
-    type: "value_peer"
-    component_name: values-{{ peer.name }}
-    couchdb_image: "{{ couchdb_image_version[network.version] }}"
-    peer_image: "hyperledger/fabric-peer:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
-    peer_name: "{{ peer.name }}"
-    peer_ns: "{{ namespace }}"
-    provider: "{{ network.env.proxy }}"
+# Create the value file for peers of organisations 
+- name: This role creates the value file for peers of organisations 
+  include_tasks: nested_main.yaml
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
-  when: peer.peerstatus is not defined or peer.peerstatus == 'new'
 
-#Git Push : Pushes the above generated files to git directory 
+# Git Push: Push the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Peer files"
   tags:
     - notest
 
-# Wait for the Orderer HelmRelease
+# Wait for the peer HelmRelease
 - name: 'Wait for {{ peer.name }} HelmRelease in {{ namespace }}'
   k8s_info:
     api_version: "helm.toolkit.fluxcd.io/v2beta1"
@@ -77,7 +69,7 @@
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer
-  when: refresh_cert is defined and refresh_cert == 'true'
+  when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
 
 # Wait for peer pods to be in the state of running
 - name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"

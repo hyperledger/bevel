@@ -1,0 +1,23 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This task Creates the channels looking up the channel artifacts generated in previous steps
+
+##############################################################################################
+# This task calls valuefile to generate the create-channel files
+##############################################################################################
+
+# Call valuefile when participant is creator
+- name: Call valuefile when participant is creator
+  include_tasks: valuefile.yaml
+  vars:
+    org_creator_channels: "{{ item.osn_creator_org.name }}"
+    channel_name: "{{ item.channel_name | lower }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+  when: org.type == 'orderer' and org_creator_channels == org.name

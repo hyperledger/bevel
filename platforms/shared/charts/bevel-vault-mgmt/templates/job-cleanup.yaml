@@ -1,0 +1,88 @@
+{{- if eq .Values.global.vault.type "hashicorp" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "bevel-vault-mgmt.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: bevel-vault-mgmt-job-cleanup
+    app.kubernetes.io/component: job-cleanup
+    app.kubernetes.io/part-of: {{ include "bevel-vault-mgmt.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bevel-vault-mgmt-job-cleanup
+        app.kubernetes.io/component: job-cleanup
+        app.kubernetes.io/part-of: {{ include "bevel-vault-mgmt.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      {{ if .Values.image.pullSecret  }}
+      imagePullSecrets:
+        - name: {{ $.Values.image.pullSecret }}
+      {{ end }}
+      volumes:
+      {{ if .Values.global.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.global.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end }}
+      containers:
+        - name: vault-cleanup
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: "{{ $.Values.global.vault.address }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ $.Values.global.vault.authPath }}"
+          - name: POLICY_NAME
+            value: "{{ include "bevel-vault-mgmt.fullname" . }}-{{ .Release.Namespace }}-policy"
+          - name: ROOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: roottoken
+                key: token
+          command: ["sh", "-c"]
+          args:
+            - |-
+              validateVaultResponse () {
+                if [ ${1} != 200 -a ${1} != 204 ]; then
+                  echo "ERROR: Unable to delete. Http status: ${1}"
+                  exit 1
+                fi
+              };
+              # Remove the Vault policy
+              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request DELETE ${VAULT_ADDR}/v1/sys/policy/${POLICY_NAME})
+              validateVaultResponse ${response_status}
+
+              # Remove the Vault-auth path
+              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" \
+                --header "X-Vault-Token: $ROOT_TOKEN" \
+                --request DELETE ${VAULT_ADDR}/v1/sys/auth/${KUBERNETES_AUTH_PATH})
+              validateVaultResponse ${response_status}
+
+          volumeMounts:
+          {{ if .Values.global.vault.tls  }}
+            - name: vaultca
+              mountPath: "/etc/ssl/certs/"
+              readOnly: true
+          {{ end }}
+{{ end }}

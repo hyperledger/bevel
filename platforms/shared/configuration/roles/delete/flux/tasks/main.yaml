@@ -1,0 +1,70 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+# Deletes all k8s native flux resources
+- name: Delete all k8s native flux resources
+  include_tasks: nested.yaml
+  vars:
+    resource_type: "{{ item }}"
+    api_version: "v1"
+    namespace: "flux-{{ network.env.type }}"
+  with_items:
+    - ["Deployment", "Service", "NetworkPolicy", "ServiceAccount", "Secret"]
+
+# Deletes helm releases of each organisation
+- name: Delete all Flux helm releases in {{ organizationItem.name }}-{{ namespace_suffix | map(attribute=network.type) | first }}
+  include_tasks: nested.yaml
+  vars:
+    resource_type: "{{ item }}"
+    api_version: "helm.toolkit.fluxcd.io/v2beta1"
+    namespace: "{{ organizationItem.name | lower }}-{{ namespace_suffix | map(attribute=network.type) | first }}"
+    remove_finalizers: true
+  with_items:
+    - ["HelmRelease"]
+
+# Deletes Deployments related to flux
+- name: Delete all Flux sources
+  include_tasks: nested.yaml
+  vars:
+    resource_type: "{{ item }}"
+    api_version: "source.toolkit.fluxcd.io/v1beta2"
+    namespace: "flux-{{ network.env.type }}"
+    remove_finalizers: true
+  with_items:
+    - ["GitRepository", "HelmChart"]
+
+# Deletes Deployments related to flux
+- name: Delete all Flux Kustomization
+  include_tasks: nested.yaml
+  vars:
+    resource_type: "{{ item }}"
+    api_version: "kustomize.toolkit.fluxcd.io/v1beta2"
+    namespace: "flux-{{ network.env.type }}"
+    remove_finalizers: true
+  with_items:
+    - ["Kustomization"]
+
+# Deletes Deployments related to flux
+- name: Delete all Flux related clusterrole and clusterrolebinding
+  include_tasks: nested.yaml
+  vars:
+    resource_type: "{{ item }}"
+    api_version: "v1"
+    namespace: "default"
+    label_selectors: 
+      - kustomize.toolkit.fluxcd.io/namespace = flux-{{ network.env.type }}
+  with_items:
+    - ["ClusterRoleBinding", "ClusterRole"]
+
+# Remove the existing flux namespace
+- name: Remove an existing flux-{{ network.env.type }} namespace
+  k8s:
+    state: absent
+    kind: Namespace
+    kubeconfig: "{{ kubernetes.config_file }}"
+    namespace: flux-{{ network.env.type }}
+    name: flux-{{ network.env.type }}

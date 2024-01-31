@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/notary
+    chart: {{ charts_dir }}/corda-ent-notary
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -27,10 +27,10 @@ spec:
       privateCertificate: true
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       serviceAccountName: vault-auth
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       retries: 30
       retryInterval: 10
     service:
@@ -101,7 +101,7 @@ spec:
           limits: 2056M
           requests: 2056M
       storage:
-        name: cordaentsc
+        name: {{ sc_name }}
         memory: 512Mi
       replicas: 1
     healthCheckNodePort: 0

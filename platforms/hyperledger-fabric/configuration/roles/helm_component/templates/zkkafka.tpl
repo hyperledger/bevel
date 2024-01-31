@@ -20,10 +20,10 @@ spec:
     metadata: 
       namespace: {{ namespace }}
       images:
-        kafka: {{ kafka_image }}
-        zookeeper: {{ zookeeper_image }}
+        kafka: {{ docker_url }}/{{ kafka_image }}
+        zookeeper: {{ docker_url }}/{{ zookeeper_image }}
     storage: 
-      storageclassname: {{ org_name }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi
     kafka: 
       brokerservicename: {{consensus.type}}

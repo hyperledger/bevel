@@ -34,7 +34,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y python3.5 python3-pip python3.5-dev jq
 
-RUN pip3 install --upgrade "pip < 21.0" setuptools==50.3.2
+RUN pip3 install --upgrade "pip < 21.0" setuptools==50.3.2 Cython==0.29.36
 
 # Installing virtualenvwrapper
 RUN pip3 install virtualenvwrapper
@@ -66,8 +66,9 @@ RUN apt-get install -y libindy libindy-crypto=${LIBINDY_CRYPTO_VERSION}
 RUN mkdir -p ${INDY_HOME}
 WORKDIR ${INDY_HOME}
 COPY config/indy_config.py ${INDY_CONFIG_DIR}
-RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NETWORK_NAME}; workon ${NETWORK_NAME}; pip3 install indy-node==${INDY_NODE_VERSION}"  && \    
-    /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install flake8 requests"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NETWORK_NAME}; workon ${NETWORK_NAME}; pip3 install Cython==0.29.36"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install indy-node==${INDY_NODE_VERSION}"   
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install flake8 requests"
 
 COPY src/identity_crypto_generator.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator.py
 COPY src/identity_crypto_generator_v2.py /.virtualenvs/${NETWORK_NAME}/lib/python3.5/site-packages/plenum/common/identity_crypto_generator_v2.py

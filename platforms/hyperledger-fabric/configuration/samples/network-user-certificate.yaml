@@ -15,7 +15,7 @@ network:
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: haproxy           # values can be 'haproxy' or 'ambassador' or 'none'
+    proxy: haproxy           # values can be 'haproxy' or 'none'
     retry_count: 20          # Retry count for the checks
     external_dns: enabled    # Should be enabled if using external-dns for automatic route configuration
 
@@ -23,7 +23,7 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
 
@@ -38,7 +38,7 @@ network:
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
       type: peer
-      external_url_suffix: org3ambassador.blockchaincloudpoc.com
+      external_url_suffix: org3proxy.blockchaincloudpoc.com
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       cli: enabled
@@ -108,7 +108,7 @@ network:
           name: peer0          
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
-          peerAddress: peer0.manufacturer-net.org3ambassador.blockchaincloudpoc.com:8443 # External URI of the peer 
+          peerAddress: peer0.manufacturer-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer 
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.   
           grpc:
             port: 7051         
@@ -131,7 +131,7 @@ network:
                 username: "git_username"          # Git Service user who has rights to check-in in all branches
                 password: "git_access_token"
                 url: "github.com/<username>/bevel-samples.git"
-                branch: develop
+                branch: main
                 path: "chaincode_src"   #The path to the chaincode 
               arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
               endorsements: "" #Endorsements (if any) provided along with the chaincode

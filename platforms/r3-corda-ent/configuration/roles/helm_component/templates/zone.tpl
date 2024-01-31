@@ -58,12 +58,12 @@ spec:
     listenerPort:
       enm: {{ org.services.zone.ports.enm }}
       admin: {{ org.services.zone.ports.admin }}
-    storageClass: cordaentsc
+    storageClass: {{ sc_name }}
     vault:
       address: {{ vault.url }}
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15

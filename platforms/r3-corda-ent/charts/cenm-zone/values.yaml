@@ -1,0 +1,186 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for CENM Zone service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+# This section contains the Corda Enterprise Zone metadata.
+metadata:
+  # Provide the namespace for the Corda Enterprise Zone.
+  # Eg. namespace: cenm
+  namespace: cenm
+  # Provide the name of the deployment
+  # Eg. nodeName: zone
+  nodeName: zone
+  # Provide prefix for deployment
+  # Eg. prefix: cenm
+  prefix: cenm
+
+# Provide information regarding the Docker images used.
+image:
+  # Provide the alpine utils image, which is used for all init-containers of deployments/jobs.
+  # NOTE: The alpine image used is the base alpine image with CURL installed.
+  # Eg. initContainer: ghcr.io/hyperledger/bevel-alpine:latest
+  initContainer: ghcr.io/hyperledger/bevel-alpine:latest
+  # Provide the image for the main Zone container.
+  # Eg. zoneContainer: corda/enterprise-zone:1.5.1-zulu-openjdk8u242
+  zoneContainer: corda/enterprise-zone:1.5.1-zulu-openjdk8u242
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecrets: regcred, can add multiple creds
+  imagePullSecrets:
+    - name: 
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy:
+
+#############################################################
+###                     Settings                          ###
+#############################################################
+config:
+  # Provide volume related specifications
+  volume:
+    # Eg. baseDir: /opt/cenm
+    baseDir: /opt/cenm
+
+  pvc:
+    # Volume size for h2/ directory
+    # Eg. volumeSizeZoneH2: 1Gi
+    volumeSizeZoneH2:
+    # Volume size for logs/ directory
+    # Eg. volumeSizeZoneLogs: 5Gi
+    volumeSizeZoneLogs:
+    # Volume size for data/ directory
+    # Eg. volumeSizeZoneData: 1Gi
+    volumeSizeZoneData:
+
+  pod:
+    # Set memory limits of pod  
+    resources:
+      limits:
+        # Provide the limit memory for node
+        # Eg. memory: 1Gi
+        memory:
+      requests:
+        # Provide the requests memory for node
+        # Eg. memory: 1Gi
+        memory:
+
+  zoneJar:
+    # The directory where the Zone Service .jar file is stored
+    # Eg. path: bin
+    path:
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  # Enable container displaying live logs
+  logsContainersEnabled: true
+
+  securityContext: {}
+
+#############################################################
+#                  CENM Service Details                     #
+#############################################################
+# This section details the CENM service names as per the configuration file
+# It also contains the passwords for keystores and truststores
+cenmServices:
+  # Provide the name of the idman
+  # Eg. idmanName: idman
+  idmanName: idman
+  # Eg. authName: auth
+  authName: auth
+  # The port of auth service
+  # Eg. authPort: 8081
+  authPort: 8081
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+# Database configuration
+database:
+  # Java class name to use for the database
+  # Eg. driverClassName: "org.h2.Driver"
+  driverClassName:
+  # JDBC Driver name
+  # Eg. jdbcDriver: ""
+  jdbcDriver:
+  # The DB connection URL 
+  # Eg. url: "jdbc:h2:file:./h2/zone-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
+  url:
+  # DB user
+  # Eg. user: "example-db-user"
+  user:
+  # DB password 
+  # Eg. password: "example-db-password"
+  password:
+  # Migrations of database can be run as part of the startup of Zone, if set to true. 
+  # If set to false, it will be run prior to setting up the Zone.
+  # Eg. runMigration: "true"
+  runMigration: "true"
+
+########################################
+###   Zone Service configuration     ###
+########################################
+
+service:
+  # Service type of kubernetes cluster
+  # Eg. type: ClusterIP
+  type:
+  # Port of service type
+  # Eg. port: 80
+  port: 80
+
+listenerPort:
+  # Provide the port where the Zone Service listens for Angel Services to connect.
+  # Eg. enm: "25000"
+  enm: "25000"
+  # Provide the port where Angel Services connect to the Zone Service.
+  # Eg. admin: "12345"
+  admin: "12345"
+
+# This section contains the storage information, used for the Persistent Volume Claims (PVC).
+# Provide the name of the storageclass.
+# NOTE: Make sure that the storageclass exist prior to this deployment as
+# this chart doesn't create the storageclass.
+# Eg. storageClass: cenm
+storageClass: cenm
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+vault:
+  # Provide the vault address
+  # Eg. address: http://vault.example.com:8200
+  address:
+  # Provide the vault role used.
+  # Eg. role: vault-role
+  role: vault-role
+  # Provide the authpath configured to be used.
+  # Eg. authpath: entcordacenm
+  authPath: entcordacenm
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and autheticated to use the vault.
+  # Eg. serviceaccountname: vault-auth
+  serviceAccountName: vault-auth
+  # Provide the vault path where the certificates are stored
+  # Eg. certsecretprefix: secret/cenm-org-name
+  certsecretprefix:
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries: 10
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15
+  sleepTimeAfterError: 15

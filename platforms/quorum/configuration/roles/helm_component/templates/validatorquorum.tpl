@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/node_quorum_validator
+    chart: {{ charts_dir }}/quorum-validator-node
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -22,9 +22,7 @@ spec:
       labels:
     images:
       node: quorumengineering/quorum:{{ network.version }}
-      alpineutils: {{ network.docker.url }}/alpine-utils:1.0
-      busybox: busybox
-      mysql: mysql/mysql-server:5.7
+      alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
     node:
       name: {{ peer.name }}
 {% if add_new_org %}
@@ -38,7 +36,7 @@ spec:
       mountPath: /etc/quorum/qdata
       imagePullSecret: regcred
       keystore: keystore_1
-{% if item.cloud_provider == 'minikube' %}
+{% if org.cloud_provider == 'minikube' %}
       servicetype: NodePort
 {% else %}
       servicetype: ClusterIP
@@ -50,27 +48,34 @@ spec:
         raft: {{ peer.raft.port }}
 {% endif %}
         quorum: {{ peer.p2p.port }}
-        db: {{ peer.db.port }}
-      dbname: demodb
-      mysqluser: demouser
     vault:
       address: {{ vault.url }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto/{{ peer.name }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/crypto/{{ peer.name }}
       serviceaccountname: vault-auth
       keyname: quorum
       role: vault-role
-      authpath: quorum{{ name }}
+      authpath: {{ network.env.type }}{{ name }}
+      type: {{ vault.type | default("hashicorp") }}
     genesis: {{ genesis }}
     staticnodes: {{ staticnodes }}
+{% if network.env.proxy == 'ambassador' %}
     proxy:
       provider: "ambassador"
-      external_url: {{ peer.name }}.{{ external_url }}
-      rpcport: {{ peer.rpc.ambassador }}
+      external_url: {{ external_url }}
       quorumport: {{ peer.p2p.ambassador }}
 {% if network.config.consensus == 'raft' %}
       portRaft: {{ peer.raft.ambassador }}
 {% endif %}
+{% else %}
+    proxy:
+      provider: none
+      external_url: {{ name }}.{{ component_ns }}
+      quorumport: {{ peer.p2p.port }}
+{% if network.config.consensus == 'raft' %}
+      portRaft: {{ peer.raft.port }}
+{% endif %}
+{% endif %}
     storage:
-      storageclassname: {{ storageclass_name }}
+      storageclassname: {{ sc_name }}
       storagesize: 1Gi
       dbstorage: 1Gi

@@ -1,0 +1,86 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.server.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+  labels:
+    run: {{ $.Values.server.name }}
+    app.kubernetes.io/name: {{ $.Values.server.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  type: {{ $.Values.service.servicetype }}
+  selector:
+    name: {{ $.Values.server.name }}
+  ports:
+  - name: tcp
+    protocol: TCP
+    targetPort: 7054
+    port: {{ $.Values.service.ports.tcp.clusteripport }}
+    {{- if $.Values.service.ports.tcp.nodeport }}
+    nodePort: {{ $.Values.service.ports.tcp.nodeport }}
+    {{- end }}
+  - name: operations
+    protocol: TCP
+    targetPort: 9443
+    port: 9443
+
+{{- if eq $.Values.proxy.provider "haproxy" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.server.name }}
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"
+    ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  rules:
+  - host: ca.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.server.name }}
+            port:
+              number: {{ $.Values.service.ports.tcp.clusteripport }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.server.name }}-ops
+  namespace:  {{ $.Values.metadata.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "haproxy"    
+spec:
+  rules:
+  - host: ca-ops.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.server.name }}
+            port:
+              number: 9443
+{{- end }}

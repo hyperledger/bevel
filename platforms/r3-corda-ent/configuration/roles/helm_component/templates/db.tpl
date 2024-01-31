@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/h2
+    chart: {{ charts_dir }}/corda-ent-h2
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -28,7 +28,7 @@ spec:
       limits: 512Mi
       requests: 512Mi
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 512Mi
     service:
       type: NodePort

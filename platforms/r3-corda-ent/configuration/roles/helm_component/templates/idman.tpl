@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/idman
+    chart: {{ charts_dir }}/cenm-idman
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -18,7 +18,7 @@ spec:
   values:
     nodeName: {{ org.services.idman.name | lower }}
     bashDebug: false
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     metadata:
       namespace: {{ component_ns }}
     image:
@@ -29,14 +29,14 @@ spec:
       imagePullSecrets:
         - name: "regcred"
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 700Mi
     acceptLicense: YES
     vault:
       address: {{ org.vault.url }}
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       serviceAccountName: vault-auth
       retries: 10
       sleepTimeAfterError: 15

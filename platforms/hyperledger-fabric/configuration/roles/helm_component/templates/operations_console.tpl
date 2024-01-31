@@ -15,23 +15,27 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/operations_console
+      chart: {{ charts_dir }}/fabric-operations-console
   values:
     metadata:
       namespace: {{ component_ns }}
       images:
-        couchdb: couchdb:3.1.1
-        console: "{{ network.docker.url }}/fabric-console:latest"
-        configtxlator: hyperledger/fabric-tools:{{ network.version }}
+        couchdb: {{ docker_url }}/{{ couchdb_image[network.version] }}
+        console: {{ docker_url }}/{{ fabric_console_image }}
+        configtxlator: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
     storage:
       couchdb:
-        storageclassname: {{ name }}sc
+        storageclassname: {{ sc_name }}
         storagesize: 512Mi
     service:
       name: {{ name }}console
       default_consortium: {{ default_consortium }}
       serviceaccountname: default
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       servicetype: ClusterIP
       ports:
         console:

@@ -1,0 +1,93 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  annotations:
+    app: consortiumchain
+    version: '1'
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.node.name }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ .Values.node.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+    service.rpc: {{ .Values.node.name }}
+  type: {{ .Values.node.servicetype }}
+  ports:
+  - name: wsrpc-listener
+    protocol: TCP
+    port: {{ .Values.node.ports.rpc }}
+    targetPort: {{ .Values.node.ports.rpc }}
+{{- if eq .Values.node.consensus "raft" }}
+  - name: raft
+    protocol: TCP
+    port: {{ .Values.node.ports.raft }}
+    targetPort: {{ .Values.node.ports.raft }}
+{{- end }}
+  - name: quorum-listener
+    protocol: TCP
+    port: {{ .Values.node.ports.quorum }}
+    targetPort: {{ .Values.node.ports.quorum }}
+
+{{- if eq .Values.proxy.provider "ambassador" }}
+## Listeners for rlpx (p2p) ports
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.quorumport }}
+  protocol: TCP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: SELF
+## Mapping for rpc
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.node.name }}-json-rpc
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: '{{ .Values.node.name }}rpc.{{ .Values.proxy.external_url }}'
+  prefix: /
+  service: http://{{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.rpc }}
+## TCPMapping for rlpx
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.node.name }}-rlpx
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.quorumport }}
+  service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.quorum }}
+{{- if eq .Values.node.consensus "raft" }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TCPMapping
+metadata:
+  name: {{ .Values.node.name }}-raft
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  port: {{ .Values.proxy.portRaft }}
+  service: {{ .Values.node.name }}.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.raft }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,47 @@
+# Remove existing value file for peer -- change to not use shell
+- name: Remove existing value file for {{ peer.name }}
+  shell: |
+    rm -f {{ values_dir }}/{{ item.name | lower }}/values-{{ peer.name }}.yaml
+  when: 
+    - add_peer is not defined or add_peer == 'false'
+
+# Fetch the custom core.yaml
+- name: Fetch the custom core.yaml
+  shell: |
+    cat {{ peer.configpath }} | base64 > {{ playbook_dir }}/build/{{ peer.name }}_{{ item.name | lower }}_core.yaml.base64
+  register: core_yaml_file
+  when: 
+    - peer.configpath is defined
+
+# Create Value files for Organization Peers
+- name: Create Value files for Organization Peers
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    sc_name: "{{ name }}-bevel-storageclass"
+    type: "value_peer"
+    component_name: values-{{ peer.name }}
+    peer_name: "{{ peer.name }}"
+    peer_ns: "{{ namespace }}"
+    provider: "{{ network.env.proxy }}"
+  when: 
+    - peer.peerstatus is not defined or peer.peerstatus == 'new'
+    - peer.configpath is not defined
+
+# Create Value files for Organization Peers - external
+- name: Create Value files for Organization Peers - external
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ item.name | lower }}"
+    sc_name: "{{ name }}-bevel-storageclass"
+    type: "value_peer"
+    component_name: values-{{ peer.name }}
+    peer_name: "{{ peer.name }}"
+    peer_ns: "{{ namespace }}"
+    provider: "{{ network.env.proxy }}"
+    core_file: "{{ lookup('file', '{{ playbook_dir }}/build/{{ peer.name }}_{{ item.name | lower }}_core.yaml.base64') }}"
+  when: 
+    - peer.peerstatus is not defined or peer.peerstatus == 'new' 
+    - peer.configpath is defined

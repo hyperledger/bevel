@@ -1,0 +1,113 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role generate initial CA certs and push them to vault
+# Also, creates the value file for Certificate Authority (CA)
+#############################################################################################
+
+# Create the folder to store crypto material
+- name: "creating the directory ./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "./build/crypto-config/{{ component_type }}Organizations/{{ component_name }}/ca"
+
+- name: Check if CA key already exists in vault.
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/setup"
+  vars:
+    vault_field: "{{ component_name }}-CA.key"
+    vault_path: "{{ vault.secret_path | default('secretsv2') }}/{{ component }}/{{ component_type }}Organizations/{{ component_name }}/ca"
+    check: "certs_created"
+
+# Generate cacerts helmrelease file.
+- name: "Create value file for cacerts job"
+  include_role:
+    name: helm_component
+  vars: 
+    name: "{{ component }}"   
+    type: "cacerts_job"    
+    component_name: "{{ component }}-cacerts-job"
+    component_ns: "{{ component }}-net"
+    subject: "{{ ca.subject }}"
+    git_protocol: "{{ gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    vault: "{{ item.vault }}"
+    values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}/{{ component }}"
+  when: certs_created.failed == True
+
+# Git Push : Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    msg: "[ci skip] Pushing CA server files"
+  when: certs_created.failed == True
+  tags:
+    - notest
+
+# Check if cacerts-job is completed
+- name: Check if cacerts-job job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component }}-net"
+    component_name: "{{ component }}-cacerts-job"
+    kubernetes: "{{ item.k8s }}"
+  when: certs_created.failed == True
+  tags:
+    - notest
+
+# Copy custom config for fabric-ca server
+- name: Copy custom config for fabric-ca server
+  shell: |
+    cp {{ ca.configpath }} ../../../{{ gitops.chart_source }}/ca/conf/fabric-ca-server-config-{{ component }}.yaml
+  when: ca.configpath is defined
+
+# Create the CA value file for Orderer
+- name: "Create CA server values for Orderer"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ ca.name }}"
+    type: "ca-orderer"
+    git_protocol: "{{ gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    external_url_suffix: "{{ item.external_url_suffix }}"
+  when: component_type == 'orderer'
+
+# Create the CA value file for Organizations
+- name: "Create CA server values organizations"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ ca.name }}"
+    type: "ca-peer"
+    git_protocol: "{{ gitops.git_protocol }}"
+    git_url: "{{ gitops.git_url }}"
+    git_branch: "{{ gitops.branch }}"
+    charts_dir: "{{ gitops.chart_source }}"
+    external_url_suffix: "{{ item.external_url_suffix }}"
+  when: component_type == 'peer'
+
+# Git Push : Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    msg: "[ci skip] Pushing CA server files"
+  tags:
+    - notest

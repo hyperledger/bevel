@@ -45,24 +45,12 @@
   vars:
     path: "{{ playbook_dir }}/build"
 
-#####################################################################################################################
-# This task creates the access policy for various Substrate entity
-- name: Create policy for Access Control
-  vars:  
-    name: "{{ component_name }}"
-  template:
-    src: "{{ policy_templates[policy_type] | default('helm_component.tpl') }}"
-    dest: "{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl"
-  changed_when: false
-  
 #############################################################################################
 # This tasks gets the kubernetes server url
 - name: Get the kubernetes server url
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
   register: kubernetes_server_url
-  tags:
-  - molecule-idempotence-notest
 
 #####################################################################################################################
 # This tasks generate vault_kubernetes helmrelease file
@@ -71,21 +59,16 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/create/shared_helm_component"
   vars:  
     type: "vault_k8s_mgmt"
-    git_url: "{{ gitops.git_url }}"
-    git_branch: "{{ gitops.branch }}"
     charts_dir: "platforms/shared/charts"
     kubernetes_url: "{{ kubernetes_server_url.stdout }}"
-    alpine_image: "hyperledgerlabs/alpine-utils:1.0"
-    policydata: "{{ lookup('file', '{{ playbook_dir }}/build/vault-crypto-{{ component_type }}-{{ name }}-ro.hcl') }}"
-    values_dir: "{{ playbook_dir }}/../../../{{gitops.release_dir}}/{{ name }}"
-  
-#Git Push : Pushes the above generated files to git directory 
+    values_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}/{{ org_name | default(name) }}"
+
+# Git Push : Pushes the above generated files to git directory 
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"    
-    GIT_RESET_PATH: "{{ reset_path }}"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
     msg: "[ci skip] Pushing vault_kubernetes files"
    
 # Check if vault_kubernetes is completed
@@ -97,12 +80,3 @@
     namespace: "{{ component_ns }}"
   tags:
   - notest
-
-#############################################################################################
-# This task deletes the root token
-- name: "Delete vault token secret"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/delete/shared_k8s_secrets"
-  vars: 
-    namespace: "{{ component_ns }}"    
-    check: "token_secret"

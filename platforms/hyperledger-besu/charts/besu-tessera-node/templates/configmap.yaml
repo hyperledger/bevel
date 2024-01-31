@@ -1,0 +1,103 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "besu-tessera-node.fullname" . }}-tessera-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: tessera-config
+    app.kubernetes.io/component: besu
+    app.kubernetes.io/part-of: {{ include "besu-tessera-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:  
+  tessera-config.json.tmpl: |-
+    {
+      "mode": "orion",
+      "useWhiteList": "false",
+      "jdbc": {
+        "username": {{ .Values.tessera.dbUsername | quote }},
+        "password": "",
+        "url": "jdbc:mysql://{{ include "besu-tessera-node.fullname" . }}:{{ .Values.tessera.dbport }}/demodb"
+      },
+      "serverConfigs": [
+        {
+          "app": "ThirdParty",
+          "enabled": true,
+          "serverAddress": "http://{{ include "besu-tessera-node.fullname" . }}:{{ .Values.tessera.tpport }}",
+          "communicationType": "REST"
+        },
+        {
+          "app": "Q2T",
+          "enabled": true,
+          "serverAddress": {{ include "besu-tessera-node.clientURL" . }},          
+          "sslConfig": {
+            "tls": "OFF",
+            "generateKeyStoreIfNotExisted": true,
+            "sslConfigType": "SERVER_ONLY",
+            "serverTrustMode": {{ .Values.tessera.trust | quote }},
+            "serverTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "serverTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "serverTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
+            "clientTrustMode": {{ .Values.tessera.trust | quote }},
+            "clientTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "clientTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "clientTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
+            "knownClientsFile": "{{ .Values.tessera.dataPath }}/crypto/known_client",
+            "knownServersFile": "{{ .Values.tessera.dataPath }}/crypto/known_server",
+            "clientAuth": false
+          },
+          "communicationType": "REST"
+        },
+        {
+          "app": "P2P",
+          "enabled": true,
+          "serverAddress": {{ include "besu-tessera-node.tesseraURL" . }},
+          "sslConfig": {
+            "tls": {{ .Values.tessera.tlsMode | quote }},
+            "generateKeyStoreIfNotExisted": true,
+            "sslConfigType": "SERVER_AND_CLIENT",
+            "serverTrustMode": {{ .Values.tessera.trust | quote }},
+            "serverTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "serverTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "serverTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],            
+            "clientTrustMode": {{ .Values.tessera.trust | quote }},
+            "clientTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "clientTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "clientTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
+            "knownClientsFile": "{{ .Values.tessera.dataPath }}/crypto/known_client2",
+            "knownServersFile": "{{ .Values.tessera.dataPath }}/crypto/known_server2"
+          },
+          "communicationType": "REST"
+        }
+      ],
+      "peer": [
+        {
+          "url": {{ include "besu-tessera-node.tesseraURL" . }}
+        }
+        {{- range .Values.tessera.peerNodes }}
+        ,{
+          "url": {{ .url | quote }}
+        }
+        {{- end }}
+      ],
+      "keys": {
+      {{ if .Values.tessera.password }}
+        "passwordFile": "{{ .Values.tessera.passwordPath }}",
+      {{ end }}
+        "keyData": [
+          {
+            "privateKeyPath": "/keys/tm.key",
+            "publicKeyPath": "/keys/tm.pub"
+          }
+        ]
+      },
+      "alwaysSendTo": []
+    }

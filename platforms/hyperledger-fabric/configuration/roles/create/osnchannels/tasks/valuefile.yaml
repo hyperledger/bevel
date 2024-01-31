@@ -1,0 +1,93 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This task is the nested task for main.yaml which helps to create the channels_join files
+##############################################################################################
+
+--- 
+# Check or wait for the Orderer pod
+- name: "Check orderer pod is up"
+  include_tasks: orderercheck.yaml
+  vars:
+    orderer_namespace: "{{ org.name | lower }}-net"
+    orderer_kubeconfig: "{{ org.k8s.config_file }}"
+    orderer_context: "{{ org.k8s.context }}"
+
+# Reset osn-createchannel pod
+- name: "Reset osn-createchannel pod"
+  include_role:
+    name: create/refresh_certs/reset_pod
+  vars:
+    pod_name: "osn-createchannel-{{ channel_name }}"
+    file_path: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}/{{ org.name | lower }}/{{ channel_name }}.yaml"
+    gitops_value: "{{ org.gitops }}"
+    component_ns: "{{ org.name | lower }}-net"
+    kubernetes: "{{ org.k8s }}"
+    hr_name: "channel-{{ org.name | lower }}-{{ channel_name }}"
+  when: add_orderer is defined and add_orderer == 'true'
+
+# Create the value file for creator Organization
+- name: "Create Create_Channel value file osnadmin"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ org.name | lower }}"
+    type: "osn_create_channel_job"
+    component_name: "{{ channel_name }}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    k8s: "{{ org.k8s }}"
+    orderers_list: "{{ org.services.orderers }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64') }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    add_orderer_value: "{{ add_orderer | default('false') }}"
+  when: add_orderer is not defined or add_orderer == false
+
+# Create the value file for creator Organization
+- name: "Create Create_Channel value file osnadmin"
+  include_role:
+    name: helm_component
+  vars:
+    name: "{{ org.name | lower }}"
+    type: "osn_create_channel_job"
+    component_name: "{{ channel_name }}"
+    component_ns: "{{ org.name | lower}}-net"
+    git_protocol: "{{ org.gitops.git_protocol }}"
+    git_url: "{{ org.gitops.git_url }}"
+    git_branch: "{{ org.gitops.branch }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
+    vault: "{{ org.vault }}"
+    k8s: "{{ org.k8s }}"
+    orderers_list: "{{ org.services.orderers }}"
+    first_orderer: "{{ org.services.orderers | first }}"
+    values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    add_orderer_value: "{{ add_orderer | default('false') }}"
+    external_url_suffix: "{{ org.external_url_suffix }}"
+  when: add_orderer is defined and add_orderer == 'true'
+
+# Git Push: Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ org.gitops }}"
+    msg: "[ci skip] Pushing channel-create files"
+
+# Check or wait for the create channel job to complete
+- name: "waiting for {{ org.name }} to create channel {{ channel_name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower}}-net"
+    component_name: "osn-createchannel-{{ channel_name }}"
+    kubernetes: "{{ org.k8s }}"

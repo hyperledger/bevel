@@ -1,0 +1,1726 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crypto-scripts-cm
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: crypto-scripts
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  generate-crypto-orderer.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    EXTERNAL_URL_SUFFIX="{{ .Values.org_data.external_url_suffix }}"
+    ALTERNATIVE_ORG_NAMES=("{{ .Values.org_data.external_url_suffix }}")
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    SUBJECT="C={{ .Values.org_data.component_country }},ST={{ .Values.org_data.component_state }},L={{ .Values.org_data.component_location }},O={{ .Values.metadata.org_name }}"
+    SUBJECT_PEER="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    CA_ADMIN_USER="${ORG_NAME}-admin"
+    CA_ADMIN_PASS="${ORG_NAME}-adminpw"
+    
+    ORG_ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+    ORG_ADMIN_PASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+    ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+
+    ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+
+    ## Enroll CA administrator for Org. This user will be used to create other identities
+    fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles  ${ROOT_TLS_CERT} --home ${CAS_FOLDER} --csr.names "${SUBJECT_PEER}"
+
+    ## Get the CA cert and store in Org MSP folder
+    fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
+    
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+        mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+    mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+    cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+
+    ## Register and enroll admin for Org and populate admincerts for MSP
+    fabric-ca-client register -d --id.name ${ORG_ADMIN_USER} --id.secret ${ORG_ADMIN_PASS} --id.type admin --csr.names "${SUBJECT_PEER}" --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.AffiliationMgr=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+
+    fabric-ca-client enroll -d -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/admin --csr.names "${SUBJECT_PEER}"
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir ${ORG_HOME}/admin/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_HOME}/admin/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+    cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+        mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+
+    # Get TLS cert for admin and copy to appropriate location
+    fabric-ca-client enroll -d --enrollment.profile tls -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} -M ${ORG_HOME}/admin/tls --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+    # Copy the TLS key and cert to the appropriate place
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls
+    cp ${ORG_HOME}/admin/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.key
+    cp ${ORG_HOME}/admin/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.crt
+    cp ${ORG_HOME}/admin/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/ca.crt
+
+    cd ${CURRENT_DIR}
+  
+  orderer-script.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    EXTERNAL_URL_SUFFIX="{{ .Values.org_data.external_url_suffix }}"
+    ALTERNATIVE_ORG_NAMES=("{{ .Values.org_data.external_url_suffix }}")
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    SUBJECT="C={{ .Values.org_data.component_country }},ST={{ .Values.org_data.component_state }},L={{ .Values.org_data.component_location }},O={{ .Values.metadata.org_name }}"
+    SUBJECT_PEER="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    CA_ADMIN_USER="${ORG_NAME}-admin"
+    CA_ADMIN_PASS="${ORG_NAME}-adminpw"
+    ORDERER_NAME=$1
+
+    ORG_ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+    ORG_ADMIN_PASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+    ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+
+    ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+
+    ## Register and enroll node and populate its MSP folder
+    PEER="${ORDERER_NAME}.${FULLY_QUALIFIED_ORG_NAME}"
+    CSR_HOSTS=${PEER}
+    for i in "${ALTERNATIVE_ORG_NAMES[@]}"
+    do
+      CSR_HOSTS="${CSR_HOSTS},${ORDERER_NAME}.${i}"
+    done
+    echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
+
+    # Register the peer
+    fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type orderer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+
+    # Enroll to get peers TLS cert
+    fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/orderers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT} --csr.names "${SUBJECT_PEER}"
+
+    # Copy the TLS key and cert to the appropriate place
+    mkdir -p ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls
+    cp ${ORG_HOME}/cas/orderers/tls/keystore/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/server.key
+    cp ${ORG_HOME}/cas/orderers/tls/signcerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/server.crt
+    cp ${ORG_HOME}/cas/orderers/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/tls/ca.crt
+
+    rm -rf ${ORG_HOME}/cas/orderers/tls
+    
+    # Enroll again to get the peer's enrollment certificate (default profile)
+    fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp --tls.certfiles ${ROOT_TLS_CERT} --csr.names "${SUBJECT_PEER}"
+
+
+    # Create the TLS CA directories of the MSP folder if they don't exist.
+    mkdir ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+    cp ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
+
+    # Copy the peer org's admin cert into target MSP directory
+    mkdir -p ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/admincerts
+
+    cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/admincerts
+
+    cd ${CURRENT_DIR}
+
+  generate-crypto-peer.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    ALTERNATIVE_ORG_NAMES=("{{ .Values.metadata.namespace }}.svc.cluster.local" "{{ .Values.metadata.org_name }}.net" "{{ .Values.metadata.namespace }}.{{ .Values.org_data.external_url_suffix }}")
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    EXTERNAL_URL_SUFFIX="{{ .Values.org_data.external_url_suffix }}"
+    AFFILIATION="{{ .Values.metadata.org_name }}"
+    SUBJECT="C={{ .Values.org_data.component_country }},ST={{ .Values.org_data.component_state }},L={{ .Values.org_data.component_location }},O={{ .Values.metadata.org_name }}"
+    SUBJECT_PEER="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    CA_ADMIN_USER="${ORG_NAME}-admin"
+    CA_ADMIN_PASS="${ORG_NAME}-adminpw"
+
+    ORG_ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+    ORG_ADMIN_PASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+
+    ROOT_TLS_CERT="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+
+    NO_OF_PEERS={{ .Values.peer_count }}
+
+    ## Enroll CA administrator for Org. This user will be used to create other identities
+    fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles  ${ROOT_TLS_CERT} --home ${CAS_FOLDER}  --csr.names "${SUBJECT_PEER}"
+
+    ## Get the CA cert and store in Org MSP folder
+    fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+    mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+    cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+
+    # Add affiliation for organisation
+    fabric-ca-client affiliation add ${AFFILIATION} -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+    ## Register and enroll admin for Org and populate admincerts for MSP
+    fabric-ca-client register -d --id.name ${ORG_ADMIN_USER} --id.secret ${ORG_ADMIN_PASS} --id.type admin --csr.names "${SUBJECT_PEER}" --id.affiliation ${AFFILIATION} --id.attrs "hf.Registrar.Roles=client,hf.Registrar.Attributes=*,hf.Revoker=true,hf.AffiliationMgr=true,hf.GenCRL=true,admin=true:ecert,abac.init=true:ecert" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+
+    fabric-ca-client enroll -d -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} --id.affiliation ${AFFILIATION} --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/admin  --csr.names "${SUBJECT_PEER}"
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir ${ORG_HOME}/admin/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_HOME}/admin/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+    cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+
+    # Get TLS cert for admin and copy to appropriate location
+    fabric-ca-client enroll -d --enrollment.profile tls -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} -M ${ORG_HOME}/admin/tls --tls.certfiles ${ROOT_TLS_CERT} --csr.names "${SUBJECT_PEER}"
+
+    # Copy the TLS key and cert to the appropriate place
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls
+    cp ${ORG_HOME}/admin/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.key
+    cp ${ORG_HOME}/admin/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.crt
+    cp ${ORG_HOME}/admin/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/ca.crt
+
+    ## Register and enroll peers and populate their MSP folder
+    COUNTER=0
+    while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
+      PEER="peer${COUNTER}.${FULLY_QUALIFIED_ORG_NAME}"
+      CSR_HOSTS=${PEER}
+      for i in "${ALTERNATIVE_ORG_NAMES[@]}"
+      do
+        CSR_HOSTS="${CSR_HOSTS},peer${COUNTER}.${i}"
+      done
+      echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
+      
+      # Register the peer
+      fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type peer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+
+      # Enroll to get peers TLS cert
+      fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/peers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Copy the TLS key and cert to the appropriate place
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls
+      cp ${ORG_HOME}/cas/peers/tls/keystore/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.key
+      cp ${ORG_HOME}/cas/peers/tls/signcerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.crt
+      cp ${ORG_HOME}/cas/peers/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/ca.crt
+      
+      rm -rf ${ORG_HOME}/cas/peers/tls
+      
+      # Enroll again to get the peer's enrollment certificate (default profile)
+      fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Create the TLS CA directories of the MSP folder if they don't exist.
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts	
+      
+      # Copy the peer org's admin cert into target MSP directory
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      fi
+      cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
+      cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      
+      let COUNTER=COUNTER+1
+    done
+
+    cd ${CURRENT_DIR}
+  
+  generate-crypto-add-peer.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    ALTERNATIVE_ORG_NAMES=("{{ .Values.metadata.namespace }}.svc.cluster.local" "{{ .Values.metadata.org_name }}.net" "{{ .Values.metadata.namespace }}.{{ .Values.org_data.external_url_suffix }}")
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    EXTERNAL_URL_SUFFIX="{{ .Values.org_data.external_url_suffix }}"
+    AFFILIATION="{{ .Values.metadata.org_name }}"
+    SUBJECT="C={{ .Values.org_data.component_country }},ST={{ .Values.org_data.component_state }},L={{ .Values.org_data.component_location }},O={{ .Values.metadata.org_name }}"
+    SUBJECT_PEER="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    CA_ADMIN_USER="${ORG_NAME}-admin"
+    CA_ADMIN_PASS="${ORG_NAME}-adminpw"
+
+    ORG_ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+    ORG_ADMIN_PASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+
+    ROOT_TLS_CERT="/crypto-config/peerOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+
+    NO_OF_PEERS={{ .Values.peer_count }}
+    NO_OF_NEW_PEERS={{ .Values.new_peer_count }}
+
+    ## Enroll CA administrator for Org. This user will be used to create other identities
+    fabric-ca-client enroll -d -u https://${CA_ADMIN_USER}:${CA_ADMIN_PASS}@${CA} --tls.certfiles  ${ROOT_TLS_CERT} --home ${CAS_FOLDER}  --csr.names "${SUBJECT_PEER}"
+
+    ## Get the CA cert and store in Org MSP folder
+    fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+    mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+    cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
+
+    ## Enroll admin for Org and populate admincerts for MSP
+    fabric-ca-client enroll -d -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} --id.affiliation ${AFFILIATION} --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/admin  --csr.names "${SUBJECT_PEER}"
+
+    # Copy existing org certs
+    mkdir -p ${ORG_CYPTO_FOLDER}/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_HOME}/admin/msp/admincerts
+    cp ${ORG_HOME}/admin/msp/signcerts/* ${ORG_HOME}/admin/msp/admincerts/${ORG_ADMIN_USER}-cert.pem
+
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+    cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
+
+    if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+    fi
+
+    # Get TLS cert for admin and copy to appropriate location
+    fabric-ca-client enroll -d --enrollment.profile tls -u https://${ORG_ADMIN_USER}:${ORG_ADMIN_PASS}@${CA} -M ${ORG_HOME}/admin/tls --tls.certfiles ${ROOT_TLS_CERT} --csr.names "${SUBJECT_PEER}"
+
+    # Copy the TLS key and cert to the appropriate place
+    mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls
+    cp ${ORG_HOME}/admin/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.key
+    cp ${ORG_HOME}/admin/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/client.crt
+    cp ${ORG_HOME}/admin/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/tls/ca.crt
+
+    ## Register and enroll peers and populate their MSP folder
+    COUNTER=`expr ${NO_OF_PEERS} - ${NO_OF_NEW_PEERS}`
+    while [  ${COUNTER} -lt ${NO_OF_PEERS} ]; do
+      PEER="peer${COUNTER}.${FULLY_QUALIFIED_ORG_NAME}"
+      CSR_HOSTS=${PEER}
+      for i in "${ALTERNATIVE_ORG_NAMES[@]}"
+      do
+        CSR_HOSTS="${CSR_HOSTS},peer${COUNTER}.${i}"
+      done
+      echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
+
+      # Register the peer
+      fabric-ca-client register -d --id.name ${PEER} --id.secret ${PEER}-pw --id.type peer --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER} -u https://${CA}
+
+      # Enroll to get peers TLS cert
+      fabric-ca-client enroll -d --enrollment.profile tls -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_HOME}/cas/peers/tls --csr.hosts "${CSR_HOSTS}" --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Copy the TLS key and cert to the appropriate place
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls
+      cp ${ORG_HOME}/cas/peers/tls/keystore/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.key	
+      cp ${ORG_HOME}/cas/peers/tls/signcerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/server.crt	
+      cp ${ORG_HOME}/cas/peers/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/tls/ca.crt
+      
+      rm -rf ${ORG_HOME}/cas/peers/tls
+      
+      # Enroll again to get the peer's enrollment certificate (default profile)
+      fabric-ca-client enroll -d -u https://${PEER}:${PEER}-pw@${CA} -M ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp --tls.certfiles ${ROOT_TLS_CERT}  --csr.names "${SUBJECT_PEER}"
+
+      # Create the TLS CA directories of the MSP folder if they don't exist.
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts	
+      
+      # Copy the peer org's admin cert into target MSP directory
+      mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      fi
+      cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
+      cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
+      
+      let COUNTER=COUNTER+1
+    done
+
+    cd ${CURRENT_DIR}
+
+  generate-user-crypto.sh: |-
+    #!/bin/bash
+
+    set -x
+
+    CURRENT_DIR=${PWD}
+    # Input parameters
+    FULLY_QUALIFIED_ORG_NAME="{{ .Values.metadata.namespace }}"
+    ORG_NAME="{{ .Values.metadata.org_name }}"
+    TYPE_FOLDER=$1s
+    USER_IDENTITIES=$2
+    AFFILIATION="{{ .Values.metadata.org_name }}"
+    SUBJECT="{{ .Values.org_data.component_subject }}"
+    CA="{{ .Values.org_data.ca_url }}"
+    if [ "$1" != "peer" ]; then
+      ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
+      ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+    else
+      ORG_CYPTO_FOLDER="/crypto-config/$1Organizations/${FULLY_QUALIFIED_ORG_NAME}"
+      ROOT_TLS_CERT="/crypto-config/$1Organizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
+    fi
+    CAS_FOLDER="${HOME}/ca-tools/cas/ca-${ORG_NAME}"
+    ORG_HOME="${HOME}/ca-tools/${ORG_NAME}"
+ 
+    ## Register and enroll users
+    CUR_USER=0
+    TOTAL_USERS=$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '. | length')
+    while [ ${CUR_USER} -lt ${TOTAL_USERS} ]; do
+      
+      # Get the user identity
+      USER=$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].identity' | sed -e 's/"//g')
+      ORG_USER="${USER}@${FULLY_QUALIFIED_ORG_NAME}"
+      ORG_USERPASS="${USER}@${FULLY_QUALIFIED_ORG_NAME}-pw"
+      ADMIN_USER="Admin@${FULLY_QUALIFIED_ORG_NAME}"
+      ADMIN_USERPASS="Admin@${FULLY_QUALIFIED_ORG_NAME}-pw"
+
+      # Creating current user's current attrs string to pass in as argument while registering/updating identity
+      CUR_ATTRS=0
+      ATTRS="hf.Revoker=true"
+      TOTAL_ATTRS=$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].attributes | length')
+      while [ ${CUR_ATTRS} -lt ${TOTAL_ATTRS} ]; do
+        ATTRS=${ATTRS}","$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].attributes['${CUR_ATTRS}'].key' | sed -e 's/"//g')"="$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].attributes['${CUR_ATTRS}'].value' | sed -e 's/"//g')":ecert"
+        CUR_ATTRS=$((CUR_ATTRS + 1))
+      done
+
+      # Checking if the user msp folder exists in the CA server	
+      if [ ! -d "${ORG_HOME}/client${USER}" ]; then # if user certificates do not exist
+
+        ## Register and enroll User for Org
+        if [ "$1" = "peer" ]; then
+          fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.affiliation ${AFFILIATION} --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+        else
+          fabric-ca-client register -d --id.name ${ORG_USER} --id.secret ${ORG_USERPASS} --id.type client --csr.names "${SUBJECT}" --id.attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+        fi
+
+        # Enroll the registered user to generate enrollment certificate
+        fabric-ca-client enroll -d -u https://${ORG_USER}:${ORG_USERPASS}@${CA} --csr.names "${SUBJECT}" --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/client${USER}
+
+        mkdir ${ORG_HOME}/client${USER}/msp/admincerts
+        cp ${ORG_HOME}/client${USER}/msp/signcerts/* ${ORG_HOME}/client${USER}/msp/admincerts/${ORG_USER}-cert.pem
+
+        mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_USER}
+        cp -R ${ORG_HOME}/client${USER}/msp ${ORG_CYPTO_FOLDER}/users/${ORG_USER}
+
+        if [ "{{ .Values.metadata.proxy }}" != "none" ]; then
+          mv ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+        fi
+        mkdir ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/tlscacerts
+        cp ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/tlscacerts
+
+        # Get TLS cert for user and copy to appropriate location
+        fabric-ca-client enroll -d --enrollment.profile tls -u https://${ORG_USER}:${ORG_USERPASS}@${CA} -M ${ORG_HOME}/client${USER}/tls --tls.certfiles ${ROOT_TLS_CERT}
+
+        # Copy the TLS key and cert to the appropriate place
+        mkdir -p ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls
+        cp ${ORG_HOME}/client${USER}/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/client.key
+        cp ${ORG_HOME}/client${USER}/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/client.crt
+        cp ${ORG_HOME}/client${USER}/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/ca.crt
+      
+      else # If User certificate exists
+        
+        # Current datetime + 5 minutes | e.g. 20210302182036
+        CUR_DATETIME=$(date -d "$(echo $(date)' + 5 minutes')" +'%Y%m%d%H%M%S')
+        
+        # Extracting "notAfter" datetime from the existing user certificate | e.g. 20210302182036
+        CERT_DATETIME=$(date -d "$(echo $(openssl x509 -noout -enddate < ${ORG_HOME}/client${USER}/msp/signcerts/cert.pem) | sed 's/notAfter=//g')" +'%Y%m%d%H%M%S')
+
+        # Extracting the list of custom attrs from existing user certificate
+        ATTRS_CERT="$(openssl x509 -text -noout -certopt no_subject,no_header,no_version,no_serial,no_signame,no_validity,no_issuer,no_pubkey,no_sigdump,no_aux < ${ORG_HOME}/client${USER}/msp/signcerts/cert.pem )"
+        ATTRS_CERT="${ATTRS_CERT##*: }" # extracing the "attrs" JSON string
+        
+        # Check if the current list of attrs key and value pairs match with existing user certificate's attrs key and value pairs
+        CUR_ATTRS=0
+        MATCH_FLAG="true"
+        while [ ${CUR_ATTRS} -lt ${TOTAL_ATTRS} ]; do
+          CUR_KEY=$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].attributes['${CUR_ATTRS}'].key' | sed -e 's/"//g')
+          if [[ "$(echo ${ATTRS_CERT} | jq .attrs.${CUR_KEY} )" == "null" ]]; then
+            MATCH_FLAG="false"
+          fi
+          CUR_ATTRS=$((CUR_ATTRS + 1))
+        done
+
+        # In case the certificate is expired or attrs key and value pairs do not match completly, generate a new certificate for the user
+        if [ "${CUR_DATETIME}" -ge "$CERT_DATETIME" ] ||  [ "$MATCH_FLAG" == "false" ]; then
+
+          # Checking the validity of each attrs key and value pair, such that only the current list of attrs reflect in the new certificate
+          # whereas the other non-required attrs key and value pairs do not reflect on the new certificate
+          TOTAL_CERT_ATTRS=$(echo ${ATTRS_CERT} | jq '.attrs | length' )
+          CUR_CERT_ATTRS=0
+          while [ ${CUR_CERT_ATTRS} -lt ${TOTAL_CERT_ATTRS} ]; do
+            
+            # Since Fabric-CA puts three default key-value pairs, this check is to avoid them to enter the processing
+            if [ "$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].key' | sed -e 's/"//g')" != "hf.Affiliation" ] && [ "$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].key' | sed -e 's/"//g')" != "hf.Type" ] && [ "$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].key' | sed -e 's/"//g')" != "hf.EnrollmentID" ]; then
+              
+              # For each attrs key in the existing certificate checking if they exist in the current attrs list
+              KEY_PRESENT="false"
+              CUR_ATTRS=0
+              while [ ${CUR_ATTRS} -lt ${TOTAL_ATTRS} ]; do
+                if [ "$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].key' | sed -e 's/"//g')" == "$(echo ${USER_IDENTITIES} | base64 -d | sed -e 's/None/null/g' | tr "'" '"' | jq '.['${CUR_USER}'].attributes['${CUR_ATTRS}'].key' | sed -e 's/"//g')" ]; then
+                  KEY_PRESENT="true"
+                fi
+                CUR_ATTRS=$((CUR_ATTRS + 1))
+              done
+
+              # If the key is not present then, add it to the ${ATTRS} string without the 'ecert' flag, such that is doesnot appear on the new certificate
+              if [ "${KEY_PRESENT}" == "false" ]; then
+                ATTRS=${ATTRS}","$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].key' | sed -e 's/"//g')"="$(echo ${ATTRS_CERT} | jq '.attrs | to_entries | .['${CUR_CERT_ATTRS}'].value' | sed -e 's/"//g')
+              fi
+            
+            fi
+            CUR_CERT_ATTRS=$((CUR_CERT_ATTRS + 1))
+          done
+          
+          # Updating the identity with current attrs
+          fabric-ca-client identity modify ${ORG_USER} -d --type user --affiliation ${AFFILIATION} --attrs "${ATTRS}" --tls.certfiles ${ROOT_TLS_CERT} --home ${CAS_FOLDER}
+
+          # Generate a new enrollment certificate
+          fabric-ca-client enroll -d -u https://${ORG_USER}:${ORG_USERPASS}@${CA} --csr.names "${SUBJECT}" --tls.certfiles ${ROOT_TLS_CERT} --home ${ORG_HOME}/client${USER}
+          
+          cp ${ORG_HOME}/client${USER}/msp/signcerts/* ${ORG_HOME}/client${USER}/msp/admincerts/${ORG_USER}-cert.pem
+          cp -R ${ORG_HOME}/client${USER}/msp ${ORG_CYPTO_FOLDER}/users/${ORG_USER}
+
+          # Get TLS cert for user and copy to appropriate location
+          fabric-ca-client enroll -d --enrollment.profile tls -u https://${ORG_USER}:${ORG_USERPASS}@${CA} -M ${ORG_HOME}/client${USER}/tls --tls.certfiles ${ROOT_TLS_CERT}
+
+          # Copy the TLS key and cert to the appropriate place
+          cp ${ORG_HOME}/client${USER}/tls/keystore/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/client.key
+          cp ${ORG_HOME}/client${USER}/tls/signcerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/client.crt
+          cp ${ORG_HOME}/client${USER}/tls/tlscacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/tls/ca.crt
+        fi
+      fi
+
+      CUR_USER=$((CUR_USER + 1))
+    done
+    cd ${CURRENT_DIR}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orderer-script-store-vault
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: orderer-script-vault
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  store-vault-orderer.sh: |-
+    #!/bin/bash
+
+    formatCertificate () {
+      NAME="${1##*/}"
+      while IFS= read -r line
+      do
+        echo "$line\n"
+      done < ${1} > ${2}/${NAME}.txt
+    }
+
+    validateVaultResponse () {
+      if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+        echo "ERROR: unable to retrieve ${1}: ${2}"
+        exit 1
+      fi
+      if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+      then
+        http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+        --header "X-Vault-Token: ${VAULT_TOKEN}" \
+        ${VAULT_ADDR}/v1/${1})
+        curl_response=$?
+        if test "$http_code" != "200" ; then
+            echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+            if test "$curl_response" != "0"; then
+              echo "Error: curl command failed with error code - $curl_response"
+              exit 1
+            fi
+        fi
+      fi
+    }
+
+    echo "Puting secrets/certificates from Vault server"
+    KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+    validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+    FORMAT_CERTIFICATE_PATH="/formatcertificate"
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/tls
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp
+
+    ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+
+    if [ -e /certcheck/present_tls.txt ]; then ADMIN_TLS_CERT_WRITTEN=true; else ADMIN_TLS_CERT_WRITTEN=false; fi
+    if [ -e /certcheck/present_msp.txt ]; then ADMIN_MSP_CERT_WRITTEN=true; else ADMIN_MSP_CERT_WRITTEN=false; fi
+    COUNTER=1
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
+
+      if [ -e /certcheck/absent_tls.txt ] && [ "$ADMIN_TLS_CERT_WRITTEN" =  "false" ]
+        then
+          
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+          CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
+          CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
+          
+          echo "
+            {
+              \"data\": 
+                {
+                  \"ca.crt\": \"${CA_CRT}\",
+                  \"client.crt\": \"${CLIENT_CRT}\",
+                  \"client.key\": \"${CLIENT_KEY}\"
+                }  
+            }" > payload.json
+          
+          # This command copy organization level tls certificates for orgs
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls
+
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]' 2>&1)
+          TLS_CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]' 2>&1)
+
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_CLIENT_CERT" "$TLS_CLIENT_KEY")
+
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ] 
+            then
+              ADMIN_TLS_CERT_WRITTEN=false
+              break
+            else
+              ADMIN_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+      fi
+
+      if [ -e /certcheck/absent_msp.txt ] && [ "$ADMIN_MSP_CERT_WRITTEN" =  "false" ]
+        then  
+          # This commands put the certificates with correct format for the curl command
+          SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+          ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+          KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
+          SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+
+          if [ "$PROXY" != "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${CA_CRT}\"
+                    }  
+                }" > payload.json
+          fi;
+
+          if [ "$PROXY" = "none" ] ; then
+
+              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${CA_CRT}\"
+                    }  
+                }" > payload.json
+          fi;
+
+          # This command copy organization level msp certificates for orgs
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp
+
+          # Check msp certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp | jq -r 'if .errors then . else . end')
+          MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+          MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+          MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+          MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+      
+          msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+          for field in "${msp_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              ADMIN_MSP_CERT_WRITTEN=false
+              break
+            else
+              ADMIN_MSP_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+      fi
+
+      if [ "$ADMIN_TLS_CERT_WRITTEN" = "true" ] && [ "$ADMIN_MSP_CERT_WRITTEN" = "true" ]
+      then
+        echo "Admin certificates are successfully stored in vault"
+        break
+      else
+        echo "Admin certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
+
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, Admin certificates have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
+    fi;
+
+    ORG_CYPTO_ORDERER_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/orderers"
+    list=$(echo "$ORDERERS_NAMES" | tr "-" "\n")         
+    for ORDERER_NAME in $list
+    do
+      COUNTER=1
+      if [ -e /certcheck/present_tls_${ORDERER_NAME}.txt ]; then ORDERER_TLS_CERT_WRITTEN=true; else ORDERER_TLS_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_msp_${ORDERER_NAME}.txt ]; then ORDERER_MSP_CERT_WRITTEN=true; else ORDERER_MSP_CERT_WRITTEN=false; fi
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if [ -e /certcheck/absent_tls_${ORDERER_NAME}.txt ] && [ "$ORDERER_TLS_CERT_WRITTEN" =  "false" ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls"
+
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/ca.crt.txt)
+          SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.crt.txt)
+          SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/tls/server.key.txt)
+
+          echo "
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"server.crt\": \"${SERVER_CRT}\",
+                \"server.key\": \"${SERVER_KEY}\"
+              }  
+          }" > payload.json
+
+          # This command copy the crypto material for orderer (tls)
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls
+ 
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]' 2>&1)
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]' 2>&1)
+
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_SERVER_CERT" "$TLS_SERVER_KEY")
+
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              ORDERER_TLS_CERT_WRITTEN=false
+              break
+            else
+              ORDERER_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if [ -e /certcheck/absent_msp_${ORDERER_NAME}.txt ] && [ "$ORDERER_MSP_CERT_WRITTEN" =  "false" ]; then    
+            # This commands put the certificates with correct format for the curl command
+            SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+
+            formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+            formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+            formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp"
+
+            ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+            KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/*_sk.txt)
+            SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cert.pem.txt)
+
+            if [ "$PROXY" != "none" ] ; then
+
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${TLSCERTS}\"
+                    }  
+                }" > payload.json
+
+            fi;
+
+            if [ "$PROXY" = "none" ] ; then
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"admincerts\": \"${ADMINCERTS}\",
+                      \"cacerts\": \"${CACERTS}\",
+                      \"keystore\": \"${KEYSTORE}\",
+                      \"signcerts\": \"${SIGNCERTS}\",
+                      \"tlscacerts\": \"${TLSCERTS}\"
+                    }  
+                }" > payload.json
+
+            fi;
+
+            # This command copy the msp certificates to the Vault
+            curl \
+              -H "X-Vault-Token: ${VAULT_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp
+
+            # Check msp certificates
+            LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_ORDERER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+            MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+            MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+            MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+            MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+            MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+        
+            msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+            for field in "${msp_certificate_fields[@]}"
+            do
+              if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+              then
+                ORDERER_MSP_CERT_WRITTEN=false
+                break
+              else
+                ORDERER_MSP_CERT_WRITTEN=true
+              fi
+            done
+            rm payload.json
+        fi;
+
+        if [ "$ORDERER_TLS_CERT_WRITTEN" = "true" ] && [ "$ORDERER_MSP_CERT_WRITTEN" = "true" ]
+        then
+          echo "${ORDERER_NAME} certificates are successfully stored in vault"
+          break
+        else
+          echo "${ORDERER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done
+      
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, Orderers certificates have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
+      fi;
+    done
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: peer-script-store-vault
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: peer-script-vault
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  store-vault-peer.sh: |-
+    #!/bin/bash
+
+    formatCertificate () {
+      NAME="${1##*/}"
+      while IFS= read -r line
+      do
+        echo "$line\n"
+      done < ${1} > ${2}/${NAME}.txt
+    }
+
+    validateVaultResponse () {
+      if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+        echo "ERROR: unable to retrieve ${1}: ${2}"
+        exit 1
+      fi
+      if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+      then
+        http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+        --header "X-Vault-Token: ${VAULT_TOKEN}" \
+        ${VAULT_ADDR}/v1/${1})
+        curl_response=$?
+        if test "$http_code" != "200" ; then
+            echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+            if test "$curl_response" != "0"; then
+              echo "Error: curl command failed with error code - $curl_response"
+              exit 1
+            fi
+        fi
+      fi
+    }
+
+    echo "Puting secrets/certificates from Vault server"
+    KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+    validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+    
+    FORMAT_CERTIFICATE_PATH="/formatcertificate"
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/tls
+    mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp
+
+    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+
+    if [ -e /certcheck/present_tls.txt ]; then ADMIN_TLS_CERT_WRITTEN=true; else ADMIN_TLS_CERT_WRITTEN=false; fi
+    if [ -e /certcheck/present_msp.txt ]; then ADMIN_MSP_CERT_WRITTEN=true; else ADMIN_MSP_CERT_WRITTEN=false; fi
+    COUNTER=1
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
+
+      if ([ -e /certcheck/absent_tls.txt ] && [ "$ADMIN_TLS_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+        # This commands put the certificates with correct format for the curl command
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+        CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.crt.txt)
+        CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/client.key.txt)
+        
+        echo "
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"client.crt\": \"${CLIENT_CRT}\",
+                \"client.key\": \"${CLIENT_KEY}\"
+              }  
+          }" > payload.json
+        
+        # This command copy organization level tls certificates for orgs
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls
+        
+        # Check tls certificates
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/tls | jq -r 'if .errors then . else . end')
+        TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+        TLS_CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]' 2>&1)
+        TLS_CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]' 2>&1)
+
+        tls_certificate_fields=("$TLS_CA_CERT" "$TLS_CLIENT_CERT" "$TLS_CLIENT_KEY")
+
+        for field in "${tls_certificate_fields[@]}"
+        do
+          if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+          then
+            ADMIN_TLS_CERT_WRITTEN=false
+            break
+          else
+            ADMIN_TLS_CERT_WRITTEN=true
+          fi
+        done
+        rm payload.json
+      fi;
+    
+      if ([ -e /certcheck/absent_msp.txt ] && [ "$ADMIN_MSP_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+        # This commands put the certificates with correct format for the curl command
+        SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+
+        formatCertificate "${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+        formatCertificate "${ORG_CYPTO_FOLDER}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/tls"
+
+        ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+        KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/*_sk.txt)
+        SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/cert.pem.txt)
+        CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/tls/ca.crt.txt)
+
+        if [ "$PROXY" != "none" ] ; then
+
+          formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+          CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+          
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${CA_CRT}\"
+                  }  
+              }" > payload.json
+
+        fi;
+
+        if [ "$PROXY" = "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${CA_CRT}\"
+                  }  
+              }" > payload.json
+        fi;
+
+        # This command copy organization level msp certificates for orgs
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp
+        
+        # Check msp certificates
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/admin/msp | jq -r 'if .errors then . else . end')
+        MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+        MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+        MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+        MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+        MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+    
+        msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+        for field in "${msp_certificate_fields[@]}"
+        do
+          if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+          then
+            ADMIN_MSP_CERT_WRITTEN=false
+            break
+          else
+            ADMIN_MSP_CERT_WRITTEN=true
+          fi
+        done
+
+        rm payload.json
+      fi;
+
+      if [ "$ADMIN_TLS_CERT_WRITTEN" = "true" ] && [ "$ADMIN_MSP_CERT_WRITTEN" = "true" ]
+      then
+        echo "Admin certificates are successfully stored in vault"
+        break
+      else
+        echo "Admin certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
+
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, Admin certificates have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
+    fi;
+
+    ORG_CYPTO_PEER_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/peers"
+
+    list=$(echo "$PEERS_NAMES" | tr "-" "\n")         
+    for PEER in $list
+    do
+      SAVE=false
+      STATUS="${PEER##*,}"
+      if [ "$STATUS" = "new" ] || [ "$STATUS" = "" ]; then
+        PEER_NAME="${PEER%%,*}"
+        SAVE=true
+      else 
+        continue
+      fi;
+
+      if [ -e /certcheck/present_tls_${PEER_NAME}.txt ]; then PEER_TLS_CERT_WRITTEN=true; else PEER_TLS_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_msp_${PEER_NAME}.txt ]; then PEER_MSP_CERT_WRITTEN=true; else PEER_MSP_CERT_WRITTEN=false; fi
+
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if ([ -e /certcheck/absent_tls_${PEER_NAME}.txt ] && [ "$PEER_TLS_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.crt" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/tls/server.key" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls"
+
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/ca.crt.txt)
+          SERVER_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.crt.txt)
+          SERVER_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/tls/server.key.txt)
+
+          echo "
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"server.crt\": \"${SERVER_CRT}\",
+                \"server.key\": \"${SERVER_KEY}\"
+              }  
+          }" > payload.json
+
+          # This command copy the crypto material for peers (tls)
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls
+          
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_SERVER_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.crt"]' 2>&1)
+          TLS_SERVER_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["server.key"]' 2>&1)
+
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_SERVER_CERT" "$TLS_SERVER_KEY")
+
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              PEER_TLS_CERT_WRITTEN=false
+              break
+            else
+              PEER_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if ([ -e /certcheck/absent_msp_${PEER_NAME}.txt ] && [ "$PEER_MSP_CERT_WRITTEN" =  "false" ] && [ "$SAVE" == 'true' ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+          formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+          formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp"
+
+          ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/Admin@${COMPONENT_NAME}-cert.pem.txt)
+          KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/*_sk.txt)
+          SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cert.pem.txt)
+
+          if [ "$PROXY" != "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
+                  }  
+              }" > payload.json
+
+          fi;
+
+          if [ "$PROXY" = "none" ] ; then
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
+                  }  
+              }" > payload.json
+
+          fi;
+
+          # This command copy the msp certificates to the Vault
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp
+
+          # Check msp certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER}/${PEER_NAME}.${COMPONENT_NAME}/msp | jq -r 'if .errors then . else . end')
+          MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+          MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+          MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+          MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+      
+          msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+          for field in "${msp_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              PEER_MSP_CERT_WRITTEN=false
+              break
+            else
+              PEER_MSP_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if [ "$PEER_TLS_CERT_WRITTEN" = "true" ] && [ "$PEER_MSP_CERT_WRITTEN" = "true" ]
+        then
+          echo "${PEER_NAME} certificates are successfully stored in vault"
+          break
+        else
+          echo "${PEER_NAME} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done
+
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, peers certificates have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
+      fi;
+
+    done
+
+    COUNTER=1
+    if [ -e /certcheck/present_config_file.txt ]; then CONFIG_FILE_WRITTEN=true; else CONFIG_FILE_WRITTEN=false; fi
+    COUCHDB_WRITTEN=false
+    while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+    do
+      if [ -e /certcheck/absent_config_file.txt ] && [ "$CONFIG_FILE_WRITTEN" =  "false" ]; then
+
+        # This commands put the config file with correct format for the curl command
+        mkdir -p ${FORMAT_CERTIFICATE_PATH}/msp_config_file
+        formatCertificate "/crypto-config/peerOrganizations/${COMPONENT_NAME}/msp/config.yaml" "${FORMAT_CERTIFICATE_PATH}/msp_config_file"
+        MSP_CONFIG_FILE=$(cat ${FORMAT_CERTIFICATE_PATH}/msp_config_file/config.yaml.txt)
+
+        echo "
+            {
+              \"data\": 
+                {
+                  \"configfile\": \"${MSP_CONFIG_FILE}\"
+                }  
+            }" > payload.json
+        
+        # This command write the msp config file to Vault
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d @payload.json \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE}
+
+        # Check msp config file
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_CONFIG_FILE} | jq -r 'if .errors then . else . end')
+        CONFIG_FILE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["configfile"]' 2>&1)
+    
+        if [ "$CONFIG_FILE" = "null"  ] || [[ "$CONFIG_FILE" = "parse error"* ]] || [ "$CONFIG_FILE" = "" ]
+        then
+          CONFIG_FILE_WRITTEN=false
+        else
+          CONFIG_FILE_WRITTEN=true
+        fi
+        rm payload.json
+      fi;
+  
+      if [ "$COUCHDB_WRITTEN" =  "false" ]; then
+
+        # This command writes the couchdb credentials for each organization to the vault
+        curl \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -X POST \
+          -d '{ "data": {"user":"admin123"}}' \
+          ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB}
+
+        # Check couchdb credentials
+        LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_COUCHDB} | jq -r 'if .errors then . else . end')
+        USER=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["user"]' 2>&1)
+            
+        if [ "$USER" = "null"  ] || [[ "$USER" = "parse error"* ]] || [ "$USER" = "" ]
+        then
+          COUCHDB_WRITTEN=false
+        else
+          COUCHDB_WRITTEN=true
+        fi
+      fi;
+
+      if [ "$CONFIG_FILE_WRITTEN" = "true" ] && [ "$COUCHDB_WRITTEN" = "true" ]
+      then
+        echo "MSP config file and couchdb credentials are successfully stored in vault"
+        break
+      else
+        echo "MSP config file or couchdb credentials are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+        sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+        COUNTER=`expr "$COUNTER" + 1`
+      fi
+    done
+
+    if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+    then
+      echo "Retry attempted `expr $COUNTER - 1` times, cryto materials have not been saved."
+      touch ${MOUNT_PATH}/certs_not_found.txt
+      exit 1
+    fi;
+
+    list=$(echo "$ORDERERS_NAMES" | tr "-" "\n")         
+    for ORDERER in $list
+    do
+      COUNTER=1
+      if [ -e /certcheck/present_orderer_tls_cert.txt ]; then ORDERER_TLS_WRITTEN=true; else ORDERER_TLS_WRITTEN=false; fi
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if [ -e /certcheck/absent_orderer_tls_cert.txt ] && [ "$ORDERER_TLS_WRITTEN" =  "false" ]; then
+          cat /tlscerts/${ORDERER}.crt | base64 -d > ${ORDERER}.formatted
+          # formatting is needed because bas64 encoding removed the newlines, so they need to be added again
+          while read line || [ -n "$line" ];
+          do 
+            echo "$line\n"; 
+          done < ${ORDERER}.formatted > ${ORDERER}.final
+          ORDERER_TLS=$(cat ${ORDERER}.final)
+          echo "
+            {
+              \"data\": 
+                {
+                  \"ca.crt\": \"${ORDERER_TLS}\"
+                }  
+            }" > payload.json
+
+          # This command writes organization level certificates for orderers to vault
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS}
+          
+          # Check orderer certs
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_PEER_ORDERER_TLS} | jq -r 'if .errors then . else . end')
+          CA_CRT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+              
+          if [ "$CA_CRT" = "null"  ] || [[ "$CA_CRT" = "parse error"* ]] || [ "$CA_CRT" = "" ]
+          then
+            ORDERER_TLS_WRITTEN=false
+          else
+            ORDERER_TLS_WRITTEN=true
+          fi
+          rm payload.json
+        fi
+
+        if [ "$ORDERER_TLS_WRITTEN" = "true" ]
+        then
+          echo "${ORDERER} tls certificate are successfully stored in vault"
+          break
+        else
+          echo "${ORDERER} tls certificate are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done
+
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ] 
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, orderer tls have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
+      fi;
+    done
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: users-script-store-vault
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: users-script-vault
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  store-vault-users.sh: |-
+    #!/bin/bash
+
+    formatCertificate () {
+      NAME="${1##*/}"
+      while IFS= read -r line
+      do
+        echo "$line\n"
+      done < ${1} > ${2}/${NAME}.txt
+    }
+
+    validateVaultResponse () {
+      if echo ${2} | grep "errors" || [ "${2}" = "" ]; then
+        echo "ERROR: unable to retrieve ${1}: ${2}"
+        exit 1
+      fi
+      if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+      then
+        http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+        --header "X-Vault-Token: ${VAULT_TOKEN}" \
+        ${VAULT_ADDR}/v1/${1})
+        curl_response=$?
+        if test "$http_code" != "200" ; then
+            echo "Http response code from Vault - $http_code and curl_response - $curl_response"
+            if test "$curl_response" != "0"; then
+              echo "Error: curl command failed with error code - $curl_response"
+              exit 1
+            fi
+        fi
+      fi
+    }
+
+    echo "Puting secrets/certificates from Vault server"
+    KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+    validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+    
+    FORMAT_CERTIFICATE_PATH="/formatcertificate"
+    ORG_CYPTO_USERS_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/users"
+  
+    list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")         
+    for USER in $list
+    do
+      if [ -e /certcheck/present_tls_${USER}.txt ]; then USER_TLS_CERT_WRITTEN=true; else USER_TLS_CERT_WRITTEN=false; fi
+      if [ -e /certcheck/present_msp_${USER}.txt ]; then USER_MSP_CERT_WRITTEN=true; else USER_MSP_CERT_WRITTEN=false; fi
+    
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${USER}/tls
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${USER}/msp
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts
+      mkdir -p ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts
+      COUNTER=1
+
+      while [ "$COUNTER" -le {{ $.Values.healthcheck.retries }} ]
+      do
+        if ([ -e /certcheck/absent_tls_${USER}.txt ] && [ "$USER_TLS_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/tls/ca.crt" "${FORMAT_CERTIFICATE_PATH}/${USER}/tls"
+          formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/tls/client.crt" "${FORMAT_CERTIFICATE_PATH}/${USER}/tls"
+          formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/tls/client.key" "${FORMAT_CERTIFICATE_PATH}/${USER}/tls"
+
+          CA_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/tls/ca.crt.txt)
+          CLIENT_CRT=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/tls/client.crt.txt)
+          CLIENT_KEY=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/tls/client.key.txt)
+
+          echo "
+          {
+            \"data\": 
+              {
+                \"ca.crt\": \"${CA_CRT}\",
+                \"client.crt\": \"${CLIENT_CRT}\",
+                \"client.key\": \"${CLIENT_KEY}\"
+              }  
+          }" > payload.json
+
+          # This command copy the crypto material for users (tls)
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${USER}/tls
+          
+          # Check tls certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${USER}/tls | jq -r 'if .errors then . else . end')
+          TLS_CA_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["ca.crt"]' 2>&1)
+          TLS_CLIENT_CERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.crt"]' 2>&1)
+          TLS_CLIENT_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["client.key"]' 2>&1)
+
+          tls_certificate_fields=("$TLS_CA_CERT" "$TLS_CLIENT_CERT" "$TLS_CLIENT_KEY")
+
+          for field in "${tls_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              USER_TLS_CERT_WRITTEN=false
+              break
+            else
+              USER_TLS_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json    
+        fi;
+
+        if ([ -e /certcheck/absent_msp_${USER}.txt ] && [ "$USER_MSP_CERT_WRITTEN" =  "false" ]) || [ "$REFRESH_CERTS" == 'true' ]; then
+
+          # This commands put the certificates with correct format for the curl command
+          SK_NAME=$(find ${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+
+          formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/admincerts/${USER}@${COMPONENT_NAME}-cert.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp"
+          formatCertificate "${SK_NAME}" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp"
+          formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/signcerts/cert.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp"
+
+          ADMINCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/${USER}@${COMPONENT_NAME}-cert.pem.txt)
+          KEYSTORE=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/*_sk.txt)
+          SIGNCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cert.pem.txt)
+  
+          if [ "$PROXY" != "none" ] ; then
+
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            # En el rol lo copia directamente del tls
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
+                  }  
+              }" > payload.json
+
+          fi;
+            
+          if [ "$PROXY" = "none" ] ; then
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/ca-${COMPONENT_NAME}-7054.pem.txt)
+
+            echo "
+              {
+                \"data\": 
+                  {
+                    \"admincerts\": \"${ADMINCERTS}\",
+                    \"cacerts\": \"${CACERTS}\",
+                    \"keystore\": \"${KEYSTORE}\",
+                    \"signcerts\": \"${SIGNCERTS}\",
+                    \"tlscacerts\": \"${TLSCERTS}\"
+                  }  
+              }" > payload.json
+
+          fi;
+
+          # This command copy the msp certificates to the Vault
+          curl \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d @payload.json \
+            ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${USER}/msp
+
+          # Check msp certificates
+          LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${VAULT_SECRET_USERS}/${USER}/msp | jq -r 'if .errors then . else . end')
+          MSP_ADMINCERT=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["admincerts"]' 2>&1)
+          MSP_CACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["cacerts"]' 2>&1)
+          MSP_KEYSTORE=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["keystore"]' 2>&1)
+          MSP_SIGNCERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["signcerts"]' 2>&1)
+          MSP_TLSCACERTS=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["tlscacerts"]' 2>&1)
+      
+          msp_certificate_fields=("$MSP_ADMINCERT" "$MSP_CACERTS" "$MSP_KEYSTORE" "$MSP_SIGNCERTS" "$MSP_TLSCACERTS")
+
+          for field in "${msp_certificate_fields[@]}"
+          do
+            if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+            then
+              USER_MSP_CERT_WRITTEN=false
+              break
+            else
+              USER_MSP_CERT_WRITTEN=true
+            fi
+          done
+          rm payload.json
+        fi;
+
+        if [ "$USER_TLS_CERT_WRITTEN" = "true" ] && [ "$USER_MSP_CERT_WRITTEN" = "true" ]
+        then
+          echo "${USER} certificates are successfully stored in vault"
+          break
+        else
+          echo "${USER} certificates are not ready, sleeping for {{ $.Values.healthcheck.sleepTimeAfterError }}"
+          sleep {{ $.Values.healthcheck.sleepTimeAfterError }}
+          COUNTER=`expr "$COUNTER" + 1`
+        fi
+      done;
+
+      if [ "$COUNTER" -gt {{ $.Values.healthcheck.retries }} ]
+      then
+        echo "Retry attempted `expr $COUNTER - 1` times, users certificates have not been saved."
+        touch ${MOUNT_PATH}/certs_not_found.txt
+        exit 1
+      fi;
+    done;
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: msp-config-file
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: msp-config-file
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  no-none-config.yaml: |-
+    NodeOUs:
+      Enable: true
+      ClientOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-{{ .Values.org_data.external_url_suffix }}.pem
+        OrganizationalUnitIdentifier: client
+      PeerOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-{{ .Values.org_data.external_url_suffix }}.pem
+        OrganizationalUnitIdentifier: peer
+      AdminOUIdentifier:
+          Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-{{ .Values.org_data.external_url_suffix }}.pem
+          OrganizationalUnitIdentifier: admin
+      OrdererOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-{{ .Values.org_data.external_url_suffix }}.pem
+        OrganizationalUnitIdentifier: orderer
+  none-config.yaml: |-
+    NodeOUs:
+      Enable: true
+      ClientOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-7054.pem
+        OrganizationalUnitIdentifier: client
+      PeerOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-7054.pem
+        OrganizationalUnitIdentifier: peer
+      AdminOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-7054.pem
+        OrganizationalUnitIdentifier: admin
+      OrdererOUIdentifier:
+        Certificate: cacerts/ca-{{ .Values.metadata.namespace }}-7054.pem
+        OrganizationalUnitIdentifier: orderer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tls-cert
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: tls-cert
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  {{- range $orderers := $.Values.orderers_info }}
+  {{ $orderers.name }}.crt: {{ $orderers.path | quote }}
+  {{- end }}

@@ -1,0 +1,291 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $.Values.name }}-generate-ambassador-certs-job
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ $.Values.name }}-generate-ambassador-certs-job
+    app.kubernetes.io/name: {{ $.Values.name }}-generate-ambassador-certs-job
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+    backoffLimit: 6
+    template:
+      metadata:
+        labels:
+          app: {{ $.Values.name }}-generate-ambassador-certs-job
+          app.kubernetes.io/name: {{ $.Values.name  }}-generate-ambassador-certs-job
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        restartPolicy: "OnFailure"
+        serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+        securityContext:
+          fsGroup: 1000
+        initContainers:
+        - name: init-check-certificates
+          image: {{ .Values.image.initContainerName }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ $.Values.vault.certsecretprefix }}
+            - name: MOUNT_PATH
+              value: "/certcheck"
+            - name: VAULT_TYPE
+              value: "{{ $.Values.vault.type }}"              
+          command: ["sh", "-c"]
+          args:
+          - |-
+              #!/usr/bin/env sh
+              . /scripts/bevel-vault.sh
+              
+              # Calling a function to retrieve the vault token.
+              vaultBevelFunc "init"
+
+              # Calling a function to retrieve secrets from Vault only if they exist.
+              vaultBevelFunc "readJson" "${CERTS_SECRET_PREFIX}/crypto/{{ $.Values.name }}/certs"
+
+              mkdir -p ${MOUNT_PATH}
+              
+              # Create an empty file to indicate that the secret is absent or present in vault.
+              if [ "$SECRETS_AVAILABLE" == "no" ]
+              then
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent.txt
+              else
+                echo "Certificates present in vault."
+                touch ${MOUNT_PATH}/present.txt
+              fi
+
+              echo "Done checking for certificates in vault."
+          volumeMounts:
+          - name: credentials
+            mountPath: /DATA
+          - name: certcheck
+            mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+        containers:
+        - name: certs-generation
+          image: {{ .Values.image.certsContainerName }}
+          env:
+            - name: DOMAIN_NAME
+              value: "{{ .Values.opensslVars.domain_name }}"
+            - name: DOMAIN_NAME_API
+              value: "{{ .Values.opensslVars.domain_name_api }}"
+            - name: DOMAIN_NAME_WEB
+              value: "{{ .Values.opensslVars.domain_name_web }}"
+            - name: DOMAIN_NAME_TESSERA
+              value: "{{ .Values.opensslVars.domain_name_tessera }}"
+            - name: TM_CLIENT_PORT
+              value: "{{ .Values.opensslVars.clientport }}"
+            - name: NODE_NAME
+              value: "{{ $.Values.name }}"
+            - name: CERTS_SECRET_PREFIX
+              value: {{ $.Values.vault.certsecretprefix }}
+            - name: VAULT_ADDR
+              value: {{ $.Values.vault.address }}
+            - name: VAULT_APP_ROLE
+              value: {{.Values.vault.role}}
+            - name: KUBERNETES_AUTH_PATH
+              value: {{ $.Values.vault.authpath }}
+            - name: CERTS_SECRET_PREFIX
+              value: {{ $.Values.vault.certsecretprefix }}
+            - name: ROOT_SUBJECT
+              value: "{{ .Values.subjects.root_subject }}"
+            - name: CERT_SUBJECT
+              value: "{{ .Values.subjects.cert_subject }}"
+            - name: MOUNT_PATH
+              value: "/certcheck"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+          - |-
+            if [ -e ${MOUNT_PATH}/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping.."
+              exit 0
+            fi
+            # create directories
+            mkdir -p ${MOUNT_PATH}/DATA/rootca
+            mkdir -p ${MOUNT_PATH}/DATA/ambassadortls
+            cd ${MOUNT_PATH}/DATA/rootca
+            set -x
+            cat <<EOF >openssl.conf
+            [req]
+            req_extensions = v3_ca
+            distinguished_name = dn
+            [dn]
+            [v3_ca]
+            basicConstraints = critical, CA:TRUE
+            keyUsage = critical,digitalSignature, keyCertSign, cRLSign
+            extendedKeyUsage=serverAuth,clientAuth
+            subjectKeyIdentifier = hash
+            authorityKeyIdentifier = keyid:always
+            EOF
+
+            openssl genrsa -out tessera_ca.key 2048
+            openssl req -x509 -config openssl.conf -new -nodes -key tessera_ca.key -sha256 -days 1024 -out tessera_ca.pem -extensions v3_ca -subj "/${CERT_SUBJECT}"
+            
+            cd ${MOUNT_PATH}/DATA/ambassadortls
+            cat <<EOF >openssl${NODE_NAME}.conf
+            [dn]
+            [req]
+            distinguished_name = dn
+            req_extensions = v3_req
+            [ v3_req ]
+            basicConstraints = CA:FALSE
+            keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+            subjectAltName = @alt_names
+
+            [alt_names]
+            DNS.1 = ${DOMAIN_NAME}
+            DNS.2 = ${DOMAIN_NAME_API}
+            DNS.3 = ${DOMAIN_NAME_WEB}
+            DNS.4 = ${DOMAIN_NAME_TESSERA}
+            EOF
+            cat openssl${NODE_NAME}.conf
+            cd ${MOUNT_PATH}/DATA/ambassadortls
+            
+            openssl genrsa -out tessera_cer.key 2048
+            openssl req -new -key tessera_cer.key -out tessera_cer.csr -subj /CN=carrier.quo.demo.aws.blockchaincloudpoc.com -config opensslcarrier.conf
+            openssl req -new -key tessera_cer.key -out tessera_cer.csr -subj "/CN=${DOMAIN_NAME}" -config openssl${NODE_NAME}.conf
+            openssl x509 -req -in tessera_cer.csr -CA ${MOUNT_PATH}/DATA/rootca/tessera_ca.pem -CAkey ${MOUNT_PATH}/DATA/rootca/tessera_ca.key -set_serial 01 -out tessera_cer.pem -days 1000 -sha256 -extensions v3_req -extfile openssl${NODE_NAME}.conf
+            cat tessera_cer.pem > ${NODE_NAME}-certchain.pem
+            cat ${MOUNT_PATH}/DATA/rootca/tessera_ca.pem >> ${NODE_NAME}-certchain.pem
+            # Generate keystore file
+            cat tessera_cer.key tessera_cer.pem > ${NODE_NAME}_certificates.pem
+            openssl pkcs12 -export -in ${NODE_NAME}_certificates.pem -out ${NODE_NAME}-keystore.pkcs12 -password pass:quorum -name myAlias -noiter -nomaciter
+          
+            #creating a dummy file to perform check if last line is executed or not.
+            touch ${MOUNT_PATH}/DATA/done.txt
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+        - name: store-certs
+          image: {{ .Values.image.certsContainerName }}
+          imagePullPolicy: IfNotPresent
+          env:
+             - name: VAULT_ADDR
+               value: {{ $.Values.vault.address }}
+             - name: VAULT_APP_ROLE
+               value: {{ $.Values.vault.role}}
+             - name: NODE_NAME
+               value: "{{ $.Values.name }}"
+             - name: KUBERNETES_AUTH_PATH
+               value: {{ $.Values.vault.authpath }}
+             - name: CERTS_SECRET_PREFIX
+               value: {{ $.Values.vault.certsecretprefix }}
+             - name: MOUNT_PATH
+               value: "/certcheck"
+             - name: VAULT_TYPE
+               value: "{{ $.Values.vault.type }}"
+          command: ["/bin/sh", "-c"]
+          args:
+          - |-
+            #!/usr/bin/env sh
+            . /scripts/bevel-vault.sh
+
+            # Skip secret creation if "present.txt" exists in /certcheck/
+            if [ -e /certcheck/present.txt ]
+            then
+              echo "Certificates already present in the vault. Skipping."
+              exit 0
+            fi
+
+            # Calling a function to retrieve the vault token.
+            vaultBevelFunc 'init'
+
+            COUNTER=1
+            cd ${MOUNT_PATH}/DATA
+            while [ "$COUNTER" -lt 10 ]
+            do
+              if [ -e done.txt ]
+              then
+                cd ${MOUNT_PATH}/DATA
+                echo "found certificates, performing vault put"
+                # Use -w0 to get single line base64 -w0
+                ROOTCAPEM=$(cat ./rootca/tessera_ca.pem | base64 -w0)
+                ROOTCAKEY=$(cat ./rootca/tessera_ca.key | base64 -w0)
+                AMBASSADOR_CERTS=$(cat ./ambassadortls/${NODE_NAME}-certchain.pem | base64 -w0)
+                AMBASSADOR_KEYS=$(cat ./ambassadortls/tessera_cer.key | base64 -w0)
+                KEYSTORE_FILE=$(cat ./ambassadortls/${NODE_NAME}-keystore.pkcs12 | base64 -w0)
+                echo "{\"data\": {
+                 \"rootcakey\": \"${ROOTCAKEY}\",
+                 \"rootcapem\": \"${ROOTCAPEM}\",
+                 \"ambassadorcrt\": \"${AMBASSADOR_CERTS}\",
+                 \"ambassadorkey\": \"${AMBASSADOR_KEYS}\",
+                 \"keystore\": \"${KEYSTORE_FILE}\"
+                 }}" > payload.json
+
+                # Calling a function to write secrets to the Vault.
+                vaultBevelFunc 'write' "${CERTS_SECRET_PREFIX}/crypto/${NODE_NAME}/certs" 'payload.json'
+                rm payload.json
+
+                # Calling a function to retrieve secrets from Vault.
+                vaultBevelFunc "readJson" "${CERTS_SECRET_PREFIX}/crypto/${NODE_NAME}/certs"
+
+                R_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootcakey"]' 2>&1)
+                R_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootcapem"]' 2>&1)
+                A_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]' 2>&1)
+                A_KEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' 2>&1)
+                K_KEY=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]' 2>&1)
+
+                for field in "$R_KEY" "$R_PEM" "$A_CERT" "$A_KEY" "$K_KEY"
+                do
+                  if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+                  then
+                    echo "certificates write or read fail"
+                    break
+                  else
+                    echo "Certificates write or read success."
+                    sleep 5
+                    COUNTER=`expr "$COUNTER" + 1`
+                  fi
+                done
+                if [ "$COUNTER" -gt 30 ]
+                then
+                  echo "Retry attempted `expr $COUNTER - 1` times, Certificates have not been saved."
+                  exit 1
+                else
+                  echo "Certificates have been saved."
+                fi
+                echo "completed"
+             fi
+            done
+          volumeMounts:
+          - name: certcheck
+            mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+        imagePullSecrets:
+          - name: {{ $.Values.image.imagePullSecret }}
+        volumes:
+          - name: certcheck
+            emptyDir:
+              medium: Memory
+          - name: credentials
+            emptyDir:
+              medium: Memory
+          - name: certs-keys
+            emptyDir:
+              medium: Memory
+          - name: scripts-volume
+            configMap:
+              name: bevel-vault-script
+          - name: certs-etc

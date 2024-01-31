@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Generate genesis helmrelease file
+- name: "Create genesis file"
+  include_role:
+    name: create/helm_component
+  vars:       
+    type: "genesis_job"
+    name: "{{ org.name | lower }}"
+    component_name: "{{ org.name }}-genesis-job"
+
+# Push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing genesis release files for {{ component_ns }}"
+  tags: notest
+
+# Check if genesis job is completed
+- name: Check if genesis job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ org.name }}-genesis-job"
+    component_type: Job
+    namespace: "{{ component_ns }}"
+  tags: notest
+
+# Copy the genesis to the local directory
+- name: Copy genesis from Vault to local directory
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  shell: |
+    vault kv get -field=genesis {{ vault.secret_path | default('secretsv2') }}/{{ org.name }}/genesis > {{ network.config.genesis }}

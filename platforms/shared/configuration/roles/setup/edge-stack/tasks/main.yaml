@@ -1,0 +1,124 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Create build directory
+- name: Create build directory
+  file:
+    path: "./build/ambassador"
+    state: directory
+
+# Set the proxy namespace
+- name: Set proxy namespace
+  set_fact:
+    proxy_namespace: "{{ network.env.proxy_namespace | default('default') }}"
+
+# Set port ranges if defined
+- name: Set port ranges
+  set_fact:
+    port_range_from: "{{ network.env.ambassadorPorts.portRange.from }}"
+    port_range_to: "{{ network.env.ambassadorPorts.portRange.to }}"
+  when: network.env.ambassadorPorts.portRange is defined
+
+# As this shell code is specific to AWS, cloud provider check has been added
+- name: Get Elastic IP
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws.access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws.secret_key }}"
+  shell: |
+    ips="{{ item.publicIps | join(' ') }}"
+    data=$(aws ec2 describe-addresses --public-ips $ips --region {{ aws.region }} --output json | jq -r '.Addresses[].AllocationId' | tr '\n' ',')
+    echo "${data%,}"  # Remove trailing comma
+  register: allocation_ips
+  when:
+    - network.type == 'indy'
+    - item.cloud_provider in ['aws', 'aws-baremetal']
+
+# Set allocation_ips_stdout
+- name: Set Helm value for ambassador_eip
+  set_fact:
+    allocation_ips_stdout: "{{ allocation_ips.stdout }}"
+  when:
+    - allocation_ips is defined and allocation_ips.stdout is defined
+
+# Create custom values for ambassador edge stack (aes) helm chart
+- name: Create custom values for aes helm chart
+  vars:
+    ports: "{{ network.env.ambassadorPorts.ports | default([]) }}"
+    elastic_ip: "{{ allocation_ips_stdout | default('') }}"
+    lbSourceRangeDefault:
+      - 0.0.0.0/0
+    loadBalancerSourceRanges: "{{ network.env.loadBalancerSourceRanges | default(lbSourceRangeDefault) }}"
+  template:
+    src={{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-custom-values.tpl
+    dest={{ playbook_dir }}/../../../platforms/shared/configuration/build/aes-custom-values.yaml
+
+# Apply the ambassador edge stack crds
+- name: Apply aes-crds manifest.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-crds.yaml"
+
+# Adding the datawire chart repo
+- name: Add datawire chart repo
+  kubernetes.core.helm_repository:
+    name: datawire
+    repo_url: "https://app.getambassador.io"
+
+# Install edge-stack via helmchart
+- name: Deploy the edge-stack
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: "edge-stack"
+    chart_ref: datawire/edge-stack
+    chart_version: 8.7.2
+    release_namespace: "{{ proxy_namespace }}"
+    create_namespace: true
+    values:
+      namespace: "{{ proxy_namespace }}"
+    values_files:
+      - "{{ playbook_dir }}/../../../platforms/shared/configuration/build/aes-custom-values.yaml"
+
+# Create aes custom resources manifest file
+# fallback-self-signed-cert will be we used for default TLS termination on all host
+# **NOTE** : By default aes creates a fallback-self-signed-cert; custom cert can be used here
+- name: Create ambassador custom resources manifest file
+  vars:
+    ambassadorDefaultTlsSecretName: "fallback-self-signed-cert"
+    ambassadorDefaultTlsSecretNamespace: "{{ proxy_namespace }}"
+  template:
+    src={{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/edge-stack/templates/aes-custom-resources.tpl
+    dest={{ playbook_dir }}/../../../platforms/shared/configuration/build/aes-custom-resources.yaml
+
+# Apply the aes custom resources manifest
+- name: Apply aes custom resources manifest.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    src: "{{ playbook_dir }}/../../../platforms/shared/configuration/build/aes-custom-resources.yaml"
+
+# Add domain name mapping using external dns
+# **NOTE** : This requiers external dns service running on the cluster
+- name: Enable external DNS
+  shell: |
+    KUBECONFIG={{ kubeconfig_path }} kubectl annotate service edge-stack -n {{ proxy_namespace }} --overwrite "external-dns.alpha.kubernetes.io/hostname=*.{{ item.external_url_suffix }}."
+  when:
+    - network.env.external_dns is defined
+    - network.env.external_dns == 'enabled'
+
+# Wait for Ambassador pods to start running
+- name: wait for pods to come up
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    namespace: "{{ proxy_namespace }}"
+    kubeconfig: "{{ kubeconfig_path }}"
+    context: "{{ kubecontext }}"
+    component_name: edge-stack
+    component_type: "Pod"
+    label_selectors:
+      - app.kubernetes.io/name=edge-stack
+

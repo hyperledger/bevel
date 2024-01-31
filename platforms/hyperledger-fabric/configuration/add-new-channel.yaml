@@ -25,18 +25,6 @@
         path: "./build"
         state: absent
 
-    #Setup Vault-Kubernetes accesses and Regcred for docker registry
-    - name: Setup Vault Kubernetes for each organization
-      include_role: 
-        name: "setup/vault_kubernetes"
-      vars:
-        component_name: "{{ item.name | lower }}-net"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        component_type: "{{ item.type | lower }}"
-        auth_path: "{{ network.env.type }}{{ item.name | lower }}-net-auth"
-      loop: "{{ network['organizations'] }}"        
-        
     # Create generate_crypto script for each organization
     - include_role:
         name: "create/crypto_script"
@@ -66,6 +54,16 @@
       loop: "{{ network['channels'] }}"
       when: item.channel_status == 'new'
 
+    - name: "Create genesis block"
+      include_role: 
+        name: "create/genesis"
+      vars:
+        build_path: "./build"
+        genesis: "{{ item.genesis }}"
+        channel_name: "{{ item.channel_name | lower }}"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new' and '2.5.' in network.version
+
     # This role creates the value file for creating channel from creator organization
     # to the vault.
     - include_role:
@@ -75,7 +73,18 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
-      when: item.channel_status == 'new'
+      when: item.channel_status == 'new' and ('2.2.' in network.version or '1.4.' in network.version)
+    
+    # This role creates the value file for creating channel from creator organization
+    # to the vault.
+    - name: Create all create-channel jobs
+      include_role:
+        name: "create/osnchannels"
+      vars:
+        build_path: "./build"
+        docker_url: "{{ network.docker.url }}"
+      loop: "{{ network['channels'] }}"
+      when: item.channel_status == 'new' and '2.5.' in network.version
 
     # This role creates the value file for joining channel from each participating peer
     # to the vault.
@@ -97,16 +106,11 @@
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
       loop: "{{ network['channels'] }}"
-      when: item.channel_status == 'new'
-      
-    # delete build directory
-    - name: Remove build directory
-      file:
-        path: "./build"
-        state: absent    
+      when: item.channel_status == 'new'   
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
     install_os: "linux"                 #Default to linux OS
     install_arch:  "amd64"              #Default to amd64 architecture
     bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: 'false'                # Default to false as this is for main network creation

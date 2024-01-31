@@ -15,13 +15,15 @@ spec:
         kind: GitRepository
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
-      chart: {{ charts_dir }}/orderernode
+      chart: {{ charts_dir }}/fabric-orderernode
   values:
     metadata:
       namespace: {{ namespace }}
+      network:
+        version: {{ network.version }}
       images:
-        orderer: {{ orderer_image }}
-        alpineutils: {{ alpine_image }}
+        orderer: {{ docker_url }}/{{ orderer_image[network.version] }}
+        alpineutils: {{ docker_url }}/{{ alpine_image }}
 {% if network.env.annotations is defined %}
     annotations:  
       service:
@@ -49,12 +51,13 @@ spec:
       localmspid: {{ org_name }}MSP
       tlsstatus: true
       keepaliveserverinterval: 10s
-    
+      ordererAddress: {{ orderer.ordererAddress }}
+
     consensus:
       name: {{ orderer.consensus }}
 
     storage:
-      storageclassname: {{ org_name }}sc
+      storageclassname: {{ sc_name }}
       storagesize: 512Mi  
 
     service:
@@ -72,9 +75,14 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: {{ network.env.type }}{{ namespace }}-auth
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/crypto/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      type: {{ vault.type | default("hashicorp") }}
+      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
+{% if network.docker.username is defined and network.docker.password is defined %}
       imagesecretname: regcred
+{% else %}
+      imagesecretname: ""
+{% endif %}
       serviceaccountname: vault-auth
 {% if orderer.consensus == 'kafka' %}
     kafka:
@@ -89,9 +97,10 @@ spec:
     proxy:
       provider: {{ network.env.proxy }}
       external_url_suffix: {{ item.external_url_suffix }}
-
+{% if '2.5' not in network.version %}
     genesis: |-
 {{ genesis | indent(width=6, first=True) }}
+{% endif %}
 
     config:
       pod:
@@ -101,4 +110,4 @@ spec:
             cpu: 1
           requests:
             memory: 512M
-            cpu: 0.5
+            cpu: 0.25

@@ -4,14 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
-
-#############################################################################################
+##############################################################################################
 # Creates orderer value file, adds it to git repo and wait for orderer node to come up
-#############################################################################################
+##############################################################################################
 
-# This task creates the value file for the Orderers as per requirements mentioned in
-# network.yaml
+# Create the value file for the Orderers as per requirements mentioned in network.yaml
 - name: Create orderers value file
   include_role:
     name: helm_component
@@ -19,33 +16,29 @@
     name: "orderer"
     org_name: "{{ item.name | lower }}"
     component_name: "{{ orderer.name }}-{{ org_name }}"
-    orderer_image: "hyperledger/fabric-orderer:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
     type: "orderers"
     consensus: "{{ component_services.consensus }}"
-    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/genesis.block.base64') }}"
+    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64') }}"
 
-#Git Status : check if there is any files modified in the directory
+# Git Status : check if there is any files modified in the directory
 - name: Git Status
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_status"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Checking git status"
     files_dir: "{{ values_dir }}"
   tags:
     - notest
 
-#Git Push : Pushes the above generated files to git directory
+# Git Push : Push the above generated files to git directory
 - name: Git Push
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Pushing Orderer files"
   when: git_updated is defined
   tags:

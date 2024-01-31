@@ -4,8 +4,8 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This role creates the the value file for float chart and pushes it to the git repository
-# This task will will create the value file for float
+# Create the the value file for float chart and pushes it to the git repository
+# Create the value file for float
 - name: Create value file for float
   include_role:
     name: helm_component
@@ -13,7 +13,7 @@
     component_name: "{{ org.services.float.name }}"
     type: float
     name: "{{ org.name | lower }}"
-    corda_service_version: "firewall-{{ org.version }}"
+    corda_service_version: "firewall-{{ org.firewall_version }}"
     vault: "{{ org.services.float.vault }}"
     charts_dir: "{{ gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{ gitops.release_dir }}"
@@ -24,7 +24,6 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    GIT_RESET_PATH: "platforms/r3-corda-ent/configuration"
     msg: "[ci skip] Pushing float files"
 
 # Wait till the float is running
@@ -39,11 +38,10 @@
     label_selectors:
       - app = {{ component_name }}
 
-############################################################################################
 # This task copies network-parameter file into the float pod 
 - name: Copy the network-parameter file into the float pod 
   shell: |
     export FLOAT_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.services.float.name }} | grep {{ org.services.float.name }}  | awk '{print $1}')
-    export PEER_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ org.name }} | grep {{ org.name }} | awk '{print $1}')
+    export PEER_POD=$(KUBECONFIG={{ k8s.config_file }} kubectl get po -n {{ component_ns }} -l app={{ peer.name }} | grep {{ org.name }} | awk '{print $1}')
     KUBECONFIG={{ k8s.config_file }} kubectl cp {{ component_ns }}/${PEER_POD}:base/network-parameters ./build/np-{{ org.name }}
     KUBECONFIG={{ k8s.config_file }} kubectl cp ./build/np-{{ org.name }} {{ component_ns }}/${FLOAT_POD}:base/network-parameters

@@ -1,0 +1,326 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $.Values.peer.name }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    name: {{ $.Values.peer.name }}
+    app.kubernetes.io/name: {{ $.Values.peer.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.deployment }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}     
+spec:
+  updateStrategy:
+    type: RollingUpdate 
+  serviceName: "{{ $.Values.peer.name }}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $.Values.peer.name }}
+      app.kubernetes.io/name: {{ $.Values.peer.name }}
+      helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ $.Values.peer.name }}
+        app.kubernetes.io/name: {{ $.Values.peer.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:   
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils}}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ $.Values.vault.secretprefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
+          TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+          echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
+          echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/msp"
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+
+          # COUCH_DB CREDENTIALS
+          echo "Getting couch db credentials"
+          SECRET_COUCHDB_PASS={{ $.Values.vault.secretcouchdbpass }}
+          if [ ! -z $SECRET_COUCHDB_PASS ]
+          then
+            vault_secret_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $1}')
+            vault_data_key=$(echo ${SECRET_COUCHDB_PASS} |awk -F "?" '{print $2}')
+
+            # Calling a function to retrieve secrets from Vault only if they exist.
+            vaultBevelFunc "readJson" "${vault_secret_key}"
+
+            PASSWORD=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+            echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred
+          fi            
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: couchdb
+        image: {{ $.Values.metadata.images.couchdb }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          chown -R couchdb:couchdb /opt/couchdb
+          chmod -R 0770 /opt/couchdb/data
+          chmod 664 /opt/couchdb/etc/*.ini
+          chmod 664 /opt/couchdb/etc/local.d/*.ini
+          chmod 775 /opt/couchdb/etc/*.d
+          if [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ -z $COUCHDB_USER ]
+          then
+            echo " Error! Please provide username for the password "
+            exit 1
+            break
+          elif [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
+          then
+            export COUCHDB_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
+            break
+          elif [ ! -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
+          then
+            echo " Error! Please provide password for username $COUCHDB_USER "
+            exit 1
+            break
+          else
+            :
+          fi
+          tini -- /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+        ports:
+        - containerPort: 5984
+        env:
+        - name: COUCHDB_USER
+          value: "{{ $.Values.peer.couchdb.username }}"
+        volumeMounts:
+        - name: datadir-couchdb
+          mountPath: /opt/couchdb/data
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric/crypto
+      - name: {{ $.Values.peer.name }}
+        image: {{ $.Values.metadata.images.peer }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          if [ -e /builders/external/core.yaml.base64 ]; then
+            cat /builders/external/core.yaml.base64 | base64 -d > $FABRIC_CFG_PATH/core.yaml
+          fi
+          cp /etc/hyperledger/fabric/NodeOUconfig/mspconfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
+          export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
+          version=$( echo ${PEER_IMAGE} | sed 's/.*://' | cut -d '.' -f -2 )
+          if [ $version = "2.2" ] && [ ${IS_UPGRADE} = "true" ]
+          then
+            peer node upgrade-dbs
+          fi
+          peer node start         
+        ports:
+        - name: grpc
+          containerPort: 7051
+        - name: events
+          containerPort: 7053
+        - name: operations
+          containerPort: 9443
+        env:
+        - name: PEER_IMAGE
+          value: "{{ $.Values.metadata.images.peer }}"
+        - name: IS_UPGRADE
+          value: "{{ $.Values.upgrade }}"
+        envFrom:
+        - configMapRef:
+            name: {{ $.Values.peer.name }}-config
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/hyperledger/production
+        - name: dockersocket
+          mountPath: /host/var/run/docker.sock
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric/crypto
+        - name: {{ $.Values.peer.name }}-msp-config-volume
+          mountPath: /etc/hyperledger/fabric/NodeOUconfig
+          readOnly: true
+      {{ if $.Values.peer.configpath }}
+        - name: builders-config
+          mountPath: /builders/external
+      {{ end }}
+        resources:
+          requests:
+            memory: {{ .Values.config.pod.resources.requests.memory }}
+            cpu: {{ .Values.config.pod.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.config.pod.resources.limits.memory }}
+            cpu: {{ .Values.config.pod.resources.limits.cpu }}
+      - name: grpc-web
+        image: "ghcr.io/hyperledger-labs/grpc-web:latest"
+        imagePullPolicy: IfNotPresent        
+        ports:
+        - name: grpc-web
+          containerPort: 7443        
+        env:
+        - name: BACKEND_ADDRESS
+          value: "{{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}:{{ $.Values.service.ports.grpc.clusteripport }}"
+        - name: SERVER_TLS_CERT_FILE
+          value: /certs/tls/server.crt
+        - name: SERVER_TLS_KEY_FILE
+          value: /certs/tls/server.key
+        - name: BACKEND_TLS_CA_FILES
+          value: /certs/tls/ca.crt
+        - name: SERVER_BIND_ADDRESS
+          value: "0.0.0.0"
+        - name: SERVER_HTTP_DEBUG_PORT
+          value: "8080"
+        - name: SERVER_HTTP_TLS_PORT
+          value: "7443"
+        - name: BACKEND_TLS
+          value: "true"
+        - name: SERVER_HTTP_MAX_WRITE_TIMEOUT
+          value: 5m
+        - name: SERVER_HTTP_MAX_READ_TIMEOUT
+          value: 5m
+        - name: USE_WEBSOCKETS
+          value: "true"
+        volumeMounts:        
+        - name: certificates
+          mountPath: /certs
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end }}
+      {{ if $.Values.peer.configpath }}
+      - name: builders-config
+        configMap:
+          name: builders-config
+      {{ end }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: {{ $.Values.peer.name }}-msp-config-volume
+        configMap:
+          name: {{ $.Values.peer.name }}-msp-config
+          items:
+            - key: mspconfig
+              path: mspconfig
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+  volumeClaimTemplates:
+  #Lables are not being taken by Kubernetes as it dynamically creates PVC
+  - metadata:
+      name: datadir
+      annotations:
+        {{- if $.Values.annotations }}
+        {{- range $key, $value := $.Values.annotations.pvc }}
+        {{- range $k, $v := $value }}
+          {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}   
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: {{ .Values.storage.peer.storageclassname }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.peer.storagesize }}
+  - metadata:
+      name: datadir-couchdb
+      annotations:
+        {{- if $.Values.annotations }}
+        {{- range $key, $value := $.Values.annotations.pvc }}
+        {{- range $k, $v := $value }}
+          {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}   
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: {{ .Values.storage.couchdb.storageclassname }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.couchdb.storagesize }}

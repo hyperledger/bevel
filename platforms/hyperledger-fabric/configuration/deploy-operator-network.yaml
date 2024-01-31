@@ -1,0 +1,123 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
+###########################################################################################
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+############################################################################################
+# Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+---
+  # This will apply to ansible_provisioners. /etc/ansible/hosts should be configured with this group
+- hosts: ansible_provisioners
+  gather_facts: no
+  no_log: "{{ no_ansible_log | default(false) }}"
+  tasks:
+    # delete build directory
+    - name: Remove build directory
+      file:
+        path: "./build"
+        state: absent
+
+    - name: Create namespace for each organization
+      include_role:
+        name: k8_component
+      vars:    
+        component_type: "namespace"
+        component_name: "{{ item.name | lower }}-net"
+        component_type_name: "{{ item.type | lower }}"
+        kubernetes: "{{ item.k8s }}"
+        release_dir: "./build"
+      loop: "{{ network['organizations'] }}"
+
+    # Create Storageclass for new organization for when operator using
+    - name: Create storageclass for each organization
+      include_role:
+        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
+      vars:
+        org_name: "{{ org.name | lower }}"
+        sc_name: "{{ org_name }}-bevel-storageclass"
+        region: "{{ org.k8s.region | default('eu-west-1') }}"
+      loop: "{{ network['organizations'] }}"
+      loop_control:
+        loop_var: org
+      when: 
+      - network.env.type == 'operator'  
+      
+    - name: Create CA server for each organization
+      include_role:
+        name: "operator/create/ca/server"
+      vars:
+        ca: "{{ item.services.ca }}"
+        namespace: "{{ item.name | lower }}-net"
+        component_name: "{{ item.name | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.services.ca is defined
+
+    - name: Register default users for each organization
+      include_role:
+        name: "operator/create/ca/user"
+      vars:
+        user_type: "default"
+        namespace: "{{ item.name | lower }}-net"
+        component_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+      loop: "{{ network['organizations'] }}"
+    
+    - name: Create orderer nodes
+      include_role:
+        name: "operator/create/orderer"
+      vars:
+        namespace: "{{ item.name | lower }}-net"
+        component_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+        kubeconfig_path: "{{ item.k8s.config_file }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'orderer'
+
+    - name: Create all peers
+      include_role:
+        name: "operator/create/peer"
+      vars:
+        namespace: "{{ item.name | lower }}-net"
+        component_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+      loop: "{{ network['organizations'] }}"
+      when: item.type == 'peer'
+
+    - name: Register admin users for each organization
+      include_role:
+        name: "operator/create/ca/user"
+      vars:
+        user_type: "admin"
+        namespace: "{{ item.name | lower }}-net"
+        component_name: "{{ item.name | lower }}"
+        component_type: "{{ item.type | lower }}"
+      loop: "{{ network['organizations'] }}"
+    
+    - name: Create the main channels
+      include_role:
+        name: "operator/create/mainchannel"
+      vars:
+        participants: "{{ item.participants }}"
+      loop: "{{ network['channels'] }}"
+
+    - name: Join the main channels
+      include_role:
+        name: "operator/create/followerchannel"
+      vars:
+        build_path: "./build"
+        participants: "{{ item.participants }}"
+      loop: "{{ network['channels'] }}"
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    add_new_org: 'false'                # Default to false as this is for main network creation

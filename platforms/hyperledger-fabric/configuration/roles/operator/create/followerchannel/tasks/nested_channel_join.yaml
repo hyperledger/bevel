@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+##############################################################################################
+# This task initiates the nested join channel role to internally join the peers in various permutations
+##############################################################################################
+
+# Check or wait for the create channel job to complete
+- name: 'Wait for {{ channel_name }} channel to be in Running state'
+  k8s_info:
+    kind: "FabricMainChannel"
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ channel_name }}"
+    kubeconfig: "{{ org.k8s.config_file }}"
+    context: "{{ org.k8s.context }}"
+  register: component_data
+  retries: "{{ network.env.retry_count}}"
+  delay: 30
+  until: component_data.resources|length > 0 and (component_data.resources[0].status.status is defined and component_data.resources[0].status.status == "RUNNING")
+  when:
+    - participant.type == 'creator'
+    - participant.org_status is not defined or participant.org_status == 'new'
+  
+
+# Create follower channel
+- name: "Create follower channel via operator"
+  include_role:
+    name: k8_component
+  vars:
+    type: "operator_followerchannel"
+    component_type: "followerchannel"
+    component_type_name: "{{ org.name | lower }}"
+    org_name: "{{ org.name | lower }}"
+    org_ns: "{{ org.name | lower }}-net"
+    release_dir: "./build"
+    kubernetes: "{{ org.k8s }}"
+    peer_query: "peers[?type=='anchor']"
+    anchor_peers: "{{ org.services | json_query(peer_query) }}"

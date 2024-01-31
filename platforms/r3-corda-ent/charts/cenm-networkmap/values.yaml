@@ -1,0 +1,245 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for the Networkmap (nmap) service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#############################################################
+#                   Basic Configuration                     #
+#############################################################
+
+# Provide the name of the node
+# e.g. `networkmap`
+nodeName: networkmap
+bashDebug: true
+prefix: cenm
+
+# This section contains the Corda Enterprise nmap metadata.
+metadata:
+  # Provide the namespace for the Corda Enterprise nmap.
+  # Eg. namespace: cenm
+  namespace: cenm
+  # Provide any additional labels for the Corda Enterprise nmap.
+  labels:
+
+storage:
+  # Provide the name of the storageclass.
+  # NOTE: Make sure that the storageclass exist prior to this deployment as
+  # this chart doesn't create the storageclass.
+  # Eg. name: cenm
+  name: cenm
+  # Provide the memory size for the storage class.
+  # Eg. memory: 64Mi
+  memory: 64Mi
+
+# Image for the init-containers
+image:
+  # Name of the Docker image to use for init-containers, e.g. `ghcr.io/hyperledger/bevel-alpine:latest`
+  initContainer: ghcr.io/hyperledger/bevel-alpine:latest
+  # Name of the Docker image to use for the main Networkmap Service, e.g. corda/enterprise-networkmap:1.2-zulu-openjdk8u24
+  nmapContainer: corda/enterprise-networkmap:1.2-zulu-openjdk8u24
+  # Provide the image for the main Idman container.
+  # Eg. enterpriseCli: corda/enterprise-cli:1.5.1-zulu-openjdk8u242
+  enterpriseCliContainer: corda/enterprise-cli:1.5.1-zulu-openjdk8u242
+  # Provide the docker-registry secret created and stored in kubernetes cluster as a secret.
+  # Eg. imagePullSecrets: regcred, can add multiple creds
+  imagePullSecrets:
+    - name:  
+  # Pull policy to be used for the Docker image
+  # Eg. pullPolicy: Always
+  pullPolicy: 
+# required parameter
+acceptLicense: YES
+
+#############################################################
+#               HashiCorp Vault Configuration               #
+#############################################################
+# NOTE: Make sure that the vault is already unsealed, intialized and configured to 
+# use Kubernetes service account token based authentication. 
+# For more info, see https://www.vaultproject.io/docs/auth/kubernetes
+
+# Values for HashiCorp Vault
+vault:
+  # Address of the vault, e.g. `http://vault.internal.dev.aws.blockchaincloudpoc-develop.com:8200`
+  address:
+  # Which role to use when connecting to vault, e.g. `vault-role`
+  role: vault-role
+  # Authpath created for networkmap, e.g. cordaentcenm
+  authPath: cordaentcenm
+  # Serviceaccount, eg. vault-auth
+  serviceAccountName:  vault-auth
+  # Prefix to use for secret engine for certificates, e.g. `cenm/certs`
+  certSecretPrefix: cenm/certs
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries: 10
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError: 15
+ 
+
+#############################################################
+#                    Nmap Configuration                     #
+#############################################################
+
+service:
+  # Nmap 'main' service
+  external:
+    # E.g. port: 10000
+    port: 10000
+  # Internal service, inside the K8s cluster
+  internal:
+    # E.g. port: 5050
+    port: 5050
+  # Values for the Revocation check
+  revocation:
+    # On which port to check for Revocation, e.g. `5053`
+    port: 5053
+  # Provide the admin listener port
+  adminListener:
+    port:
+
+serviceLocations:
+  # Values for the Identity Manager (idman)
+  identityManager:
+    # Name of idman service
+    # E.g. name: idman
+    name: idman
+    # External domain name of idman service
+    # E.g. domain: 
+    domain:
+    # Host of idman 
+    # E.g. host: idman.{namespace}
+    host: 
+    # Port of idman
+    # E.g. port: 5052
+    port: 5052
+  # Values for notary service
+  notary:
+    # List of the notary nodes
+
+#############################################################
+#                Database Options and Configuration         #
+#############################################################
+database:
+  # Java class name to use for the database
+  # Eg. driverClassName: "org.h2.Driver"
+  driverClassName:
+  # The DB connection URL 
+  # Eg. url: "jdbc:h2:file:./h2/identity-manager-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0"
+  url:
+  # DB user
+  # Eg. user: "example-db-user"
+  user:
+  # DB password 
+  # Eg. password: "example-db-password"
+  password:
+  # Migrations of database can be run as part of the startup of nmap, if set to true. 
+  # If set to false, it will be run prior to setting up the nmap.
+  # E.g. runMigration: true
+  runMigration:
+
+#############################################################
+#                       Settings                            #
+#############################################################
+config:
+  # Provide volume related specifications
+  volume:
+    # E.g. baseDir: /opt/corda
+    baseDir: /opt/corda
+
+  # Provide the path where the CENM Idman .jar-file is stored
+  # Eg. jarPath: bin
+  jarPath: bin
+
+  # Provide the path where the CENM Service configuration files are stored
+  # Eg. configPath: etc
+  configPath: etc
+  
+  # Provide any extra annotations for the PVCs
+  pvc:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Provide any extra annotations for the deployment
+  deployment:
+    #   annotations:
+    #     key: "value"
+    annotations: {}
+
+  # Specify the maximum size of the memory allocation pool
+  cordaJar:
+    # Provide the memory size.
+    # Eg. memorySize: 4096 (if using kilobytes)
+    # Eg. memorySize: 512 (if using megabytes)
+    # Eg. memorySize: 1 (if using gigabytes) 
+    memorySize:
+    # Provide the unit of greatness for the size, one of three options:
+    # - k or K for kilobytes
+    # - m or M for megabytes
+    # - g or G for gigabytes
+    # Eg. unit: M 
+    unit:
+    
+  # Set memory limits of pod  
+  pod:  
+    resources:
+      # Provide the limit memory for node
+      # Eg. limits: 512M
+      limits: 512M
+      # Provide the requests memory for node
+      # Eg. requests: 550M
+      requests: 550M
+         
+  # Provide the number of replicas for your pods
+  # Eg. replicas: 1
+  replicas: 1
+  
+  # Whether the NMS will check the certificate revocation list, e.g. `true`
+  checkRevocation: true
+
+# URL Suffix for the ambassador load balancer
+ambassador:
+  external_url_suffix: 
+#############################################################
+#                       CENM SERVICES DETAILS               #
+#############################################################
+cenmServices:
+  # Gateway service name
+  gatewayName: 
+  # Gateway service api endpoint port 
+  gatewayPort: 
+  # Zone service name
+  zoneName: 
+  # Zone service enm port
+  zoneEnmPort: 
+  # Auth service name
+  authName: 
+  # Auth service port
+  authPort: 
+healthCheck:
+  # Health Check node port set to get rid of logs pollution
+  # Eg. nodePort: 0
+  nodePort: 
+#############################################################
+#                   Network Params Update                   #
+#############################################################
+# Mark as true when you want to update the networkmap param
+# Only allows addition of new notaries now
+nmapUpdate: false
+# Add additional notary information below: 
+addNotaries:
+  - notary:
+      # Notary nodeinfo file name
+      # Eg: nodeinfoFileName: nodeInfo-056A07FF98F9872C4F4F9...
+      nodeinfoFileName: 
+      # Notary nodeinfoFile in base64 format (single line)
+      # Eg: nodeinfoFile: Y29yZGEBAAAAgMViAAAAAAAB0AAAFqEAAAADAKMibmV0LmNvcmRhOmllVjl4Z2RiUXhEUFNPN0Qxd0Nh...
+      nodeinfoFile: 
+      # set notary validating true or false 
+      validating: true

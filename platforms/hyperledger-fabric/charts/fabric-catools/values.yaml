@@ -1,0 +1,144 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  #Provide the namespace for CA deployment
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  #Provide name for ca server deployment
+  #Eg. name: ca-tools
+  name: ca-tools
+  #Provide organization's type (orderer or peer)
+  #Eg. component_type: orderer
+  component_type: orderer
+  #Provide organization's name in lowercases
+  #Eg. org_name: org1 
+  org_name: org1
+  #This will be the proxy/ingress provider. Can have values "haproxy" or "none"
+  #Eg. provider: "haproxy"
+  proxy: haproxy
+# Provide the number of replica pods
+replicaCount: 1
+
+image:
+  #Provide the image name for the server container
+  #Eg. image: hyperledger/fabric-ca-tools
+  repository: ghcr.io/hyperledger/bevel-fabric-ca-tools:1.2.1
+  # Provide image pull policy
+  pullPolicy: IfNotPresent
+  #Provide the valid image name and version to read certificates from vault server
+  #Eg.alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+
+annotations:
+  #Extra annotations
+  pvc: {}
+  deployment: {}
+  
+storage:
+  #Provide the storageclassname for 
+  #Eg. storageclassname: aws-storageclass
+  storageclassname: aws-storageclass
+  #Provide the storagesize for CA
+  #Eg. storagesize: 512Mi
+  storagesize: 512Mi
+
+vault:
+  #Provide the vaultrole for an organization
+  #Eg. vaultrole: vault-role
+  role: vault-role
+  #Provide the vault server address
+  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+  address:
+  #Provide the kubernetes auth backed configured in vault for an organization
+  #Eg. authpath: devorg1-net-auth
+  authpath: devorg1-net-auth
+  #Provide the path configured in vault for users certficates
+  #Eg. secretmsp: secretsv2/data/crypto/ordererOrganizations/..../users
+  secretusers: secretsv2/data/crypto/ordererOrganizations/org1-net/users
+  #Provide the path configured in vault for orderers
+  #Eg. secrettls: secretsv2/data/crypto/Organizations/.../.../orderers
+  secretorderer: secretsv2/data/crypto/ordererOrganizations/org1-net/orderers
+  #Provide the path configured in vault for orderers
+  #Eg. secretpeerorderertls: secretsv2/data/crypto/Organizations/.../.../orderer/tls
+  secretpeerorderertls: secretsv2/data/crypto/peerOrganizations/org1-net/orderer/tls
+  #Provide the secretcert path configured in vault for CA server
+  #Eg. secretcert: secretsv2/data/crypto/Organizations/.../...-cert.pem
+  secretcert: secretsv2/data/crypto/ordererOrganizations/org1-net/ca?ca.org1-net-cert.pem
+  #Provide the secretkey path configured in vault for CA server
+  #Eg. secretkey: secretsv2/data/crypto/Organizations/.../...-CA.key
+  secretkey: secretsv2/data/crypto/ordererOrganizations/org1-net/ca?org1-net-CA.key
+  #Provide the path configured in vault for MSP config.yaml file
+  #Eg. secretconfigfile: secretsv2/data/crypto/Organizations/.../config
+  secretconfigfile: secretsv2/data/crypto/ordererOrganizations/org1-net/msp/config
+  #Provide the path configured in vault for couchdb credentials
+  #Eg. secretconfigfile: secretsv2/data/credentials/.../couchdb/org1
+  secretcouchdb: secretsv2/data/credentials/org1-net/couchdb/org1
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: vault-auth
+  #Provide the type of vault
+  #Eg. type: hashicorp
+  type: hashicorp
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Kuberenetes secret for vault ca.cert
+
+healthcheck: 
+  # The amount of times to retry fetching from/writing to Vault before giving up.
+  # Eg. retries: 10
+  retries: 10
+  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
+  # Eg. sleepTimeAfterError: 15  
+  sleepTimeAfterError: 15
+
+org_data:
+  #External URL of the organization
+  #Eg. external_url_suffix: org1.blockchaincloudpoc.com
+  external_url_suffix: org1proxy.blockchaincloudpoc.com
+  #Provide organization's subject
+  #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
+  component_subject:
+  #Provide organization's subject
+  #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
+  cert_subject:
+  #Provide organization's country
+  #Eg. UK
+  component_country: UK
+  #Provide organization's state
+  #Eg. London
+  component_state: London
+  #Provide organization's location
+  #Eg. Lodon
+  component_location: Lodon
+  #Provide organization's ca_url
+  #Eg. "ca.supplychain-net.org1.blockchaincloudpoc.com"
+  ca_url:
+  
+#Provide orderer's names
+orderers:
+      name: orderer1    
+#Provide orderer's names and ca certificates
+orderers_info: {}
+#Provide peer's names
+peers:
+  name: peer1
+#Provide the total number of peers
+peer_count: 4
+
+users: 
+    #Base64 encoded list of users
+    #Eg. IC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMQogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgIgICAgICAgIC0ga2V5OiBrZXkyCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMgogICAgICAgIC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMgogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgICAgICAgICB2YWx1ZTogdmFsdWUxCiAgICAgICAgICAgIC0ga2V5OiBrZXkzCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMw==
+    users_list:
+    #Provides a list of user identities
+    #Eg. "user1-user2-user3"
+    users_identities:
+checks:
+  #Provides the need to refresh user certificates
+  refresh_cert_value: false
+  #Add a peer to an existing network
+  add_peer_value: False

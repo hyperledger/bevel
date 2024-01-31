@@ -4,23 +4,22 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task delete the previously created release file
+# Delete the previously created release file
 - name: Delete release file {{ pod_name }}
   file:
     path: "{{ file_path }}"
     state: absent
 
-#Git Push : Deleting the previously created value file
+# Git Push : Push the previously deleted value file
 - name: Git Push
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ gitops_value }}"
-    GIT_RESET_PATH: "platforms/hyperledger-fabric/configuration"
     msg: "[ci skip] Deleting the previously created {{ pod_name }} value file"
 
-# This task delete the previously created HelmRelease
+# Delete the previously created HelmRelease
 - name: Delete the previous {{ pod_name }} HelmRelease
   k8s:
     api_version: "helm.toolkit.fluxcd.io/v2beta1"

@@ -1,0 +1,84 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+#############################################################################################
+# This role deletes the bevel-fabric-operator resources created by ansible
+#############################################################################################
+
+# Call delete_channel for each peer
+- name: Call delete_channel for each peer
+  include_tasks: delete_channel.yaml
+  vars:
+    channel_name: "{{ channel.channel_name | lower }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+
+# Delete user identities
+- name: Delete user identities
+  k8s:
+    kind: FabricIdentity
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ org_name }}-admin"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes
+
+# Delete orderer
+- name: Delete orderer
+  k8s:
+    kind: FabricOrdererNode
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ ord.name }}"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  loop: "{{ item.services.orderers }}"
+  loop_control:
+    loop_var: ord
+  ignore_errors: yes
+  when: item.type == 'orderer'
+
+# Delete peers
+- name: Delete peers
+  k8s:
+    kind: FabricPeer
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ org_name }}-{{ peer.name }}"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  loop: "{{ item.services.peers }}"
+  loop_control:
+    loop_var: peer
+  ignore_errors: yes
+  when: item.type == 'peer'
+
+# Delete ca server
+- name: Delete ca server
+  k8s:
+    kind: FabricCA
+    api_version: "hlf.kungfusoftware.es/v1alpha1"
+    name: "{{ org_name }}-{{ item.services.ca.name }}"
+    namespace: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes
+
+# Delete namespace
+- name: Delete namespace
+  k8s:
+    kind: namespace
+    name: "{{ component_name }}"
+    state: absent
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  ignore_errors: yes

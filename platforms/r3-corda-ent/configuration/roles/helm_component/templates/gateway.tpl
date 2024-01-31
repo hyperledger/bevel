@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/gateway
+    chart: {{ charts_dir }}/cenm-gateway
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -20,7 +20,7 @@ spec:
     metadata:
       namespace: {{ component_ns }}
       labels:
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     image:
       initContainerName: {{ network.docker.url }}/{{ init_container_image }}
       gatewayContainerName: {{ main_container_image }}
@@ -35,14 +35,14 @@ spec:
       authName: {{ org.services.auth.name }}
       authPort: {{ org.services.auth.port }}
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     acceptLicense: YES
     vault:
       address: {{ vault.url }}
       role: vault-role
       authPath: {{ component_auth }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15
     config:

@@ -20,19 +20,6 @@
       path: "./build"
       state: absent
 
-  # Create Storageclass that will be used for this deployment
-  - name: Create Storage Class
-    include_role:
-      name: create/storageclass
-    vars:
-      storageclass_name: "cordaentsc"
-      git_dir: "{{ org.gitops.release_dir }}"
-      kubernetes: "{{ org.k8s }}"
-      gitops: "{{ org.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-
   # create namespace, service account and clusterrolebinding
   - name: "Create namespace, service accounts and clusterrolebinding"
     include_role: 
@@ -46,7 +33,18 @@
     loop_control:
       loop_var: org
 
-  # ---------------------------------------------------------------------- 
+  # Create Storageclass that will be used for this deployment
+  - name: Create Storage Class
+    include_role:
+      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
+    vars:
+      org_name: "{{ org.name | lower }}"
+      sc_name: "{{ org_name }}-bevel-storageclass"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
   # Setup CENM services for the network
   - name: "Setup cenm"   
     include_role: 
@@ -54,16 +52,18 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-bevel-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
     when: org.type == 'cenm'
 
-  # ----------------------------------------------------------------------  
   # Wait for cenm services to respond  
   - name: Check that CENM uri are reachable
     uri:
@@ -74,8 +74,7 @@
     loop: "{{ network['network_services'] }}"
     retries: "{{ network.env.retry_count}}"
     delay: 50
- 
-  # ----------------------------------------------------------------------   
+
   # Setup Corda Node services for the network
   - name: Setup Corda Node services
     include_role:
@@ -83,10 +82,13 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-bevel-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -99,17 +101,21 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      name: "{{ org.name | lower }}"
+      sc_name: "{{ name }}-bevel-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
+      policy_type: "r3-corda-ent"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
     when: org.type == 'notary'
 
-  vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+  # These variables can be overriden from the command line
+  vars:
+    privilege_escalate: false     # Default to NOT escalate to root privledges
+    install_os: "linux"           # Default to linux OS
+    install_arch:  "amd64"        # Default to amd64 architecture
+    bin_install_dir:  "~/bin"     # Default to /bin install directory for binaries

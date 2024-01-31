@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "besu-node.fullname" . }}-besu-config
+  labels:
+    app.kubernetes.io/name: besu-config
+    app.kubernetes.io/component: besu
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+data:
+  config.toml: |-
+    # Every possible CLI should be in this file.
+    #
+    # Please use a plausible value, besu has to at least be able to parse it.
+    # If it is a multi-valued CLI make it a TOML array.
+    # If it is a number or boolean make it a number or boolean
+    # All other config options are strings, and must be quoted.
+
+    # Node Information
+    data-path={{ .Values.node.besu.dataPath | quote }}
+    genesis-file={{ .Values.node.besu.genesisFilePath | quote }}
+    logging={{ .Values.node.besu.logging | quote }}
+    node-private-key-file={{.Values.node.besu.privateKeyPath | quote }}
+
+    # Transaction Pool
+    tx-pool-retention-hours={{ .Values.node.besu.txPool.retentionHours }}
+    tx-pool-max-size={{ .Values.node.besu.txPool.maxSize }}
+
+    {{ if  .Values.node.besu.p2p.enabled -}}
+    # P2P network
+    p2p-enabled={{ .Values.node.besu.p2p.enabled }}
+    discovery-enabled={{ .Values.node.besu.p2p.discovery }}
+    static-nodes-file={{ .Values.node.besu.p2p.staticNodes | quote }}
+    p2p-host={{ .Values.node.besu.p2p.host | quote }}
+    p2p-port={{ .Values.node.besu.p2p.port }}
+    max-peers={{ .Values.node.besu.p2p.maxPeers }}
+    {{ end }}
+
+    {{ if or .Values.node.besu.rpc.enabled .Values.node.besu.graphql.enabled .Values.node.besu.ws.enabled }}
+    host-allowlist={{ .Values.node.besu.http.allowlist }}
+    {{ end }}
+
+    {{ if  .Values.node.besu.rpc.enabled -}}
+    # JSON-RPC
+    rpc-http-enabled={{ .Values.node.besu.rpc.enabled }}
+    rpc-http-host={{ .Values.node.besu.rpc.host | quote }}
+    rpc-http-port={{ .Values.node.besu.rpc.port }}
+    rpc-http-api={{ .Values.node.besu.rpc.api }}
+    rpc-http-cors-origins={{ .Values.node.besu.rpc.corsOrigins }}
+    rpc-http-authentication-enabled={{ .Values.node.besu.rpc.authenticationEnabled }}
+    rpc-http-max-active-connections={{ .Values.node.besu.rpc.maxActiveConnections }}
+    revert-reason-enabled=true
+    {{ end }}
+
+    {{ if  .Values.node.besu.graphql.enabled -}}
+    # GRAPHQL-RPC
+    graphql-http-enabled={{ .Values.node.besu.graphql.enabled }}
+    graphql-http-host={{ .Values.node.besu.graphql.host | quote }}
+    graphql-http-port={{ .Values.node.besu.graphql.port }}
+    graphql-http-cors-origins={{ .Values.node.besu.graphql.corsOrigins }}
+    {{ end }}
+
+    {{ if  .Values.node.besu.ws.enabled -}}
+    # WebSockets API
+    rpc-ws-enabled={{ .Values.node.besu.ws.enabled }}
+    rpc-ws-host={{ .Values.node.besu.ws.host | quote }}
+    rpc-ws-port={{ .Values.node.besu.ws.port }}
+    rpc-ws-api={{ .Values.node.besu.ws.api }}
+    rpc-ws-authentication-enabled={{ .Values.node.besu.ws.authenticationEnabled }}
+    {{ end }}
+
+    {{ if  .Values.node.besu.permissions.enabled -}}
+    # Permissioning
+    permissions-nodes-config-file-enabled={{ .Values.node.besu.permissions.nodes.enabled }}
+    permissions-nodes-config-file={{ .Values.node.besu.permissions.filePath | quote }}
+    permissions-accounts-config-file-enabled={{ .Values.node.besu.permissions.accounts.enabled }}
+    permissions-accounts-config-file={{ .Values.node.besu.permissions.filePath | quote }}
+    permissions-nodes-contract-enabled={{ .Values.node.besu.permissions.nodesContract.enabled }}
+    permissions-nodes-contract-address={{ .Values.node.besu.permissions.nodesContract.address | quote }}
+    permissions-accounts-contract-enabled={{ .Values.node.besu.permissions.accountsContract.enabled }}
+    permissions-accounts-contract-address={{ .Values.node.besu.permissions.accountsContract.address | quote }}
+    {{ end }}
+
+    {{ if .Values.tessera.enabled -}}
+    # Privacy
+    privacy-enabled={{ .Values.tessera.enabled }}
+    privacy-url="{{ .Values.node.besu.privacy.scheme }}://tessera-{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.node.besu.privacy.clientport }}"
+    {{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+    privacy-public-key-file="{{ .Values.node.besu.keysPath }}/{{ .Values.node.besu.privacy.pubkeyFile }}"
+    {{ else }}
+    privacy-public-key-file="{{ .Values.node.besu.privacy.pubkeysPath }}/{{ .Values.node.besu.privacy.pubkeyFile }}"
+    {{ end }}
+    privacy-onchain-groups-enabled={{ .Values.node.besu.privacy.onchainGroupsEnabled }}
+    {{ end }}
+
+    {{ if  .Values.node.besu.metrics.enabled -}}
+    # Metrics
+    metrics-enabled={{ .Values.node.besu.metrics.enabled }}
+    metrics-host={{ .Values.node.besu.metrics.host | quote }}
+    metrics-port={{ .Values.node.besu.metrics.port }}
+    {{ end }}
+
+    {{ if  .Values.node.besu.metricsPush.enabled -}}
+    # Metrics Push
+    metrics-push-enabled={{ .Values.node.besu.metricsPush.enabled }}
+    metrics-push-host={{ .Values.node.besu.metricsPush.host | quote }}
+    metrics-push-port={{ .Values.node.besu.metricsPush.port }}
+    metrics-push-interval={{ .Values.node.besu.metricsPush.interval }}
+    metrics-push-prometheus-job={{ .Values.node.besu.metricsPush.prometheusJob | quote }}
+    {{ end }}

@@ -8,12 +8,13 @@
 # and places them in vault. Certificates are created using openssl
 # This also creates the Kubernetes secrets
 ---
-# check if ambassadortls dir is there
+# Check if ambassadortls dir is there
 - name: "check if dir exists or not"
   stat:
     path: "{{ ambassadortls }}"
   register: ambassadortlsdir_check
 
+# Ensure ambassador tls dir exists
 - name: Ensure ambassador tls dir exists
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -24,28 +25,24 @@
 # Check ambassador tls certs already created
 - name: Check if ambassador tls already created
   shell: |
-    vault kv get -field=tlscacerts {{ component_name }}/tlscerts
+    vault kv get -field=tlscacerts {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: ambassador_tls_certs
   ignore_errors: yes
-  tags:
-  - molecule-idempotence-notest
 
 # Gets the existing ambassador tls certs
-
 - name: Get ambassador and tls certs from Vault
   shell: |
-    vault kv get -format=yaml {{ component_name }}/tlscerts
+    vault kv get -format=yaml {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   register: ambassador_tls_certs_yaml
   when: not ambassador_tls_certs.failed
-  tags:
-  - molecule-idempotence-notest
 
+# Get ambassador tls certs
 - name: Get ambassador tls certs
   include_role: 
     name: "setup/get_crypto"
@@ -54,9 +51,6 @@
     type: "ambassador"
     cert_path: "{{ ambassadortls }}"
   when: ambassador_tls_certs.failed == False
-  tags:
-  - molecule-idempotence-notest
-
 
 # check if ambassadortls dir is there
 - name: "check if openssl conf file exists or not"
@@ -88,8 +82,6 @@
     domain_name_api: "{{ component_name }}api.{{ item.external_url_suffix }}"
     domain_name_web: "{{ component_name }}web.{{ item.external_url_suffix }}"   
   when: ambassador_tls_certs.failed == True  and (not openssl_conf_check.stat.exists)
-  tags:
-  - molecule-idempotence-notest
 
 # Generates the ambassador tls certificates if already not generated
 - name: Generate ambassador tls certs
@@ -98,19 +90,15 @@
   vars:
     domain_name: "{{ component_name }}.{{ item.external_url_suffix }}"
   when: ambassador_tls_certs.failed == True and (not openssl_conf_check.stat.exists)
-  tags:
-  - molecule-idempotence-notest
 
 # Stores the genreated ambassador tls certificates to vault
 - name: Putting tls certs to vault
   shell: |
-    vault kv put {{ component_name }}/tlscerts tlscacerts="$(cat {{ ambassadortls }}/ambassador.crt | base64)" tlskey="$(cat {{ ambassadortls }}/ambassador.key | base64)"
+    vault kv put {{ vault.secret_path | default(name) }}/{{ name }}/{{ component_name }}/tlscerts tlscacerts="$(cat {{ ambassadortls }}/ambassador.crt | base64)" tlskey="$(cat {{ ambassadortls }}/ambassador.key | base64)"
   environment:
     VAULT_ADDR: "{{ vault.url }}"
     VAULT_TOKEN: "{{ vault.root_token }}"
   when: ambassador_tls_certs.failed == True
-  tags:
-  - molecule-idempotence-notest  
 
 # Check if Ambassador credentials exist already
 - name: Check Ambassador cred exists
@@ -122,13 +110,11 @@
     context: "{{ kubernetes.context }}"
   register: get_ambassador_secret
 
-# This task creates the Ambassador TLS credentials for ambassador
+# Create the Ambassador TLS credentials for ambassador
 - name: Create the Ambassador credentials
   shell: |
     KUBECONFIG={{ kubernetes.config_file }} kubectl create secret tls {{ component_name }}-ambassador-certs --cert={{ ambassadortls }}/ambassador.crt --key={{ ambassadortls }}/ambassador.key -n {{ component_ns }}
   when: get_ambassador_secret.resources|length == 0
-  tags:
-  - molecule-idempotence-notest
 
 # Copy generated crt to build location for doorman and networkmap
 - name: Copy generated ambassador tls certs to given build location
@@ -137,5 +123,3 @@
     dest: "{{ cert_file }}"
     follow: yes
   when: cert_file is defined
-  tags:
-  - molecule-idempotence-notest

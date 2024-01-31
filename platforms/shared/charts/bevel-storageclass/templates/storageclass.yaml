@@ -1,0 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ include "bevel-storageclass.fullname" . }}
+reclaimPolicy: "{{ .Values.reclaimPolicy }}"
+volumeBindingMode: "{{ .Values.volumeBindingMode }}"
+{{- if .Values.provisioner }}
+provisioner: "{{ .Values.provisioner }}"
+{{- else }}
+{{ include "provisioner" . }}
+{{- end }}
+{{- with index .Values.parameters (index .Values.global.cluster.provider) }}
+parameters:
+  {{- range $key, $value := . }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}
+{{- end }}
+{{- if .Values.allowedTopologies.enabled }}
+allowedTopologies:
+  - matchLabelExpressions:
+{{- range .Values.allowedTopologies.matchLabelExpressions }}
+      - key: {{ .key }}
+        values:
+{{- range .values }}
+          - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,10 +1,8 @@
-
 ##############################################################################################
 #  Copyright Accenture. All Rights Reserved.
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 ---
 # yaml-language-server: $schema=../../../../platforms/network-schema.json
 # This is a sample configuration file for Corda Enterprise network to add a New Notary organization to existing network.
@@ -14,13 +12,14 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda-enterprise
-  version: 4.7        # Hyperledger Bevel deployment supports node and notary enterprise 4.7 version (use older tag for other version supports)
+  version: "4.7"        # Hyperledger Bevel deployment supports node and notary enterprise 4.7 version (use older tag for other version supports)
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
   #Environment section for Kubernetes setup
   env:
     type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
+    proxy_namespace: "ambassador"   # Namespace required for Ambassador Edge-Stack deployment
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:              # For a range of ports 
         from: 15005 
@@ -123,7 +122,7 @@ network:
           tlscrlsigner: password
         truststore:
           truststore: trustpass
-          rootca: password
+          rootca: rootpassword
           ssl: password
         ssl:
           networkmap: password
@@ -226,6 +225,7 @@ network:
       name: add-notary
       version: 4.7
       cenm_version: 1.5
+      firewall_version: 4.4   # Supports 4.4
       country: CH
       state: Zurich
       location: Zurich

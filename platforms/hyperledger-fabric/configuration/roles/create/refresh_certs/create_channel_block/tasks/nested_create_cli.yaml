@@ -4,9 +4,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-############################################################################################
+##############################################################################################
 # This task creates the orderer cli and fetch and modify the config block
-############################################################################################
+##############################################################################################
 
 # Create the value file for creater org first orderer
 - name: "Create valuefile for cli {{ orderer.name }}-{{ org.name }}"
@@ -21,19 +21,17 @@
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
-    fabrictools_image: "hyperledger/fabric-tools:{{ network.version }}"
-    alpine_image: "{{ docker_url }}/alpine-utils:1.0"
-    storage_class: "{{ org.name }}sc"
+    storage_class: "{{ org.name | lower }}-bevel-storageclass"
     release_dir: "{{ build_path }}"
     orderer_component: "{{ orderer.name | lower }}.{{ component_ns }}"
-    orderer_address: "{{ orderer.name | lower }}.{{ org.external_url_suffix }}:8443"
+    orderer_address: "{{ orderer.ordererAddress }}"
 
 # Start the cli using the value file created in the previous step
 - name: "Start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric_cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f {{ build_path }}/{{ org.name }}/orderer_cli_job.yaml {{ orderer.name }}-{{ org.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
 
-# waiting for fabric cli
+# Wait for fabric cli
 - name: "Wait for the fabric cli to come up"
   k8s_info:
     kind: Pod
@@ -47,8 +45,7 @@
   retries: "{{ network.env.retry_count}}"
   delay: 40
 
-############################################################################################
-# This task calls get_update_block to fetch the syschannel channel block
+# Call get_update_block to fetch the syschannel channel block
 - name: Call get_update_block to fetch the syschannel channel block
   include_tasks: get_update_block.yaml
   vars:
@@ -56,8 +53,7 @@
     channel_name: "{{ sys_channel_name }}"
     check: "fetch_block"
 
-############################################################################################
-# This task calls get_update_block to fetch the appchannel channels block
+# Call get_update_block to fetch the appchannel channels block
 - name: Call get_update_block to fetch the {{ channel_name }} channel block
   include_tasks: get_update_block.yaml
   vars:
@@ -68,8 +64,7 @@
   loop_control:
     loop_var: channel
 
-############################################################################################
-# This task calls get_update_block to update the syschannel channel block
+# Call get_update_block to update the syschannel channel block
 - name: Call get_update_block to update the syschannel channel block
   include_tasks: get_update_block.yaml
   vars:
@@ -77,8 +72,7 @@
     channel_name: "{{ sys_channel_name }}"
     check: "update_block"
 
-############################################################################################
-# This task calls get_update_block to fetch the appchannel channels block
+# Call get_update_block to fetch the appchannel channels block
 - name: Call get_update_block to update the {{ channel_name }} channel block
   include_tasks: get_update_block.yaml
   vars:
@@ -89,7 +83,7 @@
   loop_control:
     loop_var: channel
 
-# This task delete the previously created orderer HelmRelease
+# Delete the previously created orderer HelmRelease
 - name: Delete the previous {{ orderer_main.name }} HelmRelease
   k8s:
     api_version: "helm.toolkit.fluxcd.io/v2beta1"

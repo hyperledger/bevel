@@ -1,0 +1,82 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+metadata:
+  #Provide the namespace for organization's peer
+  #Eg. namespace: org1-net
+  namespace: org1-net
+  images:
+    #Provide the valid image name and version for fabric couchdb
+    #Eg. couchdb: hyperledger/fabric-couchdb:0.4.14
+    couchdb: couchdb:3.1.1
+    #Provide the valid image name and version for fabric operations console
+    #Eg. hyperledgerlabs/fabric-console:latest
+    console: ghcr.io/hyperledger-labs/fabric-console:latest
+    #Provide the valid image name and version to read certificates from vault server 
+    #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+    configtxlator: ghcr.io/hyperledger/bevel-fabric-tools:2.2.2
+  #Provide the custom labels  
+  #NOTE: Provide labels other than name, release name , release service, chart version , chart name, run
+  #These lables will not be applied to VolumeClaimTemplate of StatefulSet as labels are automatically picked up by Kubernetes
+  #Eg. labels:
+  #      role: peer
+  labels:
+
+storage:  
+  couchdb:
+    #Provide the storageclassname for couchdb
+    #Eg. storageclassname: aws-storage
+    storageclassname: gp2
+    #Provide the storagesize for storage class
+    #Eg. storagesize: 512Mi
+    storagesize: 512Mi
+
+service:
+  #Provide the name of the service as per deployment yaml.
+  #Eg. name: peer0
+  name: fabconsole
+  #Provide the serviceaccountname for vault
+  #Eg. serviceaccountname: vault-auth
+  serviceaccountname: default
+  #Provide the imagesecretname for vault
+  #Eg. imagesecretname: regcred
+  imagesecretname: ""
+  #Provide the servicetype for a peer
+  #Eg. servicetype: NodePort
+  servicetype: ClusterIP
+  #Provide the default consortium value
+  #Eg. default_consortium: SampleConsortium
+  default_consortium: SampleConsortium
+  loadBalancerType: ""
+  ports:
+    console:
+      #Provide a nodeport for grpc service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30001
+      nodeport: 
+      #Provide a cluster IP port for grpc service to be exposed
+      #Eg. clusteripport: 7051
+      clusteripport: 3000    
+    couchdb:
+      #Provide a nodeport for couchdb service in the range of 30000-32767 (optional)
+      #Eg. nodeport: 30003
+      nodeport: 
+      #Provide a cluster IP port for couchdb service to be exposed
+      #Eg. clusteripport: 5984
+      clusteripport: 5984
+      
+annotations:
+  #Extra annotations
+  service: {}
+  pvc: {}
+  deployment: {}
+
+proxy:
+  #This will be the proxy/ingress provider. Can have values "none" or "haproxy"
+  #Eg. provider: "haproxy"
+  provider: "haproxy"
+  #This field contains the external URL of the organization
+  #Eg. external_url_suffix: orderer1.org1proxy.blockchaincloudpoc.com:443
+  external_url_suffix: orderer1.org1proxy.blockchaincloudpoc.com:443

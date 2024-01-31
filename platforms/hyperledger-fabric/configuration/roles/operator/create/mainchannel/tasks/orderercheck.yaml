@@ -1,0 +1,29 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Waiting for orderer pod
+- name: "Waiting for orderer pod {{ orderer.name }} in {{ orderer_namespace }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ orderer_namespace }}"
+    component_name: "{{ orderer.name }}"
+    kubernetes: "{{ ordererorg.k8s }}"
+    label_selectors:
+      - release = {{ component_name }}
+      - app = hlf-ordnode
+  loop: "{{ ordererorg.services.orderers }}"
+  loop_control:
+    loop_var: orderer
+
+# Set orderer vars
+- name: Set orderer vars
+  set_fact:
+    orderer_msp: "{{ ordererorg.name | lower }}MSP"
+    orderer_ca: "{{ ordererorg.name | lower }}-ca"
+    orderer_admin: "{{ ordererorg.name | lower }}-admin"
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"

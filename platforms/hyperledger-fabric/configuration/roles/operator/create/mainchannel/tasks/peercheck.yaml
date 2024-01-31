@@ -1,0 +1,21 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Waiting for peer pod
+- name: "Waiting for peer pod {{ peer_name }} in {{ org.name | lower }}-net"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Pod"
+    namespace: "{{ org.name | lower }}-net"
+    component_name: "{{ peer_name.name }}"
+    kubernetes: "{{ org.k8s }}"
+    label_selectors:
+      - app = hlf-peer
+      - release = {{ org.name | lower }}-{{ component_name }}
+  loop: "{{ org.services.peers }}"
+  loop_control:
+    loop_var: peer_name

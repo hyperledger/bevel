@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/float
+    chart: {{ charts_dir }}/corda-ent-float
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -19,7 +19,6 @@ spec:
     deployment:
       annotations: {}
     nodeName: {{ component_name }}
-    peerName: {{ org.name | lower }}
     metadata:
       namespace: {{ component_ns }}
       labels: {}
@@ -32,15 +31,15 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: cordaentfloat{{ org.name | lower }}
+      authpath: {{ network.env.type }}{{ name }}float
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/{{ org.name | lower }}
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name | lower }}
       retries: 20
       sleepTimeAfterError: 20
     volume:
       baseDir: /opt/corda/base
     storage:
-      name: cordaentsc
+      name: {{ sc_name }}
     pvc:
       annotations: {}
     sleepTime: 0

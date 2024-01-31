@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/nmap
+    chart: {{ charts_dir }}/cenm-networkmap
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -18,11 +18,11 @@ spec:
   values:
     nodeName: {{ org.services.networkmap.name | lower }}
     bashDebug: false
-    prefix: {{ org.name }}
+    prefix: {{ name }}
     metadata:
       namespace: {{ component_ns }}
     storage:
-      name: "cordaentsc"
+      name: {{ sc_name }}
       memory: 512Mi
     image:
       initContainer: {{ network.docker.url }}/{{ init_container_image }}
@@ -35,9 +35,9 @@ spec:
     vault:
       address: {{ org.vault.url }}
       role: vault-role
-      authPath: cordaent{{ org.name | lower }}
+      authPath: {{ network.env.type }}{{ name }}
       serviceAccountName: vault-auth
-      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
+      certSecretPrefix: {{ org.vault.secret_path | default('secretsv2') }}/data/{{ name }}
       retries: 10
       sleepTimeAfterError: 15
     service:

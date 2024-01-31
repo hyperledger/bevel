@@ -5,7 +5,10 @@ set -x
 CURRENT_DIR=${PWD}
 
 echo "installing jq "
-apt-get install -y jq
+. /scripts/package-manager.sh
+packages_to_install="jq"
+install_packages "$packages_to_install"
+
 echo "installing configtxlator"
 mkdir temp
 cd temp/

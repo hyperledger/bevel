@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/tessera_key_mgmt
+    chart: {{ charts_dir }}/quorum-tessera-key-mgmt
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -27,8 +27,9 @@ spec:
     vault:
       address: {{ vault.url }}
       secretengine: {{ vault.secret_path | default('secretsv2') }}
-      authpath: quorum{{ org_name }}
-      keyprefix: {{ component_ns }}/crypto
+      authpath: {{ network.env.type }}{{ org_name }}
+      keyprefix: {{ org_name }}/crypto
       role: vault-role
       serviceaccountname: vault-auth
-      tmprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ component_ns }}/crypto
+      tmprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org_name }}/crypto
+      type: {{ vault.type | default("hashicorp") }}

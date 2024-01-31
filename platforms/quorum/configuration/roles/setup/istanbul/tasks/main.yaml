@@ -4,19 +4,19 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# This task checks if the istanbul-tools is already in place or not
+# Check if the istanbul-tools is already in place or not
 - name: Check istanbul
   stat:
     path: "{{ bin_install_dir }}/istanbul"
   register: istanbul_stat_result
 
-# This task checks if istanbul repo directory exists
+# Check if istanbul repo directory exists
 - name: Check istanbul repo dir exists
   stat:
     path: "{{ bin_install_dir }}/istanbul_repo"
   register: repo_stat_result
 
-# This task clones the istanbul-tools git repository
+# Clone the istanbul-tools git repository
 - name: Clone the istanbul-tools git repo
   git:
     repo: "{{ istanbul.repo }}"
@@ -25,13 +25,13 @@
     dest: "{{ bin_install_dir }}/istanbul_repo"
   when: not ( repo_stat_result.stat.exists and istanbul_stat_result.stat.exists )
 
-# This task builds the istanbul binary
+# Build the istanbul binary
 - name: Make istanbul
   make: 
     chdir: "{{ bin_install_dir }}/istanbul_repo" 
   when: istanbul_stat_result.stat.exists == False
 
-# This task creates the bin directory, if it doesn't exist, for storing the istanbul binary
+# Create the bin directory, if it doesn't exist, for storing the istanbul binary
 - name: "Create bin directory"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
@@ -39,7 +39,7 @@
     path: "{{ bin_install_dir }}"
   when: istanbul_stat_result.stat.exists == False
 
-# This task puts the istanbul binary to above created bin directory
+# Move the istanbul binary to above created bin directory
 - name: Copy istanbul binary to destination directory
   copy:
     src: "{{ bin_install_dir }}/istanbul_repo/build/bin/istanbul"

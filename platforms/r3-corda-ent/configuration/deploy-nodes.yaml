@@ -23,11 +23,11 @@
   # Create Storageclass that will be used for this deployment
   - name: Create Storage Class
     include_role:
-      name: create/storageclass
+      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
     vars:
-      storageclass_name: "cordaentsc"
-      git_dir: "{{ org.gitops.release_dir }}"
-      kubernetes: "{{ org.k8s }}"
+      org_name: "{{ org.name | lower }}"
+      sc_name: "{{ org_name }}-bevel-storageclass"
+      region: "{{ org.k8s.region | default('eu-west-1') }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
@@ -44,7 +44,7 @@
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-  # ----------------------------------------------------------------------  
+
   # Check that cenm services are reachable
   - name: Check that CENM uri are reachable
     uri:
@@ -56,7 +56,6 @@
     retries: "{{ network.env.retry_count}}"
     delay: 50
 
-  # ----------------------------------------------------------------------   
   # Setup Corda Node services for the network
   - name: Setup Corda Node services
     include_role:
@@ -64,6 +63,7 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      sc_name: "{{ organisation }}-bevel-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
@@ -80,6 +80,7 @@
     vars:
       services: "{{ org.services }}"
       organisation: "{{ org.name | lower }}"
+      sc_name: "{{ organisation }}-bevel-storageclass"
       component_ns: "{{ org.name | lower }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"

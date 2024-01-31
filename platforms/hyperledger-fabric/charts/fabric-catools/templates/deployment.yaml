@@ -1,0 +1,603 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Values.metadata.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    {{- if $.Values.annotations }}
+    {{- range $key, $value := $.Values.annotations.deployment }}
+    {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}     
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      name: {{ .Values.metadata.name }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.metadata.name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      - name: ca-tools-pv
+        persistentVolumeClaim:
+          claimName: ca-tools-pvc
+      - name: ca-tools-crypto-pv
+        persistentVolumeClaim:
+          claimName: ca-tools-crypto-pvc
+      - name: certcheck
+        emptyDir:
+          medium: Memory
+      - name: generate-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-orderer.sh
+              path: generate-crypto-orderer.sh
+      - name: generate-orderer-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: orderer-script.sh
+              path: orderer-script.sh
+      - name: generate-crypto-peer
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-peer.sh
+              path: generate-crypto-peer.sh
+      - name: generate-crypto-add-peer
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-add-peer.sh
+              path: generate-crypto-add-peer.sh
+      - name: generate-user-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-user-crypto.sh
+              path: generate-user-crypto.sh
+      - name: store-vault-orderer
+        configMap:
+          name: orderer-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-orderer.sh
+              path: store-vault-orderer.sh
+      - name: store-vault-peer
+        configMap:
+          name: peer-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-peer.sh
+              path: store-vault-peer.sh
+      - name: store-vault-users
+        configMap:
+          name: users-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-users.sh
+              path: store-vault-users.sh     
+      - name: none-config
+        configMap:
+          name: msp-config-file
+          defaultMode: 0775
+          items:
+            - key: none-config.yaml
+              path: none-config.yaml
+      - name: no-none-config
+        configMap:
+          name: msp-config-file
+          defaultMode: 0775
+          items:
+            - key: no-none-config.yaml
+              path: no-none-config.yaml
+      {{- if eq $.Values.metadata.component_type "peer" }}
+      {{- range $orderers := $.Values.orderers_info }}
+      - name: {{ $orderers.name }}-tls-cert
+        configMap:
+          name: tls-cert
+          defaultMode: 0775
+          items:
+            - key: {{ $orderers.name }}.crt
+              path: {{ $orderers.name }}.crt
+      {{- end }}
+      {{- end }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
+      initContainers:
+        - name: init-check-certificates
+          image: {{ $.Values.image.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_USERS
+            value: {{ $.Values.vault.secretusers }}
+          - name: VAULT_SECRET_ORDERER
+            value: {{ $.Values.vault.secretorderer }}
+          - name: VAULT_SECRET_PEER
+            value: {{ $.Values.vault.secretpeer }}
+          - name: VAULT_SECRET_CONFIG_FILE
+            value: {{ $.Values.vault.secretconfigfile }}
+          - name: VAULT_SECRET_PEER_ORDERER_TLS
+            value: {{ $.Values.vault.secretpeerorderertls }}
+          - name: COMPONENT_TYPE
+            value: {{ $.Values.metadata.component_type }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.namespace }}
+          - name: ORG_NAME_EXT
+            value: {{ $.Values.metadata.org_name }}
+          - name: PROXY
+            value: {{ .Values.metadata.proxy }}
+          - name: ORDERERS_NAMES
+            value: "{{ $.Values.orderers.name }}"
+          - name: PEERS_NAMES
+            value: "{{ $.Values.peers.name }}"
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
+          - name: MOUNT_PATH
+            value: "/certcheck"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.vault.type }}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env sh
+              . /scripts/bevel-vault.sh
+
+              # Calling a function to retrieve the vault token.
+              vaultBevelFunc "init"
+              
+              mkdir -p ${MOUNT_PATH}
+              OUTPUT_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
+              mkdir -p ${OUTPUT_PATH}/ca
+              mkdir -p /root/ca-tools/${ORG_NAME_EXT}
+
+              SECRET_CERT={{ $.Values.vault.secretcert }}
+              vault_secret_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $1}')
+              vault_data_key=$(echo ${SECRET_CERT} |awk -F "?" '{print $2}')
+
+              # Get ca cert
+              vaultBevelFunc "readJson" "${vault_secret_key}"
+              VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+              echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem
+
+              SECRET_KEY={{ $.Values.vault.secretkey }}
+              vault_secret_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $1}')
+              vault_data_key=$(echo ${SECRET_KEY} |awk -F "?" '{print $2}')
+
+              # Get ca key
+              vaultBevelFunc "readJson" "${vault_secret_key}"
+              VALUE_OF_SECRET=$(echo ${VAULT_SECRET} | jq -r ".[\"${vault_data_key}\"]")
+              echo "${VALUE_OF_SECRET}" > ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key
+
+              # Check if admin msp already created
+              vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/admin/msp"
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_msp.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_msp.txt
+              fi
+
+              # Check if admin tls already created
+              vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/admin/tls"
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates present in vault"
+                touch ${MOUNT_PATH}/present_tls.txt
+              else
+                echo "Certficates absent in vault. Ignore error warning."
+                touch ${MOUNT_PATH}/absent_tls.txt
+              fi
+
+              if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                SERVICES_NAMES=$ORDERERS_NAMES;
+              fi;
+
+              if [ "$COMPONENT_TYPE" = "peer" ]; then
+                SERVICES_NAMES=$PEERS_NAMES;
+              fi;
+
+              list=$(echo "$SERVICES_NAMES" | tr "-" "\n")
+              for SERVICE in $list
+              do
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp"
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/msp"
+                fi;
+
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault"
+                  touch ${MOUNT_PATH}/present_msp_${SERVICE_NAME}.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_msp_${SERVICE_NAME}.txt
+                fi
+
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_PEER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls"
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ORDERER}/${SERVICE_NAME}.${COMPONENT_NAME}/tls"
+                fi;
+
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault"
+                  touch ${MOUNT_PATH}/present_tls_${SERVICE_NAME}.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_tls_${SERVICE_NAME}.txt
+                fi
+              done
+
+              if [ $COMPONENT_TYPE == 'peer' ];
+              then
+                # Check if msp config file already created
+                vaultBevelFunc "readJson" "${VAULT_SECRET_CONFIG_FILE}"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault."
+                  touch ${MOUNT_PATH}/present_config_file.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_config_file.txt
+                fi
+
+                # Check if msp config file already created
+                vaultBevelFunc "readJson" "${VAULT_SECRET_PEER_ORDERER_TLS}"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  echo "Certificates present in vault."
+                  touch ${MOUNT_PATH}/present_orderer_tls_cert.txt
+                else
+                  echo "Certficates absent in vault. Ignore error warning."
+                  touch ${MOUNT_PATH}/absent_orderer_tls_cert.txt
+                fi          
+              fi;
+
+              if [ "$USERS_IDENTITIES" ]
+              then
+                identities_list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")
+                for user_identity in $identities_list
+                do
+                  # Check if users msp already created
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/${user_identity}/msp"
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
+                  then
+                    echo "Certificates present in vault."
+                    touch ${MOUNT_PATH}/present_msp_${user_identity}.txt
+                  else
+                    echo "Certficates absent in vault. Ignore error warning."
+                    touch ${MOUNT_PATH}/absent_msp_${user_identity}.txt
+                  fi
+
+                  # Check if users tls already created
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_USERS}/${user_identity}/tls"
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
+                  then
+                    echo "Certificates present in vault"
+                    touch ${MOUNT_PATH}/present_tls_${user_identity}.txt
+                  else
+                    echo "Certficates absent in vault. Ignore error warning."
+                    touch ${MOUNT_PATH}/absent_tls_${user_identity}.txt
+                  fi
+                done
+              fi
+          volumeMounts:
+          - name: ca-tools-pv
+            mountPath: /root/ca-tools
+          - name: ca-tools-crypto-pv
+            mountPath: /crypto-config
+          - name: certcheck
+            mountPath: /certcheck
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+      containers:
+        - name: {{ .Values.metadata.name }}
+          image: "{{ .Values.image.catools }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: COMPONENT_TYPE
+            value: {{ $.Values.metadata.component_type }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.namespace }}
+          - name: ORG_NAME_EXT
+            value: {{ $.Values.metadata.org_name }}
+          - name: REFRESH_CERTS
+            value: "{{ $.Values.checks.refresh_cert_value }}"
+          - name: ADD_PEER
+            value: "{{ $.Values.checks.add_peer_value }}"
+          - name: ORDERERS_NAMES
+            value: "{{ $.Values.orderers.name }}"
+          - name: PEERS_NAMES
+            value: "{{ $.Values.peers.name }}"
+          - name: USERS
+            value: {{ $.Values.users.users_list }}
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
+          - name: SUBJECT
+            value: {{ .Values.org_data.component_subject }}
+          - name: CERT_SUBJECT
+            value: {{ .Values.org_data.cert_subject }}
+          - name: CA_URL
+            value: {{ .Values.org_data.ca_url }}
+          - name: EXTERNAL_URL_SUFFIX
+            value: {{ .Values.org_data.external_url_suffix }}
+          - name: PROXY
+            value: {{ .Values.metadata.proxy }}
+          - name: MOUNT_PATH
+            value: "/certcheck"          
+          command: ["sh", "-c"]
+          args:
+            - |-
+              
+              if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                if [ -e  ${MOUNT_PATH}/absent_msp.txt ]; then
+                  ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+                  ORG_CYPTO_ORDERER_FOLDER="/crypto-config/ordererOrganizations/${COMPONENT_NAME}/orderers"
+
+                  SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+                  if [ -n "$SK_NAME" ]; then
+                      rm ${ORG_CYPTO_FOLDER}/msp/keystore/*_sk
+                      rm /root/ca-tools/${ORG_NAME_EXT}/admin/msp/keystore/*_sk
+                      rm /root/ca-tools/${ORG_NAME_EXT}/admin/tls/keystore/*_sk
+                  fi;
+
+                  # Generate crypto material for organization orderers (admin)
+                  cd /root/ca-tools/${ORG_NAME_EXT} 
+                  ./generate-crypto-orderer.sh          
+                fi;
+
+                # Generate crypto material for organization orderers (for each orderer)
+                orderers=$(echo "$ORDERERS_NAMES" | tr "-" "\n")
+                for ORDERER_NAME in $orderers
+                do
+                  if [ -e  ${MOUNT_PATH}/absent_msp_${ORDERER_NAME}.txt ]; then
+                      echo "need to execute scripts for ${ORDERER_NAME} "
+
+                      SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
+                      if [ -n "$SK_NAME" ]; then
+                          rm  ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/*_sk
+                          rm /root/ca-tools/${ORG_NAME_EXT}/cas/orderers/msp/keystore/*_sk
+                          rm /root/ca-tools/${ORG_NAME_EXT}/cas/orderers/tls/keystore/*_sk
+                      fi;
+                      cd /root/ca-tools/${ORG_NAME_EXT} 
+                      ./orderer-script.sh ${ORDERER_NAME}                                     
+                  fi;
+                done
+              fi;
+
+              if [ "$COMPONENT_TYPE" = "peer" ]; then
+
+                list=$(echo "$PEERS_NAMES" | tr "-" "\n")         
+                for PEER in $list
+                do
+                  PEER_NAME="${PEER%%,*}"
+
+                  if [ -e  ${MOUNT_PATH}/absent_msp.txt ] || [ -e ${MOUNT_PATH}/absent_msp_${PEER_NAME}.txt ] || [ "$REFRESH_CERTS" = "true" ]; then
+
+                    ORG_CYPTO_FOLDER="/crypto-config/peerOrganizations/${COMPONENT_NAME}/users/Admin@${COMPONENT_NAME}"
+                
+                    SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
+                    if [ -n "$SK_NAME" ]; then
+                        rm ${ORG_CYPTO_FOLDER}/msp/keystore/*_sk
+                        rm /root/ca-tools/${ORG_NAME_EXT}/admin/msp/keystore/*_sk
+                        rm /root/ca-tools/${ORG_NAME_EXT}/admin/tls/keystore/*_sk
+                    fi;
+
+                    # Generate crypto material for organization peers
+                    cd /root/ca-tools/${ORG_NAME_EXT} 
+                    if [ "$ADD_PEER" = "false" ]; then
+                      ./generate-crypto-peer.sh    
+                      break
+                    else
+                      ./generate-crypto-add-peer.sh  
+                      break
+                    fi;
+                  fi;
+                done 
+
+                # Generate crypto material for users
+                list=$(echo "$USERS_IDENTITIES" | tr "-" "\n")         
+                for USER in $list
+                do
+                  if ([ "$USERS" ] && [ -e  ${MOUNT_PATH}/absent_msp_${USER}.txt ]) || [ "$REFRESH_CERTS" = "true" ]
+                  then
+                    cd /root/ca-tools/${ORG_NAME_EXT}
+                    ./generate-user-crypto.sh peer ${USERS}
+                    break
+                  fi;
+                done
+              fi;
+              
+              # this command creates the indicator of the completion of scripts
+              touch ${MOUNT_PATH}/flag_finish.txt
+              tail -f /dev/null
+          volumeMounts:
+          - name: ca-tools-pv
+            mountPath: /root/ca-tools
+          - name: ca-tools-crypto-pv
+            mountPath: /crypto-config
+          - name: certcheck
+            mountPath: /certcheck
+          - name: generate-crypto
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-crypto-orderer.sh
+            subPath: generate-crypto-orderer.sh
+          - name: generate-orderer-crypto
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/orderer-script.sh
+            subPath: orderer-script.sh
+          - name: generate-crypto-peer
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-crypto-peer.sh
+            subPath: generate-crypto-peer.sh
+          - name: generate-crypto-add-peer
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-crypto-add-peer.sh
+            subPath: generate-crypto-add-peer.sh
+          - name: generate-user-crypto
+            mountPath: /root/ca-tools/{{ $.Values.metadata.org_name }}/generate-user-crypto.sh
+            subPath: generate-user-crypto.sh
+        - name: store-vault
+          image: {{ $.Values.image.alpineutils }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.vault.authpath }}
+          - name: VAULT_SECRET_USERS
+            value: {{ $.Values.vault.secretusers }}
+          - name: VAULT_SECRET_ORDERER
+            value: {{ $.Values.vault.secretorderer }}
+          - name: VAULT_SECRET_PEER
+            value: {{ $.Values.vault.secretpeer }}
+          - name: VAULT_SECRET_PEER_ORDERER_TLS
+            value: {{ $.Values.vault.secretpeerorderertls }}
+          - name: VAULT_SECRET_CONFIG_FILE
+            value: {{ $.Values.vault.secretconfigfile }}
+          - name: VAULT_SECRET_COUCHDB
+            value: {{ $.Values.vault.secretcouchdb }}
+          - name: COMPONENT_TYPE
+            value: {{ $.Values.metadata.component_type }}
+          - name: COMPONENT_NAME
+            value: {{ $.Values.metadata.namespace }}
+          - name: REFRESH_CERTS
+            value: "{{ $.Values.checks.refresh_cert_value }}"
+          - name: PROXY
+            value: {{ .Values.metadata.proxy }}
+          - name: EXTERNAL_URL_SUFFIX
+            value: {{ .Values.org_data.external_url_suffix }}
+          - name: ORDERERS_NAMES
+            value: "{{ $.Values.orderers.name }}"
+          - name: PEERS_NAMES
+            value: "{{ $.Values.peers.name }}"
+          - name: USERS_IDENTITIES
+            value: {{ $.Values.users.users_identities }}
+          - name: MOUNT_PATH
+            value: "/certcheck" 
+          command: ["sh", "-c"]
+          args:
+            - |-
+              . /scripts/package-manager.sh
+              # Define the packages to install
+              packages_to_install="jq curl bash"
+              install_packages "$packages_to_install"
+
+              while ! [ -f ${MOUNT_PATH}/flag_finish.txt ]
+              do
+                echo 'Waiting for completion of scripts'
+                sleep 2s
+              done
+
+              if [ -e /${MOUNT_PATH}/flag_finish.txt ]; then
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  # Generate crypto material for organization orderers
+                  cd /scripts/orderer
+                  ./store-vault-orderer.sh
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  # Generate crypto material for organization peers
+                  cd /scripts/peer
+                  ./store-vault-peer.sh
+                  if [ "$USERS_IDENTITIES" ]
+                  then
+                    cd /scripts/peer
+                    ./store-vault-users.sh
+                  fi;    
+                fi;
+              fi;
+
+              # Raises an error if any certificate has not been stored correctly
+              if [ -e /certcheck/certs_not_found.txt ]; then
+                exit 1
+              fi
+              tail -f /dev/null
+          volumeMounts:
+          - name: ca-tools-pv
+            mountPath: /root/ca-tools
+          - name: ca-tools-crypto-pv
+            mountPath: /crypto-config
+          - name: certcheck
+            mountPath: /certcheck
+          - name: store-vault-orderer
+            mountPath: /scripts/orderer/store-vault-orderer.sh
+            subPath: store-vault-orderer.sh
+          - name: store-vault-peer
+            mountPath: /scripts/peer/store-vault-peer.sh
+            subPath: store-vault-peer.sh
+          - name: store-vault-users
+            mountPath: /scripts/peer/store-vault-users.sh
+            subPath: store-vault-users.sh
+          {{ if and (eq $.Values.metadata.component_type "peer") (ne $.Values.metadata.proxy "none") }}
+          - name: no-none-config
+            mountPath: /crypto-config/peerOrganizations/{{ $.Values.metadata.namespace }}/msp/config.yaml
+            subPath: no-none-config.yaml
+          {{ end }}
+          {{ if and (eq $.Values.metadata.component_type "peer") (eq $.Values.metadata.proxy "none") }}
+          - name: none-config
+            mountPath: /crypto-config/peerOrganizations/{{ $.Values.metadata.namespace }}/msp/config.yaml
+            subPath: none-config.yaml
+          {{ end }}
+          {{- if eq $.Values.metadata.component_type "peer" }}
+          {{- range $orderers := $.Values.orderers_info }}
+          - name: {{ $orderers.name }}-tls-cert
+            mountPath: /tlscerts/{{ $orderers.name }}.crt
+            subPath: {{ $orderers.name }}.crt
+          {{- end }}
+          {{- end }}
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh

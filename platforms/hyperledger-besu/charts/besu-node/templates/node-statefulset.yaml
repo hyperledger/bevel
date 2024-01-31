@@ -1,0 +1,211 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "besu-node.fullname" . }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: besu-statefulset
+    app.kubernetes.io/component: besu
+    app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.deployment }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      app.kubernetes.io/name: besu-statefulset
+      app.kubernetes.io/component: besu
+      app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: helm
+  serviceName: {{ include "besu-node.fullname" . }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.pvc }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: storage-{{ .Release.Name }}
+      resources:
+        requests:
+          storage: "{{ .Values.storage.size }}"
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: besu-statefulset
+        app.kubernetes.io/component: besu
+        app.kubernetes.io/part-of: {{ include "besu-node.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.node.besu.metrics.port | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      initContainers:
+
+{{- if has .Values.global.cluster.provider .Values.volumePermissionsFix }}
+      # fix for minikube and PVC's only writable as root https://github.com/kubernetes/minikube/issues/1990
+      - name: volume-permission-besu
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /data"]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+        securityContext:
+          runAsUser: 0
+{{- end}}
+
+      containers:
+      - name: {{ .Release.Name }}-besu
+        image: {{ .Values.image.besu.repository }}:{{ .Values.image.besu.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          requests:
+            cpu: "{{ .Values.node.besu.resources.cpuRequest }}"
+            memory: "{{ .Values.node.besu.resources.memRequest }}"
+          limits:
+            cpu: "{{ .Values.node.besu.resources.cpuLimit }}"
+            memory: "{{ .Values.node.besu.resources.memLimit }}"
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+{{- if .Values.node.besu.envBesuOpts }}
+          - name: BESU_OPTS
+            value: "{{ .Values.node.besu.envBesuOpts }}"
+{{- end }}    
+{{- if .Values.node.usesBootnodes }}
+          - name: BESU_BOOTNODES
+            valueFrom:
+              configMapKeyRef:
+                name: besu-bootnodes
+                key: bootnodes-string
+{{- end }}
+        volumeMounts:
+          - name: besu-keys
+            mountPath: {{ .Values.node.besu.keysPath }}
+            readOnly: true
+{{- if .Values.tessera.enabled }}
+          - name: tessera-keys
+            mountPath: {{ .Values.node.besu.privacy.pubkeysPath }}
+            readOnly: true
+{{- end }}
+          - name: genesis
+            mountPath: /etc/genesis
+            readOnly: true
+          - name: static-nodes
+            mountPath: /config/static
+          - name: besu-config
+            mountPath: /etc/besu
+            readOnly: true
+          - name: data
+            mountPath: {{ .Values.node.besu.dataPath }}
+        ports:
+          - name: json-rpc
+            containerPort: {{ .Values.node.besu.rpc.port }}
+            protocol: TCP
+          - name: ws
+            containerPort: {{ .Values.node.besu.ws.port }}
+            protocol: TCP
+          - name: graphql
+            containerPort: {{ .Values.node.besu.graphql.port }}
+            protocol: TCP
+          - name: rlpx
+            containerPort: {{ .Values.node.besu.p2p.port }}
+            protocol: TCP
+          - name: discovery
+            containerPort: {{ .Values.node.besu.p2p.port }}
+            protocol: UDP
+          - name: metrics
+            containerPort: {{ .Values.node.besu.metrics.port }}
+            protocol: TCP
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - |
+            exec
+            /opt/besu/bin/besu \
+              --config-file=/etc/besu/config.toml \
+              --identity={{ .Values.node.besu.identity | quote }} --miner-enabled=false \
+              --Xdns-enabled=true --Xdns-update-enabled=true --Xnat-kube-service-name={{ include "besu-node.fullname" . }} \
+              --min-gas-price=0
+
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 8545
+          initialDelaySeconds: 180
+          periodSeconds: 60
+      volumes:
+      - name: genesis
+        configMap:
+          name: besu-genesis
+          items:
+            - key: genesis.json
+              path: genesis.json
+      - name: static-nodes
+        configMap:
+          name: besu-peers
+          items:
+            - key: static-nodes.json
+              path: static-nodes.json
+      - name: besu-config
+        configMap:
+          name: {{ include "besu-node.fullname" . }}-besu-config
+      - name: besu-keys
+        secret:
+          secretName: {{ include "besu-node.fullname" . }}-keys
+{{- if .Values.tessera.enabled }}
+      - name: tessera-keys
+        secret:
+          secretName: tessera-{{ .Release.Name }}-keys
+{{- end }}
+{{- if .Values.node.besu.permissions.enabled }}
+      - name: permissions-config
+        configMap:
+          name: {{ include "besu-node.fullname" . }}-permissions
+{{- end }}
+

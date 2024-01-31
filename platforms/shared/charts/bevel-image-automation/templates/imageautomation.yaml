@@ -1,0 +1,53 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: {{ .Values.image.name }}
+spec:
+  image: {{ .Values.image.repository }}  
+  interval: {{ .Values.image.pollingInterval }}
+  {{- if .Values.image.pullSecrets }}
+  secretRef:
+    name: {{ $.Values.image.pullSecrets }}
+  {{- end }}
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: {{ .Values.image.name }}
+spec:
+  imageRepositoryRef:
+    name: {{ .Values.image.name }}
+  filterTags: 
+    {{- toYaml $.Values.image.filter | nindent 4 }}
+  policy: 
+    {{- toYaml $.Values.image.policy | nindent 4 }}
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: {{ .Values.image.name }}
+spec:
+  interval: {{ .Values.image.pollingInterval }}
+  sourceRef:
+    kind: GitRepository
+    name: {{ .Values.git.fluxrepo }}
+  git:
+    checkout:
+      ref:
+        branch: "{{ .Values.git.branch }}"
+    commit:
+      author:
+        email: fluxcdbot@particule.io
+        name: fluxcdbot
+      messageTemplate: {{ .Values.git.commitMessage }}
+    push:
+      branch: "{{ .Values.git.branch }}"
+  update:
+    strategy: Setters
+ 

@@ -1,0 +1,42 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  annotations:
+  labels:
+    run: {{ .Values.nodeName }}
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ .Values.nodeName }}
+  type: {{ .Values.service.type }}    
+  ports:
+    - protocol: TCP 
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+{{ if $.Values.ambassador }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.nodeName }}-mapping
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: {{ .Values.nodeName }}.{{ .Values.ambassador.external_url_suffix }}
+  prefix: /
+  service: http://{{ .Values.nodeName }}.{{ .Values.metadata.namespace }}:{{ .Values.service.port }}
+{{ end }}
+

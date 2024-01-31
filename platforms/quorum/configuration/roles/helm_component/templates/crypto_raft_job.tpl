@@ -10,7 +10,7 @@ spec:
   interval: 1m
   chart:
    spec:
-    chart: {{ charts_dir }}/crypto_raft
+    chart: {{ charts_dir }}/quorum-raft-crypto-gen
     sourceRef:
       kind: GitRepository
       name: flux-{{ network.env.type }}
@@ -23,20 +23,15 @@ spec:
       name: {{ component_name }}
       namespace: {{ component_ns }}
     image:
-      initContainerName: {{ network.docker.url }}/alpine-utils:1.0
+      initContainerName: ghcr.io/hyperledger/bevel-alpine:latest
       node: quorumengineering/quorum:{{ network.version }}
       pullPolicy: IfNotPresent
-    acceptLicense: YES
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: quorum{{ org_name }}
+      authpath: {{ network.env.type }}{{ org_name }}
       serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}-quo
+      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}
       retries: 30
-    healthCheckNodePort: 0
-    sleepTimeAfterError: 60
+      type: {{ vault.type | default("hashicorp") }}
     sleepTime: 10
-    healthcheck:
-      readinesscheckinterval: 10
-      readinessthreshold: 1

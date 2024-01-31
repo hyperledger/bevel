@@ -1,0 +1,257 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+  namespace: {{ $.Values.metadata.namespace }}
+  labels:
+    app: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+    app.kubernetes.io/name: approvecc-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: approvecc-{{ $.Values.peer.name }}-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+        app.kubernetes.io/name: approvecc-{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}-{{ $.Values.chaincode.sequence }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      {{- if .Values.vault.imagesecretname }}
+      imagePullSecrets:
+        - name: {{ $.Values.vault.imagesecretname }}
+      {{- end }}
+      volumes:
+      {{ if .Values.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: {{ $.Values.vault.tls }}
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{ end  }}
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      {{ if .Values.chaincode.pdc.enabled }}
+      - name: pdcconfig
+        configMap:
+          defaultMode: 420
+          name: {{ .Release.Name }}-collections-config
+      {{ end }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: certificates-init
+        image: {{ $.Values.metadata.images.alpineutils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.vault.address }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.vault.authpath }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.vault.role }}
+        - name: VAULT_PEER_SECRET_PREFIX
+          value: "{{ $.Values.vault.adminsecretprefix }}"
+        - name: VAULT_ORDERER_SECRET_PREFIX
+          value: "{{ $.Values.vault.orderersecretprefix }}"
+        - name: MOUNT_PATH
+          value: /secret
+        - name: VAULT_TYPE
+          value: "{{ $.Values.vault.type }}"
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          . /scripts/bevel-vault.sh
+
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+
+          echo "Getting Orderer TLS certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_ORDERER_SECRET_PREFIX}/tls"
+
+          TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
+          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
+          mkdir -p ${OUTPUT_PATH}
+          echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+
+          echo "Getting MSP certificates from Vault."
+          vaultBevelFunc "readJson" "${VAULT_PEER_SECRET_PREFIX}/msp"
+
+          ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+          CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+          KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+          SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
+          TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+          OUTPUT_PATH="${MOUNT_PATH}/admin/msp" # /secret/admin/msp
+          mkdir -p ${OUTPUT_PATH}/admincerts
+          mkdir -p ${OUTPUT_PATH}/cacerts
+          mkdir -p ${OUTPUT_PATH}/keystore
+          mkdir -p ${OUTPUT_PATH}/signcerts
+          mkdir -p ${OUTPUT_PATH}/tlscacerts
+
+          echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+          echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+          echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+          echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+          echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+        volumeMounts:
+        {{ if .Values.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: certificates
+          mountPath: /secret
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: approvechaincode
+        image: {{ $.Values.metadata.images.fabrictools }}
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/bin/bash sh
+ 
+          ## Checking approved chaincode
+          APPROVED=$(peer lifecycle chaincode queryapproved --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} -O json | \
+            jq --arg SEQUENCE "${CHAINCODE_SEQUENCE}" --arg VERSION "$CHAINCODE_VERSION" \
+            'select((.sequence|tostring)==$SEQUENCE and (.version|tostring)==$VERSION)')
+
+          if [ -n "${APPROVED}" ]
+          then
+            echo "chaincode ${CHAINCODE_NAME} with version ${CHAINCODE_VERSION} and sequence ${CHAINCODE_SEQUENCE} is approved in channel ${CHANNEL_NAME}, skipping... "
+            exit 0
+          fi
+
+          echo $COMMIT_ARGUMENTS>COMMIT_ARGUMENTS.txt
+          COMMIT_ARGUMENTS=$(< COMMIT_ARGUMENTS.txt)
+          
+          echo "Extracting package id"
+          peer lifecycle chaincode queryinstalled > log.txt
+          PACKAGE_ID=$(cat log.txt | grep "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" | sed -n "/${CC_NAME}_${CC_VERSION}/{s/^Package ID: //; s/, Label:.*$//; p;}")
+          echo "Package Id Extracted ${PACKAGE_ID}"
+
+          APPROVE_CMD="peer lifecycle chaincode approveformyorg -o ${ORDERER_URL} --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --channelID ${CHANNEL_NAME} --name ${CHAINCODE_NAME} --version ${CHAINCODE_VERSION} --package-id ${PACKAGE_ID} --sequence ${CHAINCODE_SEQUENCE}"
+
+          if [ "${INIT_REQUIRED}" = "true" ]
+          then
+            init_flag=" --init-required"
+            APPROVE_CMD=${APPROVE_CMD}${init_flag}
+          fi
+
+          echo "Entering if loop"
+          if [ "${PDC_ENABLED}" = "true" ]
+          then
+            pdc_config=" --collections-config /opt/pdc/collections_config.json"
+            APPROVE_CMD=${APPROVE_CMD}${pdc_config}
+            echo "Approve command post collection config: " ${APPROVE_CMD}
+          elif [ -n "${COLLECTIONS_CONFIG}" ]
+          then
+            echo "chaincode collection config path: ${COLLECTIONS_CONFIG}"
+            echo "Inside if for collection config"
+            ## Git repository clone for private data collection config
+            mkdir -p /root/.ssh/
+            ssh-keyscan {{ $.Values.chaincode.repository.hostname }} > /root/.ssh/known_hosts
+            git_password=$(cat /opt/gopath/src/github.com/hyperledger/fabric/crypto/user_cred)
+            cd /tmp && git clone https://{{ $.Values.chaincode.repository.git_username }}:$git_password@{{ $.Values.chaincode.repository.url }} -b {{ $.Values.chaincode.repository.branch }} chaincode
+            mkdir -p $GOPATH/src/github.com/chaincode
+            cp -R /tmp/chaincode/{{ $.Values.chaincode.repository.path }}/* $GOPATH/src/github.com/chaincode/
+            #Config file path
+            CONFIG_SRC_PATH="$GOPATH/src/github.com/chaincode/${CHAINCODE_NAME}/${COLLECTIONS_CONFIG}"
+            ## approve for myorg with private data collection config
+            echo "peer query approve with collection config"
+            collection_config=" --collections-config  ${CONFIG_SRC_PATH}"
+            APPROVE_CMD=${APPROVE_CMD}${collection_config} 
+            echo "Approve command post collection config: " ${APPROVE_CMD}
+          fi
+
+          # echo "Endorsing policy:${ENDORSEMENT_POLICIES}"
+          if [ -z ${ENDORSEMENT_POLICIES} ]
+          then
+            eval ${APPROVE_CMD}
+          else
+            ## approve for myorg
+            echo "peer query approve with endorsement policies"
+            endorsement_policy=" --signature-policy ${ENDORSEMENT_POLICIES}"
+            APPROVE_CMD=${APPROVE_CMD}${endorsement_policy}
+            eval ${APPROVE_CMD}  
+          fi
+          if [ $? -eq 0 ]; then
+            echo "Final Approve command: " ${APPROVE_CMD}
+            echo "Chaincode approve was successful."
+          else
+            echo "Final Approve command: " ${APPROVE_CMD}
+            echo "Chaincode approve failed."
+            exit 1
+          fi
+        env:
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.peer.loglevel }}
+        - name: CORE_PEER_ID
+          value: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}
+        - name: CORE_PEER_ADDRESS
+          value: {{ $.Values.peer.address }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $.Values.peer.localmspid }}
+        - name: CORE_PEER_TLS_ENABLED
+          value: "{{ $.Values.peer.tlsstatus }}"
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
+        - name: ORDERER_CA
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+        - name: ORDERER_URL
+          value: {{ $.Values.orderer.address }}
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+        - name: CHAINCODE_NAME
+          value: "{{ $.Values.chaincode.name }}"
+        - name: CHAINCODE_VERSION
+          value: "{{ $.Values.chaincode.version }}"
+        - name: CHAINCODE_SEQUENCE
+          value: "{{ $.Values.chaincode.sequence }}"
+        - name: CORE_CHAINCODE_BUILDER
+          value: "{{ $.Values.chaincode.builder }}"
+        - name: CHANNEL_NAME
+          value: "{{ $.Values.channel.name }}"
+        - name: COMMIT_ARGUMENTS
+          value: '{{ $.Values.chaincode.commitarguments }}'
+        - name: CC_RUNTIME_LANGUAGE
+          value: "{{ $.Values.chaincode.lang }}"
+        - name: ENDORSEMENT_POLICIES
+          value: "{{ $.Values.chaincode.endorsementpolicies }}"
+        - name: COLLECTIONS_CONFIG
+          value: "{{ $.Values.chaincode.pdc.collectionsconfig }}"
+        - name: PDC_ENABLED
+          value: "{{ $.Values.chaincode.pdc.enabled }}"
+        - name: INIT_REQUIRED
+          value: "{{ $.Values.chaincode.initrequired }}"
+        volumeMounts:
+        - name: certificates
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
+          readOnly: true
+        {{ if .Values.chaincode.pdc.enabled }}
+        - name: pdcconfig
+          mountPath: /opt/pdc
+        {{ end }}

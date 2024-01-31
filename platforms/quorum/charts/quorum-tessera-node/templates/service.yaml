@@ -1,0 +1,89 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.metadata.namespace }}
+  annotations:
+    app: consortiumchain
+    version: '1'
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: {{ .Values.node.name }}-tessera
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+  name: {{ .Values.node.name }}-tessera
+spec:
+  selector:
+    app.kubernetes.io/name: {{ .Values.node.name }}-tessera
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "labels.custom" . | nindent 2 }}
+    service.rpc: {{ .Values.node.name }}-tessera
+  type: {{ .Values.node.servicetype }}
+  ports:
+  - name: tm-manager
+    protocol: TCP
+    port: {{ .Values.node.ports.tm }}
+    targetPort: {{ .Values.node.ports.tm }}
+  - name: tm-tessera-third-part
+    protocol: TCP
+    port: 9080
+    targetPort: 9080
+  - name: tm-client
+    protocol: TCP
+    port: {{ .Values.proxy.clientport }}
+    targetPort: {{ .Values.proxy.clientport }}
+  - name: mysql-db
+    protocol: TCP
+    port: {{ .Values.node.ports.db }}
+    targetPort: {{ .Values.node.ports.db }}
+{{- if eq $.Values.proxy.provider "ambassador" }}
+## Host for tm connection
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Values.node.name }}-host
+spec:
+  hostname: {{ .Values.proxy.external_url }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: {{ .Values.node.name }}-ambassador-certs
+  tls:
+    min_tls_version: v1.2
+## Mapping for tm port
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Values.node.name }}-tm
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hostname: {{ .Values.proxy.external_url }}
+  prefix: /
+  service: {{ .Values.node.name }}-tessera.{{ .Values.metadata.namespace }}:{{ .Values.node.ports.tm }}
+  tls: {{ .Values.node.name }}-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Values.node.name }}-tlscontext
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  hosts:
+  - {{ .Values.proxy.external_url }}
+  secret: {{ .Values.node.name }}-ambassador-certs
+  min_tls_version: v1.2
+{{- end }}
