@@ -27,33 +27,14 @@ Refer [this guide](../networkyaml-besu.md) for details on editing the configurat
 
 When editing the configuration file (`network.yaml`) to deploy the cactus connector, both validators and peers from validator and member organizations should have the `cactus_connector` field. To enable the cactus connector for a peer or validator, set the value as `enabled`. If a particular peer or validator does not want to support the cactus connector feature, set the `cactus_connector` field as `disabled`. A sample for the same is shared below:
 
-    network:
-    organizations:
-        - organization: supplychain
-          type: validator
-          ..
-          ..
-          services:
-            validators:
-            - validator:
-              name: validator1
-              ..
-              ..
-              cactus_connector: enabled  # set to enabled to create a cactus connector for Besu otherwise set it to disabled
-            
-        - organization: carrier
-          type: member
-          ..
-          ..
-          services:
-            peers:
-            - peer:
-              name: carrier
-              ..
-              ..
-              cactus_connector: disabled  # set to enabled to create a cactus connector for Besu otherwise set it to disabled
+```yaml
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:127:132"
+       ..
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:187:193"
+       ..
+```
 
-For reference, see `network-besu-v22.yaml` file [here](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/configuration/samples/network-besu-v22.yaml).
+For reference, see `network-besu.yaml` file [here](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/configuration/samples/network-besu.yaml).
 
 
 <a name = "run_network"></a>
@@ -64,3 +45,4 @@ The [setup-cactus-connector.yaml](https://github.com/hyperledger/bevel/blob/deve
 ```
 ansible-playbook platforms/hyperledger-besu/configuration/setup-cactus-connector.yaml --extra-vars "@path-to-network.yaml"
 ```
+

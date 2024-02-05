@@ -24,18 +24,9 @@
 
 2. To enable and use onchain permissioning, set the `network.permissioning.enabled` parameter to `true` in the Besu network configuration file. Below is a sample configuration for reference:
 
-    ```yaml
-    network:
-      type: besu
-      version: 21.10.6
-      permissioning:
-        enabled: true   # Set to false if onchain permissioning is not required
-      env:...
-      docker:...
-      config:...
-      organizations:...
-    ```
-
+```yaml
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:11:18"
+```
     For reference, use sample configuration defined in the [network-besu.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-besu/configuration/samples/network-besu.yaml) file.
 
 **Step 2: Deploy Besu network.**
@@ -98,3 +89,5 @@ truffle migrate --reset --network besu
 
 By following these steps, we will be able to successfully deploy a Besu Onchain Permissioning Network.
 Post network bootstrap permissioing smartcontract can be installed. Smartcontract installation steps can be found [here](https://besu.hyperledger.org/en/stable/private-networks/tutorials/permissioning/onchain/#11-clone-the-contracts-and-install-dependencies)
+
+
