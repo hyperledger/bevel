@@ -17,56 +17,52 @@ A json-schema definition is provided in `platforms/network-schema.json` to assis
 
 The configurations are grouped in the following sections for better understanding.
 
-* type
+* [type](#type)
 
-* version
+* [version](#version)
 
-* env
+* [env](#env)
 
-* docker
+* [docker](#docker)
 
-* config
+* [config](#config)
 
-* organizations
+* [organizations](#organizations)
 
-Here is the snapshot from the sample configuration file
-
-![](./../_static/NetworkYamlBesu.png)
+Although, the file itself has comments for each key-value, here is a more detailed description with respective snippets.
+=== "Hyperledger-Besu"
+    Use this [sample configuration file](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-besu/configuration/samples/network-besu.yaml) as a base.
+    ```yaml
+    --8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:7:15"
+    ```
 
 The sections in the sample configuration file are  
+<a name="type"></a>
+type
+: `type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
 
-`type` defines the platform choice like corda/fabric/indy/quorum/besu, here in the example its **besu**.
+<a name="version"></a>
+version
+:  `version` defines the version of platform being used. The current Hyperledger Besu version support is for **21.10.6** and **22.10.2**.
 
-`version` defines the version of platform being used. The current Hyperledger Besu version support is for **21.10.6** and **22.10.2**.
+<a name="permissioning"></a>
+permissioning
+: `permissioning` section contains the flag to enable permissioning in the network
 
-`permissioning` section contains the flag to enable permissioning in the network
 ```yaml
-   permissioning:
-     enabled: false
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:17:18"
 ```
 
-`env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
+<a name="env"></a>
+env
+: `env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' as 'haproxy' has not been implemented for Besu.
 
-The snapshot of the `env` section with example value is below
-```yaml 
-  env:
-    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Hyperledger Besu
-    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
-    #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010 
-        to: 15043
-    # ports: [15020, 15021]      # For specific ports, needs to be an array or list
-    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
-    retry_count: 50                # Retry count for the checks
-    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
-    labels:
-      service: {}
-      pvc: {}
-      deployment: {}
+The snippet of the `env` section with example value is below
+
+```yaml
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:21:41"
 ```
+
 The fields under `env` section are 
 
 | Field      | Description                                 |
@@ -82,17 +78,13 @@ The fields under `env` section are
 | labels.pvc    | (Optional) Labels to be added to kubernetes pvc |
 | labels.deployment    | (Optional) Labels to be added to kubernetes deployment/statefulset/pod |
 
-`docker` section contains the credentials of the repository where all the required images are built and stored.
+<a name="docker"></a>
+docker
+:  `docker` section contains the credentials of the repository where all the required images are built and stored.
 
-The snapshot of the `docker` section with example values is below
+The snippet of the `docker` section with example values is below
 ```yaml
-  # Docker registry details where images are stored. This will be used to create k8s secrets
-  # Please ensure all required images are built and stored in this registry.
-  # Do not check-in docker_password.
-  docker:
-    url: "docker_url"
-    username: "docker_username"
-    password: "docker_password"
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:56:59"
 ```
 The fields under `docker` section are
 
@@ -103,34 +95,13 @@ The fields under `docker` section are
 | password | Password required for login to docker registry|
 
 
-`config` section contains the common configurations for the Hyperledger Besu network.
+<a name="config"></a>
+config
+:  `config` section contains the common configurations for the Hyperledger Besu network.
 
-The snapshot of the `config` section with example values is below
+The snippet of the `config` section with example values is below
 ```yaml
-  config:    
-    consensus: "ibft"                 # Options are "ibft", "ethash", "clique"
-    chain_id: 2018                    # Custom chain ID, Optional field - default value is 2018
-    ## Certificate subject for the root CA of the network. 
-    #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
-    #  Production systems should generate proper certificates and configure truststores accordingly.
-    subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Transaction manager can be "tessera"
-    # This is the version of transaction_manager docker image that will be deployed
-    # Supported versions #
-    # tessera: 21.7.3(for besu 21.10.6)
-    tm_version: "21.7.3"
-    # TLS can be True or False for the transaction manager
-    tm_tls: True
-    # Tls trust value
-    tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
-    ## File location for saving the genesis file should be provided.
-    genesis: "/home/user/bevel/build/besu_genesis"   # Location where genesis file will be saved
-    ## At least one Transaction Manager nodes public addresses should be provided.
-    #  - "https://node.test.besu.blockchaincloudpoc-develop.com" for tessera
-    # The above domain name is formed by the (http or https)://(peer.name).(org.external_url_suffix):(ambassador tm_nodeport)
-    tm_nodes: 
-      - "https://carrier.test.besu.blockchaincloudpoc-develop.com"
-
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:62:83"
 ```
 The fields under `config` are
 
@@ -147,20 +118,15 @@ The fields under `config` are
 | tm_nodes | This is an array. Provide at least one tessera node details which will act as bootstrap for other tessera nodes |
 
 
-The `organizations` section contains the specifications of each organization.  
+<a name="organizations"></a>
+organizations
+:  The `organizations` section contains the specifications of each organization.  
 
 In the sample configuration example, we have four organization under the `organizations` section.
 
-The snapshot of an organization field with sample values is below
+The snippet of an organization field with sample values is below
 ```yaml
-  organizations:
-    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
-    - organization:
-      name: carrier
-      type: member
-      # Provide the url suffix that will be added in DNS recordset. Must be different for different clusters
-      external_url_suffix: test.besu.blockchaincloudpoc.com 
-      cloud_provider: aws   # Options: aws, azure, gcp, minikube
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:86:97"
 ```
 Each `organization` under the `organizations` section has the following fields. 
 
@@ -176,16 +142,9 @@ Each `organization` under the `organizations` section has the following fields.
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
 | services                                    | Contains list of services which could be validator/peer based on the type of organization |
 
-For the `aws` and `k8s` field the snapshot with sample values is below
+For the `aws`, `k8s` and `vault` fields, a snippet is below
 ```yaml
-      aws:
-        access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
-        secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
-        region: "<aws_region>"                # AWS Region where cluster and EIPs are created
-      # Kubernetes cluster deployment variables.
-      k8s:
-        context: "<cluster_context>"
-        config_file: "<path_to_k8s_config_file>"
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:98:112"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not `aws`)
@@ -203,20 +162,9 @@ The `k8s` field under each organization contains
 | context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
 | config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
-For gitops fields the snapshot from the sample configuration file with the example values is below
+For gitops fields the snippet from the sample configuration file with the example values is below
 ```yaml
-      # Git Repo details which will be used by GitOps/Flux.
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
-        branch: "<branch_name>"                                                  # Git branch where release is being made
-        release_dir: "platforms/hyperledger-besu/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-besu/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git" # without https://
-        username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
-        email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:115:125"
 ```
 
 The gitops field under each organization contains
@@ -236,29 +184,9 @@ The gitops field under each organization contains
 
 The services field for each organization under `organizations` section of Hyperledger Besu contains list of `services` which could be peers or validators.
 
-Each organization with type as `member` will have a peers service. The snapshot of peers service with example values is below
+Each organization with type as `member` will have a peers service. The snippet of peers service with example values is below
 ```yaml
-        peers:
-        - peer:
-          name: carrier
-          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: true        # (for future use) Sets Besu node to lock or unlock mode. Can be true or false
-          p2p:
-            port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
-          ws:
-            port: 8546
-          db:
-            port: 3306        # Only applicable for tessra where mysql db is used
-          tm_nodeport:
-            port: 8888         
-            ambassador: 15013   # Port exposed on ambassador service (Transaction manager node port)
-          tm_clientport:
-            port: 8080             
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:187:208"
 ```
 The fields under `peer` service are
 
@@ -320,21 +248,9 @@ The additional fields under `peer` service are
 | smart_contract.entrypoint | Main entrypoint solidity file of the smart contract   |
 | smart_contract.private_for | Comma seperated string of `tessera` Public keys for the `privateFor`  |
 
-Each organization with type as `validator` will have a validator service. The snapshot of validator service with example values is below
+Each organization with type as `validator` will have a validator service. The snippet of validator service with example values is below
 ```yaml
-      validators:
-        - validator:
-          name: validator1
-          bootnode: true          # true if the validator node is used also a bootnode for the network
-          p2p:
-            port: 30303
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8545
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
-          ws:
-            port: 8546          
-            
+--8<-- "platforms/hyperledger-besu/configuration/samples/network-besu.yaml:128:143"
 ```
 The fields under `validator` service are
 
@@ -351,3 +267,4 @@ The fields under `validator` service are
 | metrics.port | Metrics port for Besu |
 
 *** feature is in future scope
+
