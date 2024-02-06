@@ -18,50 +18,49 @@ A json-schema definition is provided in `platforms/network-schema.json` to assis
 
 The configurations are grouped in the following sections for better understanding.
 
-* type
+* [type](#type)
 
-* version
+* [version](#version)
 
-* env
+* [env](#env)
 
-* docker
+* [docker](#docker)
 
-* config
+* [config](#config)
 
-* organizations
+* [organizations](#organizations)
 
-Here is the snapshot from the sample configuration file
-
-![](./../_static/NetworkYamlQuorum.png)
+Although, the file itself has comments for each key-value, here is a more detailed description with respective snippets.
+=== "Quorum"
+    Use this [sample configuration file](https://github.com/hyperledger/bevel/blob/main/platforms/quorum/configuration/samples/network-quorum.yaml) as a base.
+    ```yaml
+    --8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:7:15"
+    ```
 
 The sections in the sample configuration file are  
 
-`type` defines the platform choice like corda/fabric/indy/quorum, here in the example its **quorum**.
+<a name="type"></a>
+type
+: `type` defines the platform choice like corda/fabric/indy/quorum, here in the example its **quorum**.
 
-`version` defines the version of platform being used. The current Quorum version support is only for **21.4.2**
+<a name="version"></a>
+version
+: `version` defines the version of platform being used. The current Quorum version support is only for **21.4.2**
 
 !!! important
 
     Use Quorum Version 23.4.0 if you are deploying Supplychain smartcontracts from examples.
 
-`env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
+<a name="env"></a>
+env
+: `env` section contains the environment type and additional (other than 443) Ambassador port configuration. Vaule for proxy field under this section can be 'ambassador' or 'haproxy'
 
-The snapshot of the `env` section with example value is below
-```yaml 
-  env:
-    type: "env-type"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Quorum
-    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
-    #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010 
-        to: 15043
-    # ports: 15020,15021      # For specific ports
-    loadBalancerSourceRanges: 0.0.0.0/0 # Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'  
-    retry_count: 50                # Retry count for the checks
-    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+The snippet of the `env` section with example value is below
+
+```yaml
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:18:31"
 ```
+
 The fields under `env` section are 
 
 | Field      | Description                                 |
@@ -73,18 +72,15 @@ The fields under `env` section are
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 
-`docker` section contains the credentials of the repository where all the required images are built and stored.
+<a name="docker"></a>
+docker
+: `docker` section contains the credentials of the repository where all the required images are built and stored.
 
-The snapshot of the `docker` section with example values is below
+The snippet of the `docker` section with example values is below
 ```yaml
-  # Docker registry details where images are stored. This will be used to create k8s secrets
-  # Please ensure all required images are built and stored in this registry.
-  # Do not check-in docker_password.
-  docker:
-    url: "docker_url"
-    username: "docker_username"
-    password: "docker_password"
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:33:39"
 ```
+
 The fields under `docker` section are
 
 | Field    | Description                            |
@@ -94,42 +90,15 @@ The fields under `docker` section are
 | password | Password required for login to docker registry|
 
 
-`config` section contains the common configurations for the Quorum network.
+<a name="config"></a>
+config
+: `config` section contains the common configurations for the Quorum network.
 
-The snapshot of the `config` section with example values is below
+The snippet of the `config` section with example values is below
 ```yaml
-  config:    
-    consensus: "raft"                 # Options are "raft" and "ibft"
-    ## Certificate subject for the root CA of the network. 
-    #  This is for development usage only where we create self-signed certificates and the truststores are generated automatically.
-    #  Production systems should generate proper certificates and configure truststores accordingly.
-    subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-    transaction_manager: "tessera"    # Options are "tessera" or "none"
-    tm_version: "23.4.0"               # This is the version of "tessera"
-    tm_tls: "strict"                  # Options are "strict" and "off"
-    tm_trust: "tofu"                  # Options are: "ca-or-tofu", "ca", "tofu"
-    ## Transaction Manager nodes public addresses should be provided.
-    #  For "tessera", all participating nodes should be provided
-    # In the example (for tessera ) below, the domain name is formed by the https://(peer.name).(org.external_url_suffix)
-    tm_nodes: 
-      - "https://carrier.test.quorum.blockchaincloudpoc.com"
-      - "https://manufacturer.test.quorum.blockchaincloudpoc.com"
-      - "https://store.test.quorum.blockchaincloudpoc.com"
-      - "https://warehouse.test.quorum.blockchaincloudpoc.com"
-    staticnodes: "/home/user/bevel/build/quorum_staticnodes" # Location where staticnodes will be saved
-    genesis: "/home/user/bevel/build/quorum_genesis"   # Location where genesis file will be saved
-    # NOTE for the above paths, the directories should exist
-    ##### Following keys are only used when adding new Node(s) to existing network and should NOT be used to create new network.
-    bootnode:
-      #name of the bootnode that matches one from existing node
-      name: carrier
-      #ambassador url of the bootnode
-      url: carrierrpc.test.quorum.blockchaincloudpoc.com
-      #rpc port of the bootnode
-      rpcport: 80
-      #id of the bootnode
-      nodeid: 1
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:42:63"
 ```
+
 The fields under `config` are
 
 | Field       | Description                                              |
@@ -146,18 +115,15 @@ The fields under `config` are
 | bootnode | This is only applicable when adding a new node to existing network and contains the boot node rpc details |
 
 
-The `organizations` section contains the specifications of each organization.  
+<a name="organizations"></a>
+conforganizations
+: `organizations` section contains the specifications of each organization.  
 
 In the sample configuration example, we have four organization under the `organizations` section.
 
-The snapshot of an organization field with sample values is below
+The snippet of an organization field with sample values is below
 ```yaml
-  organizations:
-    # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
-    - organization:
-      name: carrier
-      external_url_suffix: test.quorum.blockchaincloudpoc.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
-      cloud_provider: aws   # Options: aws, azure, gcp, minikube
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:67:73"
 ```
 Each `organization` under the `organizations` section has the following fields. 
 
@@ -172,16 +138,9 @@ Each `organization` under the `organizations` section has the following fields.
 | gitops                                      | Git Repo details which will be used by GitOps/Flux. |
 | services                                    | Contains list of services which could ca/peer/orderers/concensus based on the type of organization |
 
-For the `aws` and `k8s` field the snapshot with sample values is below
+For the `aws` `vault` and `k8s` field the snippet with sample values is below
 ```yaml
-      aws:
-        access_key: "<aws_access_key>"    # AWS Access key, only used when cloud_provider=aws
-        secret_key: "<aws_secret>"        # AWS Secret key, only used when cloud_provider=aws
-  
-      # Kubernetes cluster deployment variables.
-      k8s:
-        context: "<cluster_context>"
-        config_file: "<path_to_k8s_config_file>"
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:74:87"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not `aws`)
@@ -198,20 +157,18 @@ The `k8s` field under each organization contains
 | context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
 | config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
-For gitops fields the snapshot from the sample configuration file with the example values is below
+The `vault` field under each organization contains
+
+| Field       | Description |
+|-------------|----------------------------------------------------------|
+| url        | The URL for Hashicorp Vault server with port (Do not use 127.0.0.1 or localhost)  |
+| root_token    | The root token for accessing the Vault server    |
+
+
+
+For gitops fields the snippet from the sample configuration file with the example values is below
 ```yaml
-      # Git Repo details which will be used by GitOps/Flux.
-      gitops:
-        git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git" # Gitops htpps or ssh url for flux value files
-        branch: "<branch_name>"                                                  # Git branch where release is being made
-        release_dir: "platforms/Quorum/releases/dev" # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/Quorum/charts"      # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git" # without https://
-        username: "<username>"          # Git Service user who has rights to check-in in all branches
-        password: "<password>"          # Git Server user password/personal token (Optional for ssh; Required for https)
-        email: "<git_email>"              # Email to use in git config
-        private_key: "<path to gitops private key>" # Path to private key (Optional for https; Required for ssh)
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:90:100"
 ```
 
 The gitops field under each organization contains
@@ -231,28 +188,9 @@ The gitops field under each organization contains
 
 The services field for each organization under `organizations` section of Quorum contains list of `services` which could be only peers as of now.
 
-Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
+Each organization with type as peer will have a peers service. The snippet of peers service with example values is below
 ```yaml
-        peers:
-        - peer:
-          name: carrier
-          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
-          geth_passphrase: 12345  # Passphrase to be used to generate geth account
-          p2p:
-            port: 21000
-            ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8546
-            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
-          transaction_manager:
-            port: 443          
-            ambassador: 443  
-          raft:                     # Only used if consensus = 'raft'
-            port: 50401
-            ambassador: 15013
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
+--8<-- "platforms/quorum/configuration/samples/network-quorum.yaml:103:123"
 ```
 The fields under `peer` service are
 
