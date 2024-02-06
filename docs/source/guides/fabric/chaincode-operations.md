@@ -23,44 +23,23 @@ The `network.yaml` file should contain the specific `network.organizations.servi
 
 For reference, following snippet shows that section of `network.yaml`
 
-```
----
-network:
-  ..
-  ..
-  organizations:
-    - organization:
-      name: manufacturer
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:241:248"
       ..
-      .. 
-      services:
-        peers:
-        - peer:
-          name: peer0          
-          ..
-          chaincodes:
-            - name: "chaincode_name" #This has to be replaced with the name of the chaincode
-              version: "chaincode_version" # This has to be different than the current version
-              maindirectory: "chaincode_main"  #The main directory where chaincode is needed to be placed
-              repository:
-                username: "git_username"          # Git Service user who has rights to check-in in all branches
-                password: "git_access_token"
-                url: "github.com/hyperledger/bevel.git"
-                branch: develop
-                path: "chaincode_src"   #The path to the chaincode 
-              arguments: 'chaincode_args' #Arguments to be passed along with the chaincode parameters
-              endorsements: "" #Endorsements (if any) provided along with the chaincode
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:297:297"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:304:338"
 ```
 
 <a name = "run_network"></a>
 ## Chaincode Operations in Bevel for the deployed Hyperledger Fabric network
 
 The playbook [chaincode-ops.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml) is used to install and instantiate chaincode for the existing fabric network.
-For Fabric v2.2 multiple operations such as approve, commit and invoke the chaincode are available in the same playbook. 
+For Fabric v2.2 and 2.5 multiple operations such as approve, commit and invoke the chaincode are available in the same playbook. 
 This can be done by using the following command
 
 ```
-    ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
+ansible-playbook platforms/hyperledger-fabric/configuration/chaincode-ops.yaml --extra-vars "@path-to-network.yaml"
 ```
 
 ---

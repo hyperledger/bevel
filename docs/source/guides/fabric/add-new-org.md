@@ -7,8 +7,8 @@
 # Adding a new organization in Hyperledger Fabric
 
 - [Prerequisites](#prerequisites)
-- [Modifying configuration file](#create_config_file)
-- [Running playbook to deploy Hyperledger Fabric network](#run_network)
+- [Modifying Configuration File](#modifying-configuration-file)
+- [Run playbook](#run-playbook)
 
 
 <a name = "prerequisites"></a>
@@ -27,38 +27,26 @@ Refer [this guide](../networkyaml-fabric.md) for details on editing the configur
 
 While modifying the configuration file(`network.yaml`) for adding new organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
 
-    network:
-      channels:
-      - channel:
-        ..
-        ..
-        participants:
-        - organization:
-          ..
-          ..
-          org_status: new  # new for new organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:65:139"
+```
 
 and under `network.organizations` as
 
-    network:
-      organizations:
-        - organization:
-          ..
-          ..
-          org_status: new  # new for new organization(s)
-        - organization:
-          ..
-          ..
-          org_status: existing  # existing for old organization(s)
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:144:155"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:406:414"
+      ..
+      ..
+
+```
 
 The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
 
 
-For reference, see `network-fabric-add-organization.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabric-add-organization.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml).
 
 <a name = "run_network"></a>
 ## Run playbook
