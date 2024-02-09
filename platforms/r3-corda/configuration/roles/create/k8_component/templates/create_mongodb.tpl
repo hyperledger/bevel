@@ -39,8 +39,8 @@ spec:
       certsecretprefix: {{ vault.secret_path | default(org_name) }}/data/{{ org_name }}/{{ nodename }}/certs
     service:
       tcp:
-          port: 27017
-          targetPort: 27017
+        port: 27017
+        targetPort: 27017
       type: NodePort
       annotations: {}
     deployment:

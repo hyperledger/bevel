@@ -1,0 +1,53 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openssl-conf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: "openssl-config"
+    app.kubernetes.io/part-of: {{ include "corda-init.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}   
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+data:
+  openssl.conf: |+
+{{ .Files.Get "files/openssl.conf" | indent 4 }}
+{{- if .Values.settings.secondaryInit }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: doorman-tls-certs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: "doorman-tls-certs"
+    app.kubernetes.io/part-of: {{ include "corda-init.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}   
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+data:
+  tls.crt: |+
+{{ .Files.Get "files/doorman.crt" | indent 4 }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nms-tls-certs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: "nms-tls-certs"
+    app.kubernetes.io/part-of: {{ include "corda-init.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}   
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+data:
+  tls.crt: |+
+{{ .Files.Get "files/nms.crt" | indent 4 }}
+{{- end }}

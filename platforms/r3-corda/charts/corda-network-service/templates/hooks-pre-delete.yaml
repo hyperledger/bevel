@@ -1,0 +1,71 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "corda-network-service.fullname" . }}-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app.kubernetes.io/name: pre-delete-hook
+    app.kubernetes.io/component: cleanup
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-delete-hook
+        app.kubernetes.io/component: cleanup
+        app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: "Never"
+      containers:
+        - name: {{ template "corda-network-service.fullname" . }}-cleanup
+          image: "{{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              echo "{{ template "corda-network-service.fullname" . }} pre-delete-hook ..."
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              # placeholder for cloudNative deleteSecret function
+{{- else }}
+
+              function deleteSecret {
+                key=$1
+                kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
+              }
+
+{{- end }}
+
+{{- if .Values.settings.removeKeysOnDelete }}
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              deleteSecret {{.Release.Name }}-nmskeystore
+              deleteSecret {{.Release.Name }}-doormankeystore
+              deleteSecret {{.Release.Name }}-rootcakeystore
+              deleteSecret {{.Release.Name }}-rootcacert
+              deleteSecret {{.Release.Name }}-rootcakey
+              deleteSecret {{.Release.Name }}-dbcert
+              deleteSecret {{.Release.Name }}-dbcacert
+{{- else }}
+              deleteSecret {{.Release.Name }}-certs
+{{- end }}
+
+{{- end }}
+              echo "Completed"
