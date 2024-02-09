@@ -51,7 +51,7 @@ env
 
 The snapshot of the `env` section with example value is below
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:18:29"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:18:30"
 ```
 
 The fields under `env` section are 
@@ -60,6 +60,7 @@ The fields under `env` section are
 |------------|---------------------------------------------|
 | type       | Environment type. Can be like dev/test/prod.|
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'ambassador' only as 'haproxy' has not been implemented for Substrate |
+| proxy_namespace      | Namespace in which the pods of the Cluster Ingress controller were deployed |
 | ambassadorPorts   | Any additional Ambassador ports can be given here. This is only valid if `proxy: ambassador`. These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports to be opened on Ambassador. Our sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified in the `organization` section.     |
 | retry_count       | Retry count for the checks. Use a high number if your cluster is slow. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
@@ -72,7 +73,7 @@ docker
 The snapshot of the `docker` section with example values is below
 
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:31:37"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:32:38"
 ```
 
 The fields under `docker` section are
@@ -90,7 +91,7 @@ config
 The snapshot of the `config` section with example values is below
 
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:39:54"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:40:55"
 ```
 
 The fields under `config` are
@@ -114,7 +115,7 @@ In the sample configuration example, we have four organization under the `organi
 
 The snapshot of an organization field with sample values is below
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:56:64"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:57:65"
 ```
 
 Each `organization` under the `organizations` section has the following fields. 
@@ -135,7 +136,7 @@ Each `organization` under the `organizations` section has the following fields.
 For the `aws`, `k8s` and `vault` field the snapshot with sample values is below
 
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:65:79"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:66:80"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not `aws`)
@@ -163,7 +164,7 @@ The `vault` field under each organization contains
 For gitops fields the snapshot from the sample configuration file with the example values is below
 
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:83:95"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:84:96"
 ```
 
 The gitops field under each organization contains
@@ -186,7 +187,7 @@ The services field for each organization under `organizations` section of Substr
 Each organization will have a services section which includes details of all the peers, all participating nodes are names as peers. The snapshot of peers service with example values is below
 
 ```yaml
---8<-- "platforms/substrate/configuration/samples/network-sample.yaml:97:176"
+--8<-- "platforms/substrate/configuration/samples/network-sample.yaml:98:177"
 ```
 
 The fields under `peer` are
