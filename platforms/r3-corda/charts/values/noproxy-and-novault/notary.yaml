@@ -1,0 +1,36 @@
+---
+#helm install notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node 
+#helm upgrade notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: kubernetes
+  proxy:
+    provider: none
+    externalUrlSuffix: svc.cluster.local
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+tls:
+  enabled: false
+  nameOverride: notary
+
+image:
+  corda:
+    repository: ghcr.io/hyperledger/bevel-corda
+    tag: 4.9
+
+nodeConf:
+  removeKeysOnDelete: true
+  legalName: "O=Notary,OU=Notary,L=London,C=GB"
+  notary:
+    enabled: true
+    validating: true
+    serviceLegalName: "O=Notary Service,OU=Notary,L=London,C=GB"
+  networkMapURL: http://supplychain-nms.supplychain-ns:8080
+  doormanURL: http://supplychain-doorman.supplychain-ns:8080

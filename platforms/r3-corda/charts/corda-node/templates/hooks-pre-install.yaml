@@ -1,0 +1,165 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "corda-node.fullname" . }}-pre-install-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  labels:
+    app.kubernetes.io/name: pre-install-hook
+    app.kubernetes.io/component: certgen
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-install-hook
+        app.kubernetes.io/component: certgen
+        app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: corda-certgen
+          image: {{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: generated-config
+              mountPath: /home
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+              . /scripts/bevel-vault.sh
+              echo "Getting vault Token..."
+              vaultBevelFunc "init"
+              #Read if secret exists in Vault
+              vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Release.Name }}-certs"
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  # Get secret from Vault and create the k8s secret if it does not exist
+                  kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                  if [ $? -ne 0 ]; then
+                    NMS_STORE=$(echo ${VAULT_SECRET} | jq -r '.["nmstruststore_base64"]')
+                    NODE_CERTS=$(echo ${VAULT_SECRET} | jq -r '.["nodecert_base64"]')
+                    NODE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["nodekey_base64"]')
+                    NODE_STORE=$(echo ${VAULT_SECRET} | jq -r '.["nodekeystore_base64"]')
+                    echo $NMS_STORE | base64 -d > /tmp/nmstruststore.jks
+                    echo $NODE_STORE | base64 -d > /tmp/nodekeystore.jks
+                    echo $NODE_CERTS > /tmp/node.cer
+                    echo $NODE_KEY > /tmp/node.key
+                    kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                      --from-file=network-map-truststore.jks=/tmp/nmstruststore.jks --from-file=nodekeystore.jks=/tmp/nodekeystore.jks \
+                      --from-file=node.crt=/tmp/node.cer --from-file=node.key=/tmp/node.key
+                  fi
+                else
+                  # Save keystores/truststores to Vault
+                  # Use -w0 to get single line base64 -w0
+                  NMS_STORE=$(cat ${fpath}/network-map-truststore.jks | base64 -w0)
+                  NODE_STORE=$(cat ${fpath}/nodekeystore.jks | base64 -w0)
+                  NODE_CERTS=$(cat ${fpath}/node.cer | base64 -w0)
+                  NODE_KEY=$(cat ${fpath}/node.key | base64 -w0)
+                  # create a JSON file for the data related to node crypto
+                  echo "
+                  {
+                    \"data\":
+                      {
+                        \"nmstruststore_base64\": \"${NMS_STORE}\",
+                        \"nodekeystore_base64\": \"${NODE_STORE}\",
+                        \"nodecert_base64\": \"${NODE_CERTS}\",
+                        \"nodekey_base64\": \"${NODE_KEY}\"
+                      }
+                  }" > payload.json
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-certs" 'payload.json'
+                  rm payload.json
+                  # Also create the k8s secret
+                  kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                    --from-file=network-map-truststore.jks=${fpath}/network-map-truststore.jks --from-file=nodekeystore.jks=${fpath}/nodekeystore.jks \
+                    --from-literal=node.crt=${NODE_CERTS} --from-literal=node.key=${NODE_KEY}
+                fi
+              }
+{{- else }}
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -ne 0 ]; then
+                  kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                    --from-file=network-map-truststore.jks=${fpath}/network-map-truststore.jks --from-file=nodekeystore.jks=${fpath}/nodekeystore.jks \
+                    --from-file=node.crt=<(base64 -w0 ${fpath}/node.cer) --from-file=node.key=<(base64 -w0 ${fpath}/node.key)
+                fi
+              }
+{{- end }}
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                 echo "Certificates found for {{ .Release.Name }} ..."
+              else
+                echo "Creating certificates for {{ .Release.Name }} ..."
+                # Generate node certs
+                CA_PATH=/home/certificates/node
+              
+                mkdir -p ${CA_PATH}
+                DEFAULT_KEYSTORE_PASS={{ .Values.nodeConf.defaultKeystorePassword }}
+
+                cd ${CA_PATH}
+                openssl genrsa -out node.key 3072
+                openssl req -new -x509 -key node.key -out node.cer -days 365 -subj '/{{ .Values.nodeConf.legalName | replace "," "/" }}'
+                openssl dgst -sha256 -sign node.key node.cer | base64 | cat node.cer 
+                openssl pkcs12 -export -in node.cer -inkey node.key -out testkeystore.p12 -passin pass:${DEFAULT_KEYSTORE_PASS} -passout pass:${DEFAULT_KEYSTORE_PASS}
+                eval "yes | keytool -importkeystore -srckeystore testkeystore.p12 -srcstoretype pkcs12 -srcstorepass ${DEFAULT_KEYSTORE_PASS} -destkeystore nodekeystore.jks -deststorepass ${DEFAULT_KEYSTORE_PASS} -deststoretype JKS"
+                # Get networkmap-truststore
+                wget --no-check-certificate {{ .Values.nodeConf.networkMapURL }}/network-map/truststore -O network-map-truststore.jks
+              fi;  
+              echo "Creating {{ .Release.Name }}-certs secrets in k8s ..."
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              safeWriteSecret {{ .Release.Name }}-network-map-truststore.jks $CA_PATH/network-map-truststore.jks
+              safeWriteSecret {{ .Release.Name }}-cert $CA_PATH/node.cer
+              safeWriteSecret {{ .Release.Name }}-key $CA_PATH/node.key
+              safeWriteSecret {{ .Release.Name }}-nodekeystore.jks $CA_PATH/nodekeystore.jks
+{{- else }}
+              safeWriteSecret {{ .Release.Name }} ${CA_PATH}
+{{- end }}
+              echo "Completed ..."
+      volumes:
+      - name: generated-config
+        emptyDir: {}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777

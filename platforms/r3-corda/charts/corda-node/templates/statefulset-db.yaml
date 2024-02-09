@@ -1,0 +1,85 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "corda-node.fullname" . }}-db
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/name: h2-statefulset
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "corda-node.fullname" . }}
+      app.kubernetes.io/name: h2-statefulset
+      app.kubernetes.io/component: database
+      app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "corda-node.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data-h2
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "corda-node.fullname" . }}
+        app.kubernetes.io/name: h2-statefulset
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      hostname: {{ .Release.Name }}db
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: database
+        image: {{ .Values.image.h2 }}
+        resources:
+          limits:
+            memory: {{ .Values.resources.db.memLimit }}
+          requests:
+            memory: {{ .Values.resources.db.memRequest }}
+        ports:
+          - containerPort: 1521
+            name: p2p
+          - containerPort: 81
+            name: web
+        env:
+          - name: JAVA_OPTIONS
+            value: -Xmx512m
+        volumeMounts:
+        - name: data-h2
+          mountPath: "/opt/h2-data"
+          readOnly: false
+        livenessProbe:
+          tcpSocket:
+            port: 1521
+          initialDelaySeconds: 15
+          periodSeconds: 20

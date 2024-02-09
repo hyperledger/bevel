@@ -1,0 +1,51 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "corda-certs-gen.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: corda-certs-gen-job-cleanup
+    app.kubernetes.io/component: job-cleanup
+    app.kubernetes.io/part-of: {{ include "corda-certs-gen.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: corda-certs-gen-job-cleanup
+        app.kubernetes.io/component: job-cleanup
+        app.kubernetes.io/part-of: {{ include "corda-certs-gen.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      containers:
+        - name: delete-certs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              echo "Deleting tls-certs secret in k8s ..."
+              kubectl delete secret --namespace {{ .Release.Namespace }} {{ .Release.Name }}-tls-certs
+            {{- if .Values.settings.networkServices }}
+              kubectl delete secret --namespace {{ .Release.Namespace }} doorman-tls-certs
+              kubectl delete secret --namespace {{ .Release.Namespace }} nms-tls-certs
+            {{- end }}

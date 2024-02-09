@@ -3,236 +3,166 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "deploy node"></a>
-# Node Deployment
+# corda-node
 
-- [Node Deployment Helm Chart](#Node-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The corda-node chart deploys a R3 Corda Opens-source node with different settings like notary or node. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
-<a name = "node-deployment-helm-chart"></a>
-## node Deployment Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/tree/develop/platforms/r3-corda/charts/corda-node) helps to delpoy the r3corda node.
+## TL;DR
 
-<a name = "prerequisites"></a>
-## Prerequisites
----
-Before deploying the chart please ensure you have the following prerequisites:
-
-- Node's database up and running.
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm is installed.
-
-
-This chart has following structue:
-```
-  .
-  ├── node
-  │   ├── Chart.yaml
-  │   ├── templates
-  │   │   ├── deployment.yaml
-  │   │   ├── _helpers.tpl
-  │   │   ├── pvc.yaml
-  │   │   └── service.yaml
-  │   └── values.yaml
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install notary bevel/corda-node
 ```
 
-Type of files used:
+## Prerequisitess
 
-- `templates`      : This directory contains the Kubernetes manifest templates that define the resources to be deployed.
-- `deployment.yaml`: This file is a configuration file for deployement in Kubernetes.It creates a deployment file with a specified number of replicas and defines various settings for the deployment.It includes an init container for initializing the retrieves secrets from Vault and checks if node registration is complete,  and a main container for running the r3corda node.It also specifies volume mounts for storing certificates and data.
-- `pvc.yaml`        : A PersistentVolumeClaim (PVC) is a request for storage by a user.
-- `service.yaml`    : This file defines a Kubernetes Service with multiple ports for protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
-- `chart.yaml`      : Provides metadata about the chart, such as its name, version, and description.
-- `values.yaml`     : Contains the default configuration values for the chart. It includes configuration for the image, nodeconfig, credenatials, storage, service , vault, etc.
-- `_helpers.tpl`    : A template file used for defining custom labels and ports for the metrics in the Helm chart.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/r3-corda/charts/corda-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
+
+> **Important**: Ensure the `corda-init` chart has been installed before installing this. Also check the dependent charts.
+
+## Installing the Chart
+
+To install the chart with the release name `notary`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install notary bevel/corda-node
+```
+
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+
+> **Tip**: List all releases using `helm list`
+
+## Uninstalling the Chart
+
+To uninstall/delete the `notary` deployment:
+
+```bash
+helm uninstall notary
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
 
-### Name
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be used for Vault Auth management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `ambassador` | `ambassador` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Corda P2P service will be available | `test.blockchaincloudpoc.com` |
+| `global.proxy.p2p` | The external port at which the Corda P2P service will be available. This port must be unique for a single cluster and enabled on Ambassador. | `15010` |
 
-| Name       | Description                                        | Default Value |
-| -----------| -------------------------------------------------- | ------------- |
-| name       | Provide the name of the node                       | bank1         |
+### Storage
 
-### Metadata
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.size` | Size of the Volume needed for Corda node  | `1Gi` |
+| `storage.dbSize` | Size of the Volume needed for H2 Database node | `2Gi` |
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
-| Name            | Description                                                      | Default Value |
-| ----------------| -----------------------------------------------------------------| ------------- |
-| namespace       | Provide the namespace for the Node Generator                     | default       |
-| labels          | Provide any additional labels for the Node Generator             | ""            |
+### TLS
+This is where you can override the values for the [corda-certs-gen subchart](../corda-certs-gen/README.md).
+
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `tls.enabled` | Flag to enable TLS and certificate generation  | `true` |
 
 ### Image
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
+| `image.h2`   | H2 DB image repository and tag  | `ghcr.io/hyperledger/h2:2018`|
+| `image.corda.repository`   | Corda Image repository  | `ghcr.io/hyperledger/bevel-corda`|
+| `image.corda.tag`   | Corda image tag as per version of Corda  | `4.9`|
+| `image.initContainer` | Image repository and tag for alpine container | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.hooks.repository`  | Corda hooks image repository  | `ghcr.io/hyperledger/bevel-build` |
+| `image.hooks.tag`  | Corda hooks image tag  | `jdk8-stable` |
 
-| Name                     | Description                                                                                | Default Value   |
-| ------------------------ | ---------------------------------------------------------------------------------------    | --------------- |
-| initContainerName        | Provide the alpine utils image, which is used for all init-containers of deployments/jobs  | ""              |
-| containerName            | Provide the containerName of image                                                         | ""              |
-| imagePullSecret          | Provide the image pull secret of image                                                     | regcred         |
-| gitContainerName         | Provide the name of image for git clone container                                          | ""              |
-| privateCertificate       | Provide true or false if private certificate to be added                                   | "true"          |
-| doormanCertAlias         | Provide true or false if private certificate to be added                                   | ""              |
-| networkmapCertAlias      | Provide true or false if private certificate to be added                                   | ""              |
 
-### NodeConf
+### Corda nodeConf
 
-| Name                     | Description                                                                                | Default Value   |
-| ------------------------ | --------------------------------------------------------------------------------------     | --------------- |
-| p2p                      | The host and port on which the node is available for protocol operations over ArtemisMQ    | ""              |
-| ambassadorAddress        | Specify ambassador host:port which will be advertised in addition to p2paddress            | ""              |
-| legalName                | Provide the legalName for node                                                             | ""              |
-| dbUrl                    | Provide the h2Url for node                                                                 | "bank1h2"       |
-| dbPort                   | Provide the h2Port for node                                                                | "9101"          |
-| networkMapURL            | Provide the nms for node                                                                   | ""              |
-| doormanURL               | Provide the doorman for node                                                               | ""              |
-| jarVersion               | Provide the jar Version for corda jar and finanace jar                                     | "3.3-corda"     |  
-| devMode                  | Provide the devMode for corda node                                                         | "true"          |
-| useHTTPS                 | Provide the useHTTPS for corda node                                                        | "false"         |
-| env                      | Provide the enviroment variables to be set                                                 | ""              |
+This contains all the parameters for the Corda node. Please read [R3 Corda documentation](https://docs.r3.com/en/platform/corda/4.9/community/corda-configuration-fields.html) for detailed explanation of each parameter.
 
-### credentials
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `nodeConf.defaultKeystorePassword` | Default Keystore password, do not change this  | `cordacadevpass` |
+| `nodeConf.defaultTruststorePassword` | Default Truststore password, do not change this  | `trustpass` |
+| `nodeConf.keystorePassword` | New keystore password which will be set after initialisation   | `newpass` |
+| `nodeConf.truststorePassword` | New truststore password which will be set after initialisation  | `newtrustpass`  |
+| `nodeConf.sslkeyStorePassword` | SSL keystore password which will be set after initialisation   | `sslpass` |
+| `nodeConf.ssltrustStorePassword` | SSL truststore password which will be set after initialisation  | `ssltrustpass`  |
+| `nodeConf.removeKeysOnDelete` | Flag to delete the keys when the release is uninstalled  | `true`  |
+| `nodeConf.rpcUser` | Array of RPC Users that you want to create at initialization  | `- name: nodeoperations` <br>`password: nodeoperationsAdmin` <br>`permissions: [ALL]` |
+| `nodeConf.p2pPort`   | P2P Port for Corda Node | `10002`         |
+| `nodeConf.rpcPort` | RPC Port for Corda Node | `10003`         |
+| `nodeConf.rpcadminPort`   | RPC Admin Port for Corda Node | `10005`         |
+| `nodeConf.rpcSettings.useSsl`   | Use SSL for RPC | `false`         |
+| `nodeConf.rpcSettings.standAloneBroker` | Standalone Broker setting for RPC   | `false`    |
+| `nodeConf.rpcSettings.address`   | Address for RPC Service | `"0.0.0.0:10003"` |
+| `nodeConf.rpcSettings.adminAddress` | Address for RPC Admin Service  | `"0.0.0.0:10005"`    |
+| `nodeConf.rpcSettings.ssl.certificatesDirectory`   | SSL Certificate directory when useSSl is `true` | `na-ssl-false`         |
+| `nodeConf.rpcSettings.ssl.sslKeystorePath`   | SSL Keystore path when useSSl is `true` | `na-ssl-false`         |
+| `nodeConf.rpcSettings.ssl.trustStoreFilePath` | SSL Truststore path when useSSl is `true` | `na-ssl-false`    |
+| `nodeConf.legalName`   | X.509 Subject for Corda Node Identity. Must be unique for different nodes in a network | `"O=Notary,OU=Notary,L=London,C=GB"`         |
+| `nodeConf.messagingServerAddress` | Messaging Server Address | `""`         |
+| `nodeConf.jvmArgs`   | Additional JVM Args | `""`         |
+| `nodeConf.systemProperties`   | Additional System properties | `""`         |
+| `nodeConf.sshd.port` | SSHD Admin port | `""`         |
+| `nodeConf.exportJMXTo`   | JMX Reporter Address | `""`         |
+| `nodeConf.transactionCacheSizeMegaBytes` | Specify how much memory should be used for caching of ledger transactions in memory (in MB) | `8`         |
+| `nodeConf.attachmentContentCacheSizeMegaBytes`   | Specify how much memory should be used to cache attachment contents in memory (in MB) | `10`         |
+| `nodeConf.notary.enabled`   | Enable this Corda node as a Notary | `true`         |
+| `nodeConf.notary.validating` | Flag to setup validating or non-validating notary | `true`         |
+| `nodeConf.notary.serviceLegalName`   | Specify the legal name of the notary cluster or node | `"O=Notary Service,OU=Notary,L=London,C=GB"` |
+| `nodeConf.detectPublicIp` | Flag to detect public IP | `false`         |
+| `nodeConf.database.exportHibernateJMXStatistics`   | Whether to export Hibernate JMX statistics | `false`         |
+| `nodeConf.dbPort`   | Database port | `9101`         |
+| `nodeConf.dataSourceUser` | Database username | `sa`         |
+| `nodeConf.dataSourcePassword`   | Database user password | `admin`         |
+| `nodeConf.dataSourceClassName`   | JDBC Data Source class name | `"org.h2.jdbcx.JdbcDataSource"`         |
+| `nodeConf.jarPath` | Additional Jar path| `"/data/corda-workspace/h2/bin"`         |
+| `nodeConf.networkMapURL`   | Root address of the network map service. | `https://supplychain-nms.supplychain-ns`         |
+| `nodeConf.doormanURL`   | Root address of the doorman service | `https://supplychain-doorman.supplychain-ns`         |
+| `nodeConf.devMode`   | Flag to set the node to run in development mode. | `false`         |
+| `nodeConf.javaOptions`   | Additional JAVA_OPTIONS for Corda  | `"-Xmx512m"`         |
 
-| Name            | Description                                   | Default Value  |
-| ----------------| ----------------------------------------------| -------------  |
-| dataSourceUser  | Provide the dataSourceUser for corda node     | ""             |
-| rpcUser         | Provide the rpcUser for corda node            | bank1operations|
+### CordApps
 
-### Volume
-
-| Name             | Description            | Default Value |
-| -----------------| -----------------------| ------------- |
-| baseDir          | Base directory         | /home/bevel   |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `cordApps.getCordApps` | Flag to download CordApps from urls provided  | `false`  |
+| `cordApps.jars` | List of `url`s from where the CordApps will be downloaded  | `- url: ""`  |
 
 ### Resources
 
-| Name                     | Description                                             | Default Value   |
-| ------------------------ | ------------------------------------------------------- | --------------- |
-| limits                   | Provide the limit memory for node                       | "1Gi"           |
-| requests                 | Provide the requests memory for node                    | "1Gi"           |
-
-### storage
-
-| Name                  | Description                                               | Default Value   |
-| --------------------- | --------------------------------------------------------  | -------------   |
-| provisioner           | Provide the provisioner for node                          | ""              |
-| name                  | Provide the name for node                                 | bank1nodesc     |
-| memory                | Provide the memory for node                               | "4Gi"           |
-| type                  | Provide the type for node                                 | "gp2"           |
-| encrypted             | Provide whether the EBS volume should be encrypted or not | "true"          |
-| annotations           | Provide the annotation of the node                        | ""              |
-
-### Service
-
-| Name                  | Description                               | Default Value   |
-| --------------------- | ------------------------------------------| -------------   |
-| type                  | Provide the type of service               | NodePort        |
-| p2p port              | Provide the tcp port for node             | 10007           |
-| p2p nodePort          | Provide the p2p nodeport for node         | 30007           |
-| p2p targetPort        | Provide the p2p targetPort for node       | 30007           |
-| rpc port              | Provide the tpc port for node             | 10008           |
-| rpc targetPort        | Provide the rpc targetport for node       | 10003           |
-| rpc nodePort          | Provide the rpc nodePort for node         | 30007           |
-| rpcadmin port         | Provide the rpcadmin port for node        | 10108           |
-| rpcadmin targetPort   | Provide the rpcadmin targetport for node  | 10005           |
-| rpcadmin nodePort     | Provide the rpcadmin nodePort for node    | 30007           |
-
-### Vault
-
-| Name                      | Description                                                               | Default Value              |
-| ------------------------- | --------------------------------------------------------------------------| -------------------------  |
-| address                   | Address/URL of the Vault server.                                          | ""                         |
-| role                      | Role used for authentication with Vault                                   | vault-role                 |
-| authpath                  | Authentication path for Vault                                             | cordabank1                 |
-| serviceAccountName        | Provide the already created service account name autheticated to vault    | vault-auth-issuer          |
-| certSecretPrefix          | Provide the vault path where the certificates are stored                  | bank1/certs                |
-| dbsecretprefix            | Provide the secretprefix                                                  | bank1/credentials/database |
-| rpcusersecretprefix       | Provide the secretprefix                                                  | bank1/credentials/rpcusers |
-| keystoresecretprefix      | Provide the secretprefix                                                  | bank1/credentials/keystore |
-| cordappsreposecretprefix  | Provide the secretprefix                                                  | bank1/credentials/cordapps |
-
-### cordapps
-
-| Name                     | Description                                             | Default Value   |
-| ------------------------ | ------------------------------------------------------- | --------------- |
-| getcordapps              | Provide if you want to provide jars in cordapps         | ""              |
-| repository               | Provide the repository of cordapps                      | ""              |
-| jars url                 | Provide url to download the jar using wget cmd          | ""              |
-
-### Healthcheck
-
-| Name                        | Description                                                                   | Default Value |
-| ----------------------------| ------------------------------------------------------------------------------| ------------- |
-| readinesscheckinterval      | Provide the interval in seconds you want to iterate till db to be ready       | 5             |
-| readinessthreshold          | Provide the threshold till you want to check if specified db up and running   | 2             |
-
-### ambassador
-
-| Name                     | Description                                             | Default Value               |
-| ------------------------ | ------------------------------------------------------- | --------------------------  |
-| component_name           | Provides component name                                 | node                        |
-| external_url_suffix      | Provides the suffix to be used in external URL          | org1.blockchaincloudpoc.com |
-| p2p_ambassador           | Provide the p2p port for ambassador                     | 10007                       |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `resources.db.memLimit` | Kubernetes Memory limit for H2 Database pod  | `1G`  |
+| `resources.db.memRequest` | Kubernetes Memory request for H2 Database pod  | `512M`  |
+| `resources.node.memLimit` | Kubernetes Memory limit for Corda pod  | `2G`  |
+| `resources.node.memRequest` | Kubernetes Memory request for Corda pod  | `1G`  |
 
 
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the node Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/r3-corda/charts/corda-node/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install, upgrade,verify, delete the chart:
-
-To install the chart:
-```bash
-helm repo add bevel https://hyperledger.github.io/bevel/
-helm install <release-name> ./corda-node
-```
-
-To upgrade the chart:
-```bash
-helm upgrade <release-name> ./corda-node
-```
-
-To verify the deployment:
-```bash
-kubectl get jobs -n <namespace>
-```
-Note : Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
-
-To delete the chart: 
-```bash
-helm uninstall <release-name>
-```
-Note : Replace `<release-name>` with the desired name for the release.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [node Deployment Helm Chart](https://github.com/hyperledger/bevel/tree/develop/platforms/r3-corda/charts/corda-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

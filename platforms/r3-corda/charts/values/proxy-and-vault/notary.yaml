@@ -1,0 +1,42 @@
+---
+#helm install notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node 
+#helm upgrade notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+  proxy:
+    provider: "ambassador"
+    externalUrlSuffix: test.blockchaincloud.com
+    p2p: 15010
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+tls:
+  enabled: true
+  nameOverride: notary
+
+image:
+  corda:
+    repository: ghcr.io/hyperledger/bevel-corda
+    tag: 4.9
+
+nodeConf:
+  removeKeysOnDelete: true
+  legalName: "O=Notary,OU=Notary,L=London,C=GB"
+  notary:
+    enabled: true
+    validating: true
+    serviceLegalName: "O=Notary Service,OU=Notary,L=London,C=GB"
+  networkMapURL: https://supplychain-nms.test.blockchaincloud.com
+  doormanURL: https://supplychain-doorman.test.blockchaincloud.com
