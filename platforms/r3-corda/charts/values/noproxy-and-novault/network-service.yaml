@@ -1,0 +1,37 @@
+---
+#helm install supplychain -f values/noproxy-and-novault/network-service.yaml -n supplychain-ns corda-network-service
+#helm upgrade supplychain -f values/noproxy-and-novault/network-service.yaml -n supplychain-ns corda-network-service
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: kubernetes
+  proxy:
+    provider: none
+    externalUrlSuffix: svc.cluster.local
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+settings:
+  removeKeysOnDelete: true # this will erase keys
+  rootSubject: "CN=DLT Root CA,OU=DLT,O=DLT,L=New York,C=US"
+  mongoSubject: "C=US,ST=New York,L=New York,O=Lite,OU=DBA,CN=mongoDB"
+
+doorman:
+  subject: "CN=Corda Doorman CA,OU=DOORMAN,O=DOORMAN,L=New York,C=US"
+  username: doorman
+  authPassword: admin
+  dbPassword: newdbnm
+
+nms:
+  subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+  username: networkmap
+  authPassword: admin
+  dbPassword: newdbnm
+
+tls:
+  enabled: false

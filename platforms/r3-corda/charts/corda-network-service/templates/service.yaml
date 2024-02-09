@@ -1,0 +1,171 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mongodb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: mongodb-service
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mongodb-statefulset
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+  - name: mongo-db
+    protocol: TCP
+    port: {{ .Values.settings.dbPort }}
+    targetPort: {{ .Values.settings.dbPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-doorman
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: doorman-service
+    app.kubernetes.io/component: doorman
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: doorman-statefulset
+    app.kubernetes.io/component: doorman
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+  - name: doorman
+    protocol: TCP 
+    port: {{ .Values.doorman.port }}
+    targetPort: {{ .Values.doorman.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-nms
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: networkmap-service
+    app.kubernetes.io/component: nms
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: nms
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+  - name: nms
+    protocol: TCP 
+    port: {{ .Values.nms.port }}
+    targetPort: {{ .Values.nms.port }}
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+{{- if .Values.tls.enabled }}
+---
+## Host for doorman
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Release.Name }}-doorman
+spec:
+  hostname: {{ .Release.Name }}-doorman.{{ .Values.global.proxy.externalUrlSuffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: doorman-tls-certs
+    namespace: {{ .Release.Namespace }}
+---
+## Host for nms
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Release.Name }}-nms
+spec:
+  hostname: {{ .Release.Name }}-nms.{{ .Values.global.proxy.externalUrlSuffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: nms-tls-certs
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+---
+## Mapping for doorman port
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-mapping
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ .Release.Name }}-doorman.{{ .Values.global.proxy.externalUrlSuffix }}
+  prefix: /
+  service: {{ .Release.Name }}-doorman.{{ .Release.Namespace }}:{{ .Values.doorman.port }}
+{{- if .Values.tls.enabled }}
+  tls: {{ .Release.Name }}-doorman-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Release.Name }}-doorman-tlscontext
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+  - {{ .Release.Name }}-doorman.{{ .Values.global.proxy.externalUrlSuffix }}
+  secret: doorman-tls-certs.{{ .Release.Namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}
+---
+## Mapping for nms port
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-nms-mapping
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ .Release.Name }}-nms.{{ .Values.global.proxy.externalUrlSuffix }}
+  prefix: /
+  service: {{ .Release.Name }}-nms.{{ .Release.Namespace }}:{{ .Values.nms.port }}
+{{- if .Values.tls.enabled }}
+  tls: {{ .Release.Name }}-nms-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Release.Name }}-nms-tlscontext
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+  - {{ .Release.Name }}-nms.{{ .Values.global.proxy.externalUrlSuffix }}
+  secret: nms-tls-certs.{{ .Release.Namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}
+{{- end }}
