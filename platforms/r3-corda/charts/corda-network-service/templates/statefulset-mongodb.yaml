@@ -1,0 +1,136 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "corda-network-service.fullname" . }}-db
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "corda-network-service.fullname" . }}-db
+    app.kubernetes.io/name: mongodb-statefulset
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "corda-network-service.fullname" . }}-db
+      app.kubernetes.io/name: mongodb-statefulset
+      app.kubernetes.io/component: database
+      app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "corda-network-service.fullname" . }}-db
+  volumeClaimTemplates:
+    - metadata:
+        name: data-mongodb
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "corda-network-service.fullname" . }}-db
+        app.kubernetes.io/name: mongodb-statefulset
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: mongodb
+        image: {{ .Values.image.mongo.repository }}:{{ .Values.image.mongo.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: {{ .Values.doorman.username }}
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: {{ .Values.doorman.dbPassword }}
+        # The complete command and lifecycle section is for TLS enabled
+        {{- if .Values.tls.enabled }}
+        command:
+        - /bin/sh
+        - -c
+        - >          
+          if [ -f /data/db/admin-user.lock ]; then
+            #file /data/db/admin-user.lock created and checked to ensure mongod is fully up for adding new db user in postStart hook.
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon"
+            cat /certs/mongoCA.crt | base64 -d > /data/db/mongoCA.crt
+            cat /certs/mongodb.pem | base64 -d > /data/db/mongodb.pem
+            # ensure wiredTigerCacheSize is set within the size of the containers memory limit, Setting up with tag --sslAllowConnectionsWithoutCertificates only client validates the server to ensure that it receives data from the intended server. 
+            if [ "$HOSTNAME" = "{{ template "corda-network-service.fullname" . }}-db-0" ]; then
+              #for Mongodb single server.
+              echo "check 1"
+              mongod --wiredTigerCacheSizeGB 0.25 --bind_ip 0.0.0.0 --sslMode requireSSL --sslPEMKeyFile /data/db/mongodb.pem --sslCAFile /data/db/mongoCA.crt --sslAllowConnectionsWithoutCertificates --sslAllowInvalidHostnames --auth;
+            fi;
+          else
+            echo "KUBERNETES LOG $HOSTNAME- Starting Mongo Daemon with setup setting (authMode)"
+            mongod --auth;
+          fi;
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - >
+                if [ ! -f /data/db/admin-user.lock ]; then
+                  echo "KUBERNETES LOG $HOSTNAME no Admin-user.lock file found yet"
+                  # user name and password for creation of new db user.
+                  DB_PASSWORD={{ .Values.doorman.dbPassword }}
+                  DB_USERNAME={{ .Values.doorman.username }}
+                  # sleep 20 to 'ensure' mongod is accepting connections for creating db user.
+                  sleep 20;
+                  touch /data/db/admin-user.lock
+                  # Adding database user with password in admin database, checking for host name to create new db user.
+                  if [ "$HOSTNAME" = "{{ template "corda-network-service.fullname" . }}-db-0" ]; then
+                    echo "KUBERNETES LOG $HOSTNAME- creating admin user"
+                    # Adding database user in admin db using mongo shell command.
+                    mongo --eval "db = db.getSiblingDB('admin'); db.createUser({ user: '${DB_USERNAME}', pwd: '${DB_PASSWORD}', roles: [{ role: 'root', db: 'admin' }]});" >> /data/db/config.log
+                  fi;
+                  echo "KUBERNETES LOG $HOSTNAME-shutting mongod down for final restart"
+                  mongod --shutdown;
+                fi;
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.settings.dbPort }}
+        volumeMounts:
+        - name: data-mongodb
+          mountPath: "/data/db"
+{{- if .Values.tls.enabled }}
+        - name: network-certs
+          mountPath: "/certs"
+          readOnly: false
+{{- end }}
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+{{- if .Values.tls.enabled }}
+      - name: network-certs
+        secret:
+          secretName: {{ .Release.Name }}-certs
+{{- end }}

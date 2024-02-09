@@ -1,0 +1,33 @@
+---
+#helm install manufacturer -f values/noproxy-and-novault/node.yaml -n manufacturer-ns corda-node 
+#helm upgrade manufacturer -f values/noproxy-and-novault/node.yaml -n manufacturer-ns corda-node
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: kubernetes
+  proxy:
+    provider: none
+    externalUrlSuffix: svc.cluster.local
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+tls:
+  enabled: false
+
+image:
+  corda:
+    repository: ghcr.io/hyperledger/bevel-corda
+    tag: 4.9
+
+nodeConf:
+  removeKeysOnDelete: true
+  legalName: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+  notary:
+    enabled: false
+  networkMapURL: http://supplychain-nms.supplychain-ns:8080
+  doormanURL: http://supplychain-doorman.supplychain-ns:8080

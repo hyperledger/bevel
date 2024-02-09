@@ -1,0 +1,142 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "corda-network-service.fullname" . }}-nms
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/name: nms-statefulset
+    app.kubernetes.io/component: nms
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "corda-network-service.fullname" . }}
+      app.kubernetes.io/name: nms-statefulset
+      app.kubernetes.io/component: nms
+      app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "corda-network-service.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/name: nms-statefulset
+        app.kubernetes.io/component: nms
+        app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: nms
+        image: {{ .Values.image.nms }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NETWORKMAP_PORT
+          value: "{{ .Values.nms.port }}"
+        - name: NETWORKMAP_ROOT_CA_NAME
+          value: {{ .Values.nms.subject }}
+        - name: NETWORKMAP_TLS
+          value: "{{ .Values.tls.enabled }}"
+        - name: NETWORKMAP_DB
+          value: /opt/networkmap/db
+        - name: DOORMAN_AUTH_USERNAME
+          value: sa
+        - name: DB_URL
+          value: {{ .Release.Name }}-mongodb
+        - name: DB_PORT
+          value: "{{ .Values.settings.dbPort }}"
+        - name: DATABASE
+          value: admin
+        - name: DB_USERNAME
+          value: {{ .Values.nms.username }}
+        - name: NETWORKMAP_CACHE_TIMEOUT
+          value: 60S
+        - name: NETWORKMAP_MONGOD_DATABASE
+          value: networkmap
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+
+          export DB_PASSWORD={{ .Values.nms.dbPassword }}
+          export NETWORKMAP_AUTH_PASSWORD={{ .Values.nms.authPassword }}
+          # Copy from read-only to read-write dirs
+          mkdir -p /opt/networkmap/db/certs/root
+          mkdir -p /opt/networkmap/db/certs/network-map
+
+          cp /certs/rootcakeystore /opt/networkmap/db/certs/root/keys.jks
+          cp /certs/nmskeystore /opt/networkmap/db/certs/network-map/keys.jks
+
+          if [ "$NETWORKMAP_TLS" = "true" ]; then
+            cat /certs/mongoCA.crt | base64 -d > /opt/networkmap/mongoCA.crt
+            export NETWORKMAP_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}?ssl=true&sslInvalidHostNameAllowed=true&streamType=netty"
+
+            # tls certs are mounted via tls secrets
+            export NETWORKMAP_TLS_CERT_PATH="/secret/tls.crt"
+            export NETWORKMAP_TLS_KEY_PATH="/secret/tls.key"
+            
+            # import self signed tls certificate of mongodb, since java only trusts certificate signed by well known CA  
+            yes | keytool -importcert -file /opt/networkmap/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
+          else
+            export NETWORKMAP_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}"
+          fi;
+          # command to run jar
+          java -jar /opt/networkmap/network-map-service.jar 2>&1
+        ports:
+          - containerPort: {{ .Values.nms.port }}
+        volumeMounts:
+          - name: data
+            mountPath: "/opt/networkmap/db"
+            readOnly: false
+          - name: network-certs
+            mountPath: "/certs"
+{{- if .Values.tls.enabled }}
+          - name: nms-certs
+            mountPath: "/secret"
+{{- end }}
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      - name: network-certs
+        secret:
+          secretName: {{ .Release.Name }}-certs
+{{- if .Values.tls.enabled }}
+      - name: nms-certs
+        secret:
+          secretName: nms-tls-certs
+{{- end }}
