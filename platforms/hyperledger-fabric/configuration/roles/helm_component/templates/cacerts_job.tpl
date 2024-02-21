@@ -20,13 +20,13 @@ spec:
     metadata:
       name: {{ component }}
       component_name: {{ component }}-net
-      namespace: {{ component_ns }}    
+      namespace: {{ component_ns }}
       images:
        alpineutils: {{ docker_url }}/{{ alpine_image }}
     vault:
       role: vault-role
       address: {{ vault.url }}
-      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
+      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}-net-auth
       secretcryptoprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/{{ component_type }}Organizations/{{ component }}-net/ca
       secretcredentialsprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/credentials/{{ component }}-net/ca/{{ component }}
       serviceaccountname: vault-auth
@@ -36,6 +36,6 @@ spec:
 {% else %}
       imagesecretname: ""
 {% endif %}
-      
+
     ca:
       subject: {{ subject }}
