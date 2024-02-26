@@ -138,5 +138,11 @@ helm uninstall --namespace supplychain-bes genesis
 
 helm uninstall --namespace carrier-bes carrier
 helm uninstall --namespace carrier-bes genesis
+```
+### Add and remove qbft validators
 
+To deploy the proposed validator chart, we need to deploy the Besu node chart first.
+
+```bash
+helm install validator-5 ./besu-propose-validator --namespace supplychain-bes --values besu-propose-validator/values.yaml
 ```
