@@ -156,6 +156,7 @@
         name: "create/configtx"
       vars:
         config_file: "./build/configtx.yaml"
+      when: add_new_org == 'false' and '2.5.' not in network.version
 
     # This role generate genesis block and channeltx
     - name: Create channel artifacts for all channels
@@ -167,6 +168,7 @@
         profile_name: "{{ item.channel_name }}"
         fetch_certs: "false"
       loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and '2.5.' not in network.version
 
     - name: "Create genesis block"
       include_role: 
@@ -176,6 +178,7 @@
         genesis: "{{ item.genesis }}"
         sys_channel_name: "syschannel"
       loop: "{{ network['channels'] }}"
+      when: add_new_org == 'false' and '2.5.' not in network.version
     
     # This role creates value file for zk-kafka (if kafka consensus is chosen) and orderer
     - name: Create all orderers
@@ -216,51 +219,6 @@
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
       when: item.type == 'peer'
-
-    # This role creates the value file for creating channel from creator organization
-    # to the vault.
-    - name: Create all create-channel jobs
-      include_role:
-        name: "create/channels"
-      vars:
-        build_path: "./build"
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
-
-    # This role creates the value file for creating channel from creator organization
-    # to the vault.
-    - name: Create all create-channel jobs
-      include_role:
-        name: "create/osnchannels"
-      vars:
-        build_path: "./build"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-      when: add_new_org == 'false' and '2.5.' in network.version
-
-    # This role creates the value file for joining channel from each participating peer
-    # to the vault.
-    - name: Create all join-channel jobs
-      include_role:
-        name: "create/channels_join"
-      vars:
-        build_path: "./build"
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-
-    # This role creates the value file for anchor peer update over channel for
-    # each organization which is the part of the channel.
-    - name: Create all anchor-peer jobs
-      include_role:
-        name: "create/anchorpeer"
-      vars:
-        build_path: "./build"
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
 
     # Create CLI pod for peers with cli option enabled
     - name: Create CLI pod for each peer with it enabled
