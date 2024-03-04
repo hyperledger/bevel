@@ -1,0 +1,42 @@
+{{- if and .Values.tessera.metrics.enabled .Values.tessera.metrics.serviceMonitorEnabled }}
+{{- if $.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "quorum-tessera-node.fullname" . }}-servicemonitor
+  labels:
+    release: monitoring
+    app: {{ include "quorum-tessera-node.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }} 
+    app.kubernetes.io/component: {{ .Release.Name }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.service }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }} 
+  namespace:  {{ .Release.Namespace }}
+spec:
+  jobLabel: {{ .Release.Name }}
+  endpoints:
+    - port: tm-tessera-third-part
+      honorLabels: true
+  namespaceSelector:
+    matchNames:
+      -  {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "quorum-tessera-node.fullname" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: {{ .Release.Name }}
+      {{- if $.Values.labels }}
+      {{- range $key, $value := $.Values.labels.service }}
+      {{- range $k, $v := $value }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+      {{- end }}
+      {{- end }}      
+{{- end }} 
+{{- end }} 

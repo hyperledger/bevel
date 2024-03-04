@@ -1,0 +1,238 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-genesis.name" . }}-init
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: quorum-genesis-job
+    app.kubernetes.io/component: genesis-job
+    app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: quorum-genesis-job
+        app.kubernetes.io/component: genesis-job
+        app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: OnFailure
+      containers:
+        - name:  generate-genesis
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          volumeMounts:
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+            - name: VAULT_ADDR
+              value: "{{ .Values.global.vault.address }}"
+            - name: VAULT_SECRET_ENGINE
+              value: "{{ .Values.global.vault.secretEngine }}"
+            - name: VAULT_SECRET_PREFIX
+              value: "{{ .Values.global.vault.secretPrefix }}"
+            - name: KUBERNETES_AUTH_PATH
+              value: "{{ .Values.global.vault.authPath }}"
+            - name: VAULT_APP_ROLE
+              value: "{{ .Values.global.vault.role }}"
+            - name: VAULT_TYPE
+              value: "{{ .Values.global.vault.type }}"
+{{- end }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              # Check if the vault type is HashiCorp
+{{- if eq .Values.global.vault.type "hashicorp" }}
+                # Source the script containing vault-related functions
+                . /scripts/bevel-vault.sh
+
+                echo "Generate a customize token."
+                vaultBevelFunc "init"
+                
+                # Function to safely write keys
+                safeWriteSecret() {
+                  local key="$1"
+                  local fpath="$2"
+                  
+                  # Read secret from vault
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}"
+                  # Check if secrets are available in the vault
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
+                    then
+                      # Extract secrets from JSON response
+                      local accountAddress=$(echo ${VAULT_SECRET} | jq -r '.["accountAddress"]')
+                      local accountKeystore=$(echo ${VAULT_SECRET} | jq -r '.["accountKeystore_base64"]' | base64 -d)
+                      local accountPassword=$(echo ${VAULT_SECRET} | jq -r '.["accountPassword"]')
+                      local accountPrivateKey=$(echo ${VAULT_SECRET} | jq -r '.["accountPrivateKey"]')
+                      local address=$(echo ${VAULT_SECRET} | jq -r '.["nodeAddress"]')
+                      local nodeKey=$(echo ${VAULT_SECRET} | jq -r '.["nodeKey"]')
+                      local nodekey_pub=$(echo ${VAULT_SECRET} | jq -r '.["nodeKeyPub"]')
+                      
+                      # Check if Kubernetes secret exists, if not, create one
+                      if ! kubectl get secret quorum-node-validator-${i}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then                      
+                        kubectl create secret generic quorum-node-validator-${i}-keys --namespace {{ .Release.Namespace }} \
+                        --from-literal=accountAddress=${accountAddress} \
+                        --from-literal=accountKeystore=${accountKeystore} \
+                        --from-literal=accountPassword=${accountPassword} \
+                        --from-literal=accountPrivateKey=${accountPrivateKey} \
+                        --from-literal=address=${address} \
+                        --from-literal=nodekey=${nodeKey} \
+                        --from-literal=nodekey.pub=${nodekey_pub}
+                      fi
+                  else
+                    # Read data from files if secrets are not available in the vault
+                    local node_address=$(cat "${fpath}/address")
+                    local node_key=$(cat "${fpath}/nodekey")
+                    local node_key_pub=$(cat "${fpath}/nodekey.pub")
+                    local account_private_key=$(cat "${fpath}/accountPrivateKey")
+                    local account_password=$(cat "${fpath}/accountPassword")
+                    local account_keystore_base64=$(cat "${fpath}/accountKeystore" | base64 -w 0)
+                    local account_address=$(cat "${fpath}/accountAddress")
+                    
+                    # Construct JSON payload
+                    echo "
+                      {
+                        \"data\":
+                          {
+                            \"nodeAddress\": \"${node_address}\",
+                            \"nodeKey\": \"${node_key}\",
+                            \"nodeKeyPub\": \"${node_key_pub}\",
+                            \"accountPrivateKey\": \"${account_private_key}\",
+                            \"accountPassword\": \"${account_password}\",
+                            \"accountKeystore_base64\": \"${account_keystore_base64}\",
+                            \"accountAddress\": \"${account_address}\"
+                          }
+                      }" > nodePayload.json
+                      
+                    # Push data to vault
+                    vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}" 'nodePayload.json'
+                    
+                    rm nodePayload.json
+                  fi
+                }
+                
+                # Function to safely write genesis
+                safeWriteGenesis() {
+                  local key="$1"
+                  local fpath="$2"
+                  
+                  # Read genesis file from vault
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}"
+                  
+                  # Check if secrets are available in the vault
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
+                  then           
+                    echo ${VAULT_SECRET} | jq -r '.["genesis_base64"]' | base64 -d > ./genesis.json
+                    if ! kubectl get configmap "quorum-genesis" --namespace {{ .Release.Namespace }} &> /dev/null; then
+                      kubectl create configmap "quorum-genesis" --from-file=genesis.json=./genesis.json --namespace {{ .Release.Namespace }}
+                    fi
+                  else
+                    # Read genesis data from files if secrets are not available in the vault
+                    local genesis_base64=$(cat "${fpath}/genesis.json" | base64 -w 0)
+                    
+                    # Construct JSON payload
+                    echo "
+                      {
+                        \"data\":
+                        {
+                          \"genesis_base64\": \"${genesis_base64}\"
+                        }
+                      }" > genesisPayload.json
+                      
+                    # Push data to vault
+                    vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}" 'genesisPayload.json'
+                    
+                    rm genesisPayload.json
+                  fi
+                }
+{{- else }}
+                safeWriteSecret() {
+                  # Placeholder:
+                  # - Implement code to fetch the keys if using any cloud-native service or platform different from HashiCorp to store the keys
+                  # - After fetching the keys, create Kubernetes secrets from them
+                  # - For guidance, refer to the code written for HashiCorp Vault for the same purpose
+                  return 0
+                }
+{{- end }}
+              # Check if secondary genesis is enabled
+              {{- if .Values.settings.secondaryGenesis }}
+                echo "Secondary Genesis,  configmaps are created from local files."
+              {{- else }}
+                # Use quorum-genesis-tool to generate genesis, keys and other required files
+                FOLDER_PATH=$(quorum-genesis-tool --consensus {{ .Values.rawGenesisConfig.genesis.config.algorithm.consensus }} \
+                  {{ if .Values.rawGenesisConfig.blockchain.nodes.generate }} --validators {{ .Values.rawGenesisConfig.blockchain.nodes.count }} {{ else }} --validators 0 {{ end }} \
+                  --members 0 --bootnodes 0 --chainID {{ .Values.rawGenesisConfig.genesis.config.chainId }} --blockperiod {{ .Values.rawGenesisConfig.genesis.config.algorithm.blockperiodseconds }} \
+                  --emptyBlockPeriod {{ .Values.rawGenesisConfig.genesis.config.algorithm.emptyBlockPeriod }} --epochLength {{ .Values.rawGenesisConfig.genesis.config.algorithm.epochlength }} \
+                  --requestTimeout {{ .Values.rawGenesisConfig.genesis.config.algorithm.requesttimeoutseconds }} --difficulty {{ .Values.rawGenesisConfig.genesis.difficulty }} \
+                  --gasLimit {{ .Values.rawGenesisConfig.genesis.gasLimit }} --coinbase {{ .Values.rawGenesisConfig.genesis.coinbase }} \
+                  {{ if .Values.rawGenesisConfig.blockchain.accountPassword }} --accountPassword {{ .Values.rawGenesisConfig.blockchain.accountPassword }} {{ end }} \
+                  --quickstartDevAccounts {{ .Values.rawGenesisConfig.genesis.includeQuickStartAccounts }} \
+                  --outputPath /generated-config | tail -1 | sed -e "s/^Artifacts in folder: //")
+
+                # Check if quorum-genesis configmap exists, if not, create one
+                if ! kubectl get configmap "quorum-genesis" --namespace {{ .Release.Namespace }} &> /dev/null; then
+                  kubectl create configmap "quorum-genesis" --namespace {{ .Release.Namespace }} --from-file=genesis.json="$FOLDER_PATH/goQuorum/genesis.json"
+                fi
+
+                # Count the number of validators based on their directories
+                validator_count=$(ls -d $FOLDER_PATH/validator* | wc -l)
+                # Iterate through the validators using a for loop
+                for ((i = 0; i < validator_count; i++)); do
+                  current_validator_dir="$FOLDER_PATH/validator${i}"
+                  
+                  {{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+                    # Safely write keys for cloud-native services
+                    safeWriteSecret quorum-node-validator-${i}-nodekey ${current_validator_dir}/nodekey
+                    safeWriteSecret quorum-node-validator-${i}-nodekeypub ${current_validator_dir}/nodekey.pub 
+                    safeWriteSecret quorum-node-validator-${i}-enode ${current_validator_dir}/nodekey.pub 
+                    safeWriteSecret quorum-node-validator-${i}-address ${current_validator_dir}/address
+                    kubectl create configmap --namespace {{ .Release.Namespace }} "quorum-node-validator-${i}-address" --from-file=address=${current_validator_dir}/address
+                    safeWriteSecret quorum-node-validator-${i}-accountPrivateKey ${current_validator_dir}/accountPrivateKey
+                    safeWriteSecret quorum-node-validator-${i}-accountPassword ${current_validator_dir}/accountPassword
+                    safeWriteSecret quorum-node-validator-${i}-accountKeystore ${current_validator_dir}/accountKeystore 
+                    safeWriteSecret quorum-node-validator-${i}-accountAddress ${current_validator_dir}/accountAddress 
+                  {{- else }}
+                    # Safely write keys and genesis to the Hashicorp Vault
+                    safeWriteSecret "quorum-node-validator-${i}-keys" "${current_validator_dir}"
+                    safeWriteGenesis "quorum-genesis" "$FOLDER_PATH/goQuorum"
+                  {{- end }}
+                  
+                  # Check if Kubernetes secret exists, if not, create one
+                  if ! kubectl get secret quorum-node-validator-${i}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then
+                    kubectl create secret generic quorum-node-validator-${i}-keys --namespace {{ .Release.Namespace }} \
+                      --from-literal=accountAddress=$(cat "${current_validator_dir}/accountAddress") \
+                      --from-literal=accountKeystore=$(cat "${current_validator_dir}/accountKeystore") \
+                      --from-literal=accountPassword=$(cat "${current_validator_dir}/accountPassword") \
+                      --from-literal=accountPrivateKey=$(cat "${current_validator_dir}/accountPrivateKey") \
+                      --from-literal=address=$(cat "${current_validator_dir}/address") \
+                      --from-literal=nodekey=$(cat "${current_validator_dir}/nodekey") \
+                      --from-literal=nodekey.pub=$(cat "${current_validator_dir}/nodekey.pub")
+                  fi
+                done
+              {{- end }}
+              echo "Completed."
+{{- if eq .Values.global.vault.type "hashicorp" }}
+      volumes:
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
+{{- end }}
