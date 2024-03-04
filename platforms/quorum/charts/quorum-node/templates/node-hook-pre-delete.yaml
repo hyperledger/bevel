@@ -1,0 +1,92 @@
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-node.fullname" . }}-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app.kubernetes.io/name: pre-delete-hook
+    app.kubernetes.io/component: cleanup
+    app.kubernetes.io/part-of: {{ include "quorum-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-delete-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: {{ template "quorum-node.fullname" . }}-cleanup
+          image: "{{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}"
+          imagePullPolicy: {{ .Values.image.hooks.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              echo "{{ template "quorum-node.fullname" . }} Pre Delete hook ..."
+
+              # Check if the ConfigMap exists
+              if kubectl get configmap quorum-peers --namespace {{ .Release.Namespace }} &>/dev/null; then
+                  # Get the content of the ConfigMap and save it to a file
+                  if kubectl get configmap quorum-peers --namespace {{ .Release.Namespace }} -o json | jq -r '.data["static-nodes.json"]' > ./static-nodes.json; then
+                      existingStaticNodes=$(cat ./static-nodes.json)
+                  else
+                      echo "Error: Failed to get content of ConfigMap."
+                      exit 1
+                  fi
+              fi
+
+              # Check if the secret exists
+              if kubectl get secret "{{ template "quorum-node.fullname" . }}-keys" --namespace {{ .Release.Namespace }} >/dev/null 2>&1; then
+                # Retrieve nodekey_pub from the secret
+                nodekey_pub=$(kubectl get secret "{{ template "quorum-node.fullname" . }}-keys" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["nodekey.pub"]' | base64 -d)
+                # Check if nodekey_pub is empty
+                if [ -z "$nodekey_pub" ]; then
+                    echo "Error: Retrieved nodekey.pub is empty."
+                    exit 1
+                fi
+                deleteNode="enode://$nodekey_pub@{{ include "quorum-node.enodeURL" . }}?discport=0"
+              fi
+
+              # Check if the newStaticNode is already present in existingStaticNodes
+              if echo "$existingStaticNodes" | jq 'contains(["'"$deleteNode"'"])' | grep -q true; then
+                  # Enode URL exists, remove it
+                  existingStaticNodes=$(echo "$existingStaticNodes" | jq 'map(select(. != "'"${deleteNode}"'"))')
+              fi
+
+              # Update the static-nodes.json file
+              echo "$existingStaticNodes" > ./static-nodes.json
+
+              # Check if the ConfigMap exists
+              if kubectl get configmap quorum-peers --namespace {{ .Release.Namespace }} &>/dev/null; then
+                  # Applying the updated static-nodes.json to the ConfigMap.
+                  if kubectl create configmap quorum-peers --from-file=./static-nodes.json --namespace {{ .Release.Namespace }} --dry-run=client -o yaml | kubectl replace -f -; then
+                      echo "ConfigMap updated successfully."
+                  else
+                      echo "Error: Failed to update ConfigMap."
+                      exit 1
+                  fi
+              fi
+
+              # Checking if the secret exist and delete it.
+              if kubectl get secret "{{ template "quorum-node.fullname" . }}-keys" --namespace {{ .Release.Namespace }} >/dev/null 2>&1; then
+                kubectl delete secret {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }}
+              fi
