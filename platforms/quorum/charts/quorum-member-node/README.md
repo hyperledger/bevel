@@ -3,10 +3,10 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "quorum-tessera-node-deployment"></a>
-# Quorum Tessera Node Deployment
+<a name = "quorum-member-node-deployment"></a>
+# Quorum Member Node Deployment
 
-- [Quorum Tessera Node Deployment Helm Chart](#quorum-tessera-node-deployment-helm-chart)
+- [Quorum Member Node Deployment Helm Chart](#quorum-member-node-deployment-helm-chart)
 - [Prerequisites](#prerequisites)
 - [Chart Structure](#chart-structure)
 - [Configuration](#configuration)
@@ -17,11 +17,10 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-
-<a name = "quorum-tessera-node-deployment-helm-chart"></a>
-## Quorum Tessera Node Deployment Helm Chart
+<a name = "quorum-member-node-deployment-helm-chart"></a>
+## Quorum Member Node Deployment Helm Chart
 ---
-This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node) helps to deploy tessera nodes.
+This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-member-node) helps to deploy Quorum Member (non-validator) nodes with tessera transaction manager.
 
 
 <a name = "prerequisites"></a>
@@ -43,7 +42,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 The structure of the Helm chart is as follows:
 
 ```
-quorum-tessera-node/
+quorum-member-node/
     |- templates/
             |- _helpers.yaml
             |- configmap.yaml
@@ -58,7 +57,7 @@ quorum-tessera-node/
 - `templates/`: This directory contains the template files for generating Kubernetes resources.
 - `helpers.tpl`: A template file used for defining custom labels in the Helm chart.
 - `configmap.yaml`: The file defines a ConfigMap that stores the base64-encoded content of the "genesis.json" file under the key "genesis.json.base64" in the specified namespace.
-- `deployment.yaml`: This file is a configuration file for deploying a StatefulSet in Kubernetes. It creates a StatefulSet with a specified number of replicas and defines various settings for the deployment. It includes initialization containers for fetching secrets from a Vault server, an init container for initializing the Quorum blockchain network, and a main container for running the Quorum tessera node. It also specifies volume mounts for storing certificates and data. The StatefulSet ensures stable network identities for each replica.
+- `deployment.yaml`: This file is a configuration file for deploying a StatefulSet in Kubernetes. It creates a StatefulSet with a specified number of replicas and defines various settings for the deployment. It includes initialization containers for fetching secrets from a Vault server, an init container for initializing the Quorum blockchain network, and a main container for running the Quorum member node. It also specifies volume mounts for storing certificates and data. The StatefulSet ensures stable network identities for each replica.
 - `ingress.yaml`: This file is a Kubernetes configuration file for setting up an Ingress resource with HAProxy as the provider. It includes annotations for SSL passthrough and specifies rules for routing traffic based on the host and path.
 - `service.yaml`: This file defines a Kubernetes Service with multiple ports for different protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
 - `Chart.yaml`: Provides metadata about the chart, such as its name, version, and description.
@@ -69,10 +68,7 @@ quorum-tessera-node/
 <a name = "configuration"></a>
 ## Configuration
 ---
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
-
-## Parameters
----
+The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-member-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
 
 ## Parameters
 ---
@@ -129,20 +125,35 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | secretprefix       | Provide the Vault secret path from where secrets will be read            | secret/org1/crypto/node_1 |
 | serviceaccountname | Provide the service account name verified with Vault                     | vault-auth                |
 | keyname            | Provide the key name from where Quorum secrets will be read              | quorum                    |
+| tm_keyname         | Provide the key name from where transaction manager secrets will be read | tm                        |
 | role               | Provide the service role verified with Vault                             | vault-role                |
 | authpath           | Provide the Vault auth path created for the namespace                    | quorumorg1                |
 
 ### tessera
 
 | Name          | Description                                                                                                       | Default Value                     |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- | -------------                     |
 | dburl         | Provide the Database URL                                                                                          | jdbc:mysql://localhost:3306/demodb|
 | dbusername    | Provide the Database username                                                                                     | demouser                          |
-| dbpassword    | Provide the Database password                                                                                     | password                          |
+| dbpassword    | Provide the Database password                                                                                     | ""                                |
 | url           | Provide the tessera node's own url. This should be local. Use http if tls is OFF                                  | ""                                |
 | othernodes    | Provide the list of tessera nodes to connect in `url: <value>` format. This should be reachable from this node    | ""                                |
 | tls           | Provide if tessera will use tls                                                                                   | STRICT                            |
 | trust         | Provide the server/client  trust configuration for transaction manager nodes                                            | TOFU                              |
+
+
+### genesis
+
+| Name    | Description                                    | Default Value |
+| --------| ---------------------------------------------- | ------------- |
+| genesis | Provide the genesis.json file in base64 format | ""            |
+
+
+### staticnodes
+
+| Name            | Description                           | Default Value |
+| ----------------| --------------------------------------| ------------- |
+| staticnodes     | Provide the static nodes as an array  | ""            |
 
 ### proxy
 
@@ -157,28 +168,27 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 
 ### storage
 
-| Name                  | Description                               | Default Value     |
-| --------------------- | ------------------------------------------| ----------------- |
-| storageclassname      | The Kubernetes storage class for the node | awsstorageclass   |
-| storagesize           | The memory for the node                   | 1Gi               |
-| dbstorage             | Provide the memory for database           | 1Gi               |
-
+| Name                  | Description                               | Default Value   |
+| --------------------- | ------------------------------------------| -------------   |
+| storageclassname      | The Kubernetes storage class for the node | awsstorageclass |
+| storagesize           | The memory for the node                   | 1Gi             |
+| dbstorage             | Provide the memory for database           | 1Gi             |
 
 <a name = "deployment"></a>
 ## Deployment
 ---
 
-To deploy the quorum-tessera-node Helm chart, follow these steps:
+To deploy the quorum-member-node Helm chart, follow these steps:
 
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file to set the desired configuration values.
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-member-node/values.yaml) file to set the desired configuration values.
 2. Run the following Helm command to install the chart:
     ```
     $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./quorum-tessera-node
+    $ helm install <release-name> ./quorum-member-node
     ```
 Replace `<release-name>` with the desired name for the release.
 
-This will deploy the quorum tessera node to the Kubernetes cluster based on the provided configurations.
+This will deploy the quorum member node to the Kubernetes cluster based on the provided configurations.
 
 
 <a name = "verification"></a>
@@ -196,11 +206,11 @@ Replace `<namespace>` with the actual namespace where the StatefulSet was create
 ## Updating the Deployment
 ---
 
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file with the desired changes and run the following Helm command:
+If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-member-node/values.yaml) file with the desired changes and run the following Helm command:
 ```
-$ helm upgrade <release-name> ./quorum-tessera-node
+$ helm upgrade <release-name> ./quorum-member-node
 ```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the quorum tessera node is up to date.
+Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the quorum member node is up to date.
 
 
 <a name = "deletion"></a>
@@ -217,7 +227,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [Quorum Tessera Node Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [Quorum Member Node Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-member-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
 
 <a name = "license"></a>

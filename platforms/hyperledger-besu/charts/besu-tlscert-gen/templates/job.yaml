@@ -95,7 +95,8 @@ spec:
           cert=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
 
           # If the cert is null, empty, or contains a parse error, then the certificates do not exist in Vault
-          if [ "$cert" == "null" ] || [[ "$cert" = *"error"* ]] || [ "$cert" = "" ]; then
+          if [ "$cert" == "null" ] || [[ "$cert" = "parse error"* ]] || [ "$cert" = "" ]
+          then
             # Create a file to indicate that the ambassador TLS certificates are absent
             echo "Certficates absent in vault. Ignore error warning"
             touch ${OUTPUT_PATH}/ambassadortls_absent.txt
@@ -312,7 +313,8 @@ spec:
                 # Check if any of the certificate and key fields are missing, empty or having any kind of error
                 for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"
                 do
-                  if [ "$field" = "null" ] || [[ "$field" = *"error"* ]] || [ "$field" = "" ]; then
+                  if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+                  then
                     AMBASSADORTLS_CERT_WRITTEN=false
                     break
                   else
@@ -332,7 +334,8 @@ spec:
                 # Check if any of the certificate and key fields are missing, empty or having any kind of error
                 for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY"
                 do
-                  if [ "$field" = "null" ] || [[ "$field" = *"error"* ]] || [ "$field" = "" ]; then
+                  if [ "$field" = "null"  ] || [[ "$field" = "parse error"* ]] || [ "$field" = "" ]
+                  then
                     AMBASSADORTLS_CERT_WRITTEN=false
                     break
                   else
