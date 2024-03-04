@@ -1,0 +1,79 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-tessera-node.fullname" . }}-pre-delete-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app.kubernetes.io/name: pre-delete-hook
+    app.kubernetes.io/component: cleanup
+    app.kubernetes.io/part-of: {{ include "quorum-tessera-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-delete-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: {{ template "quorum-tessera-node.fullname" . }}-cleanup
+          image: "{{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+              echo "{{ template "quorum-tessera-node.fullname" . }} pre-delete-hook ..."
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              # placeholder for cloudNative deleteSecret function
+{{- else }}
+
+              function deleteSecret {
+                key=$1
+                kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
+              }
+
+{{- end }}
+
+              function delete_node_from_tessera_peers_configmap {
+                kubectl -n {{ .Release.Namespace }} get configmap tessera-peers -o json
+                # if there is no configmap, do nothing
+                if [ $? -ne 0 ]; then
+                  echo "No tessera-peers found, nothing to do..."
+                # delete the one
+                else
+                  echo "tessera-peers found, deleting {{ template "quorum-tessera-node.fullname" . }}..."
+                  echo $(kubectl -n {{ .Release.Namespace }} get configmap tessera-peers -o jsonpath='{.data.tesseraPeers}' ) > /tmp/tessera-peers.raw
+                  cat /tmp/tessera-peers.raw | jq --arg NEEDLE "{{ .Release.Name }}" 'del(.[] | select( .url | contains($NEEDLE) ))' > /tmp/tessera-peers
+                  kubectl -n {{ .Release.Namespace }} create configmap tessera-peers --from-file=tesseraPeers=/tmp/tessera-peers -o yaml --dry-run=client | kubectl replace -f -
+                fi
+              }
+
+              delete_node_from_tessera_peers_configmap
+
+{{- if .Values.tessera.removeKeysOnDelete }}
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              deleteSecret {{ template "quorum-tessera-node.fullname" . }}-tmkey
+              deleteSecret {{ template "quorum-tessera-node.fullname" . }}-tmkeypub
+              deleteSecret {{ template "quorum-tessera-node.fullname" . }}-tmpassword
+{{- else }}
+              deleteSecret {{ template "quorum-tessera-node.fullname" . }}-keys
+{{- end }}
+
+{{- end }}
+              echo "Completed"
