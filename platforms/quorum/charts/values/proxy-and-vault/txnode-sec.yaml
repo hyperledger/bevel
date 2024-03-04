@@ -1,0 +1,62 @@
+---
+# helm install member-2 -f values/proxy-and-vault/txnode-sec.yml -n carrier-quo --set global.proxy.p2p=15016 quorum-node
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+    kubernetesUrl: https://kubernetes.url
+  vault:
+    type: hashicorp
+    network: quorum
+    address: http://vault.demo.com:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    role: vault-role
+  proxy:
+    provider: ambassador
+    externalUrlSuffix: test.yourdomain.com
+    tmport: 443
+
+storage:
+  size: "2Gi"
+
+tessera:
+  enabled: true
+  tessera:
+    port: 443
+    peerNodes: 
+      - url: "https://supplychain.test.yourdomain.com"
+    resources:
+      cpuLimit: 0.25
+      cpuRequest: 0.05
+      memLimit: "2G"
+      memRequest: "1G"
+    password: 'password'
+  storage:
+    enabled: false
+    size: 1Gi
+    dbSize: 2Gi
+    allowedTopologies:
+      enabled: false
+  
+tls:
+  enabled: true
+  settings:
+    certSubject: CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB
+    tmTls: true
+
+node:
+  goquorum:
+    metrics:
+      serviceMonitorEnabled: true
+    resources:
+      cpuLimit: 0.25
+      cpuRequest: 0.05
+      memLimit: "1G"
+      memRequest: "300M"
+    account:
+      password: 'password'
+    p2p:
+      discovery: false
