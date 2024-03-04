@@ -9,7 +9,7 @@
 ##############################################################################################
 
 # Wait for namespace creation for notary
-- name: "Wait for namespace creation for notary"
+- name: Wait for namespace creation for notary
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
   vars:
@@ -19,88 +19,18 @@
   tags:
     - notest
 
-# Generate crypto for notary
-- name: Generate crypto for notary
-  include_role:
-    name: create/certificates/notary
-  vars:
-    component_name: "{{ services.notary.name | lower }}"
-    nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_cert_file: "{{ network | json_query('network_services[?type==`networkmap`].certificate') | first }}"
-    doorman_cert_file: "{{ network | json_query('network_services[?type==`doorman`].certificate') | first }}"
-    cordapps_details: "{{ cordapps }}"
-    cert_subject: "{{ item.subject | regex_replace(',', '/') }}"  #Use org level subject for certificate generation
-
-# Create deployment files for h2 for notaries
-- name: 'Create notary db deployment file'
-  include_role:
-    name: create/node_component
-  vars:    
-    node_type: "notary"
-    component_type: "db"
-    component_name: "{{ node.name }}"
-    org_name: "{{ item.name | lower }}"
-    component_auth: "{{ network.env.type }}{{ org_name }}"
-    service_name: "{{ node.name | lower }}"
-    corda_version: "corda-{{ network.version }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-
-# Check if nodekeystore already created
-- name: Check if nodekeystore already created
-  shell: |
-    vault kv get -field=nodekeystore.jks {{ vault.secret_path | default(name) }}/{{ name }}/{{ node.name }}/certs/nodekeystore
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: nodekeystore_result
-  ignore_errors: yes
-
-# Create deployment files for job for notaries
-- name: 'Create notary initial-registration job file'
-  include_role:
-    name: create/node_component
-  vars:    
-    node_type: "notary"
-    component_type: "job"
-    component_name: "{{ node.name }}"
-    org_name: "{{ item.name | lower }}"
-    component_auth: "{{ network.env.type }}{{ org_name }}"
-    nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_domain: "{{ nms_url.split(':')[1] }}"
-    doorman_url: "{{ network | json_query('network_services[?type==`doorman`].uri') | first }}"
-    doorman_domain: "{{ doorman_url.split(':')[1] }}"
-    corda_version: "corda-{{ network.version }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-  when: nodekeystore_result.failed == True
-
-# Git Push: Push the created deployment files to repository
-- name: "Push the created deployment files to repository"
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
-  vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    msg: "[ci skip] Pushing db and job deployment files for {{ node.name }}"
-
 # Create deployment file for notary node
-- name: 'Create notary node deployment file'
+- name: Create notary node deployment file
   include_role: 
-    name: create/node_component
+    name: create/helm_component
   vars:    
-    node_type: "notary"
-    component_type: "node"
-    org_name: "{{ item.name | lower }}"
-    component_auth: "{{ network.env.type }}{{ org_name }}"
-    component_name: "{{ node.name }}"
+    type: "corda_notary"
+    component_name: "{{ node.name | lower }}"
     nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_domain: "{{ nms_url.split(':')[1] }}"
     doorman_url: "{{ network | json_query('network_services[?type==`doorman`].uri') | first }}"
-    doorman_domain: "{{ doorman_url.split(':')[1] }}"
-    corda_version: "corda-{{ network.version }}"
-    cordapps_details: "{{ cordapps }}" 
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
 
 # Git Push: Push the deployment files for notary node
-- name: 'Push notary deployment files'
+- name: Push notary deployment files
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:

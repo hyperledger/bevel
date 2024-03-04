@@ -23,39 +23,46 @@
     retries: "{{ network.env.retry_count}}"
     delay: 70
     ignore_errors: yes
+    when: network.env.proxy != 'none'
 
   # Deploy notaries
-  - name: 'Deploy notary'
+  - name: Deploy notary service
     include_role:
       name: setup/notary
     vars:
-      services: "{{ item.services }}"
-      node: "{{ item.services.notary }}"
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}" 
-      cordapps: "{{ item.cordapps | default() }}"
+      name: "{{ org.name | lower }}"
+      node: "{{ org.services.notary }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
     loop: "{{ network['organizations'] }}"
-    when: network['type'] == 'corda' and item.type.find('notary') != -1
+    loop_control:
+      loop_var: org
+    when: 
+      - org.services.notary is defined
+      - org.org_status is not defined or org.org_status == 'new'
 
   # Deploy all other nodes
-  - name: 'Deploy nodes'
+  - name: Deploy Corda nodes
     include_role:
       name: setup/node
     vars:
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      services: "{{ item.services }}"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      cordapps: "{{ item.cordapps | default() }}"
-      gitops: "{{ item.gitops }}" 
-    loop: "{{ network['organizations'] }}"  
-    when: network['type'] == 'corda' and item.type == 'node'
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'node'
+      - org.org_status is not defined or org.org_status == 'new'
 
   # delete build directory
   - name: Remove build directory
