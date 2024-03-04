@@ -1,0 +1,39 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+{{- if .Values.settings.secondaryGenesis }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quorum-genesis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: quorum-genesis-job
+    app.kubernetes.io/component: genesis-job
+    app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:  
+  genesis.json: |-
+    {{ .Files.Get "files/genesis.json" | nindent 8 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quorum-peers
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: quorum-genesis-job
+    app.kubernetes.io/component: genesis-job
+    app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:  
+  static-nodes.json: |-
+    {{ .Files.Get "files/static-nodes.json" | nindent 8 }}
+{{- end }}

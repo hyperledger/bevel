@@ -1,0 +1,54 @@
+# The following are for overriding global values
+global:
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws
+    cloudNativeServices: false # 'false' is implemented
+    #Provide the kubernetes host url
+    #Eg. kubernetesUrl: https://10.3.8.5:6443
+    kubernetesUrl:
+  vault:
+    #Provide the type of vault
+    type: hashicorp
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: quorum
+    #Provide the vault server address
+    address: 
+    #Provide the vault authPath configured to be used.
+    authPath: supplychain
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/supplychain"
+image:
+  repository: ghcr.io/hyperledger/bevel-k8s-hooks
+  tag: qgt-0.2.12
+  pullPolicy: IfNotPresent
+  # Provide the secret to use if private repository
+  # Eg. pullSecret: regcred
+  pullSecret:
+settings:
+  # Flag to ensure the genesis configmap is removed on helm uninstall
+  removeGenesisOnDelete: true
+rawGenesisConfig:
+  genesis:
+    config:
+      chainId: 1337
+      algorithm: 
+        consensus: qbft # choose from: ibft | qbft | raft | clique
+        blockperiodseconds: 10
+        emptyBlockPeriod: 60
+        epochlength: 30000
+        requesttimeoutseconds: 20
+    gasLimit: '0x47b760'
+    difficulty: '0x1'
+    coinbase: '0x0000000000000000000000000000000000000000'
+    includeQuickStartAccounts: false
+  blockchain:
+    nodes:      # refers to validators/signers
+      generate: true
+      count: 4
+    accountPassword: 'password'

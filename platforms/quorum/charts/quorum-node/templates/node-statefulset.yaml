@@ -1,0 +1,199 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "quorum-node.fullname" . }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: quorum-statefulset
+    app.kubernetes.io/component: goquorum
+    app.kubernetes.io/part-of: {{ include "quorum-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.deployment }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.node.goquorum.replicaCount }}
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      app.kubernetes.io/name: quorum-statefulset
+      app.kubernetes.io/component: goquorum
+      app.kubernetes.io/part-of: {{ include "quorum-node.fullname" . }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: helm
+  serviceName: {{ include "quorum-node.fullname" . }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.pvc }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: storage-{{ .Release.Name }}
+      resources:
+        requests:
+          storage: "{{ .Values.storage.size }}"
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: quorum-statefulset
+        app.kubernetes.io/component: goquorum
+        app.kubernetes.io/part-of: {{ include "quorum-node.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.node.goquorum.metrics.pprofport | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      initContainers:
+{{- if has .Values.global.cluster.provider .Values.volumePermissionsFix }}
+      # fix for minikube and PVC's only writable as root https://github.com/kubernetes/minikube/issues/1990
+      - name: volume-permission-goquorum
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /data"]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+        securityContext:
+          runAsUser: 0
+{{- end}}
+      containers:
+        - name: "{{ include "quorum-node.fullname" . }}-quorum"
+          image: {{ .Values.image.goquorum.repository }}:{{ .Values.image.goquorum.tag }}
+          imagePullPolicy: {{ .Values.image.goquorum.imagePullPolicy }}
+          resources:
+            requests:
+              cpu: "{{ .Values.node.goquorum.resources.cpuRequest }}"
+              memory: "{{ .Values.node.goquorum.resources.memRequest }}"
+            limits:
+              cpu: "{{ .Values.node.goquorum.resources.cpuLimit }}"
+              memory: "{{ .Values.node.goquorum.resources.memLimit }}"
+          volumeMounts:
+            - name: static-nodes
+              mountPath: /{{ .Release.Name }}/staticNode/
+            - name: genesis
+              mountPath: /{{ .Release.Name }}/genesis/
+            - name: node-keys
+              mountPath: /{{ .Release.Name }}/nodeSecrets/
+              readOnly: true
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: json-rpc
+              containerPort: {{ .Values.node.goquorum.rpc.port }}
+              protocol: TCP
+            - name: ws
+              containerPort: {{ .Values.node.goquorum.ws.port }}
+              protocol: TCP
+            - name: graphql
+              containerPort: {{ .Values.node.goquorum.graphql.port }}
+              protocol: TCP
+            - name: rlpx
+              containerPort: {{ .Values.node.goquorum.p2p.port }}
+              protocol: TCP
+            - name: discovery
+              containerPort: {{ .Values.node.goquorum.p2p.port }}
+              protocol: UDP
+            - name: metrics
+              containerPort: {{ .Values.node.goquorum.metrics.pprofport }}
+              protocol: TCP
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+
+              # Create the necessary directory structure
+              mkdir -p {{ .Release.Name }}/data/keystore
+
+              # Move files to their respective locations
+              cp {{ .Release.Name }}/staticNode/static-nodes.json {{ .Release.Name }}/data/
+              cp {{ .Release.Name }}/genesis/genesis.json {{ .Release.Name }}/data/
+              cp {{ .Release.Name }}/nodeSecrets/nodekey* {{ .Release.Name }}/nodeSecrets/address {{ .Release.Name }}/data/
+              cp {{ .Release.Name }}/nodeSecrets/account* {{ .Release.Name }}/data/keystore/
+              cd {{ .Release.Name }}/
+
+              # Initialize the node
+              geth --datadir data init data/genesis.json
+
+              # Extract the address from the account keystore file
+              export ADDRESS=$(grep -o '"address": *"[^"]*"' ./data/keystore/accountKeystore | grep -o '"[^"]*"$' | sed 's/"//g')
+
+              # Start the node
+              geth \
+              --datadir {{ .Values.node.goquorum.dataPath }} \
+              --nodiscover --ipcdisable \
+              --nat extip:$POD_IP \
+              --verbosity {{ .Values.node.goquorum.log.verbosity }} \
+              --istanbul.blockperiod {{ .Values.node.goquorum.miner.blockPeriod }} --mine --miner.threads {{ .Values.node.goquorum.miner.threads }} --miner.gasprice 0 --emitcheckpoints \
+              --syncmode full --nousb \
+              --metrics --pprof --pprof.addr {{ .Values.node.goquorum.metrics.pprofaddr | quote }} --pprof.port {{ .Values.node.goquorum.metrics.pprofport }} \
+              --networkid {{ .Values.node.goquorum.networkId }} \
+              --port {{ .Values.node.goquorum.p2p.port }} \
+              {{- if .Values.node.goquorum.rpc.enabled }}
+              --http --http.addr {{ .Values.node.goquorum.rpc.addr }} --http.port {{ .Values.node.goquorum.rpc.port }} --http.corsdomain {{ .Values.node.goquorum.rpc.corsDomain | quote }} --http.vhosts {{ .Values.node.goquorum.rpc.vHosts | quote }} --http.api {{ .Values.node.goquorum.rpc.api | quote }} \
+              {{- end }}
+              {{- if .Values.node.goquorum.ws.enabled }}
+              --ws --ws.addr {{ .Values.node.goquorum.ws.addr }} --ws.port {{ .Values.node.goquorum.ws.port }} --ws.origins {{ .Values.node.goquorum.ws.origins | quote }} --ws.api {{ .Values.node.goquorum.ws.api | quote }} \
+              {{- end }}        
+              {{- if hasKey .Values.node.goquorum.account "unlock" }}
+              --unlock ${ADDRESS} --allow-insecure-unlock --password {{ .Values.node.goquorum.account.passwordPath }} \
+              {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8545
+            initialDelaySeconds: 180
+            periodSeconds: 60
+      volumes:
+        - name: static-nodes
+          configMap:
+            name: quorum-peers
+        - name: genesis
+          configMap:
+            name: quorum-genesis
+        - name: node-keys
+          secret:
+            secretName: {{ template "quorum-node.fullname" . }}-keys
