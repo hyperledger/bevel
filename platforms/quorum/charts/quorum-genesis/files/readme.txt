@@ -1,1 +1,0 @@
-This is a dummy file. Place the staticnodes and genesis files in this folder for secondary genesis.

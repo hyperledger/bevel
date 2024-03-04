@@ -3,10 +3,10 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "quorum-tessera-node-deployment"></a>
-# Quorum Tessera Node Deployment
+<a name = "quorum-member-node-deployment"></a>
+# Quorum Validator Node Deployment
 
-- [Quorum Tessera Node Deployment Helm Chart](#quorum-tessera-node-deployment-helm-chart)
+- [Quorum Validator Node Deployment Helm Chart](#quorum-validator-node-deployment-helm-chart)
 - [Prerequisites](#prerequisites)
 - [Chart Structure](#chart-structure)
 - [Configuration](#configuration)
@@ -18,10 +18,10 @@
 - [License](#license)
 
 
-<a name = "quorum-tessera-node-deployment-helm-chart"></a>
-## Quorum Tessera Node Deployment Helm Chart
+<a name = "quorum-validator-node-deployment-helm-chart"></a>
+## Quorum Validator Node Deployment Helm Chart
 ---
-This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node) helps to deploy tessera nodes.
+This [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-validator-node) helps to deploy Quorum validator nodes.
 
 
 <a name = "prerequisites"></a>
@@ -43,7 +43,7 @@ Before deploying the Helm chart, make sure to have the following prerequisites:
 The structure of the Helm chart is as follows:
 
 ```
-quorum-tessera-node/
+quorum-validator-node/
     |- templates/
             |- _helpers.yaml
             |- configmap.yaml
@@ -58,7 +58,7 @@ quorum-tessera-node/
 - `templates/`: This directory contains the template files for generating Kubernetes resources.
 - `helpers.tpl`: A template file used for defining custom labels in the Helm chart.
 - `configmap.yaml`: The file defines a ConfigMap that stores the base64-encoded content of the "genesis.json" file under the key "genesis.json.base64" in the specified namespace.
-- `deployment.yaml`: This file is a configuration file for deploying a StatefulSet in Kubernetes. It creates a StatefulSet with a specified number of replicas and defines various settings for the deployment. It includes initialization containers for fetching secrets from a Vault server, an init container for initializing the Quorum blockchain network, and a main container for running the Quorum tessera node. It also specifies volume mounts for storing certificates and data. The StatefulSet ensures stable network identities for each replica.
+- `deployment.yaml`: This file is a configuration file for deploying a StatefulSet in Kubernetes. It creates a StatefulSet with a specified number of replicas and defines various settings for the deployment. It includes initialization containers for fetching secrets from a Vault server, an init container for initializing the Quorum blockchain network, and a main container for running the Quorum validator node. It also specifies volume mounts for storing certificates and data. The StatefulSet ensures stable network identities for each replica.
 - `ingress.yaml`: This file is a Kubernetes configuration file for setting up an Ingress resource with HAProxy as the provider. It includes annotations for SSL passthrough and specifies rules for routing traffic based on the host and path.
 - `service.yaml`: This file defines a Kubernetes Service with multiple ports for different protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
 - `Chart.yaml`: Provides metadata about the chart, such as its name, version, and description.
@@ -69,10 +69,7 @@ quorum-tessera-node/
 <a name = "configuration"></a>
 ## Configuration
 ---
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
-
-## Parameters
----
+The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-validator-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
 
 ## Parameters
 ---
@@ -96,7 +93,6 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | ---------------| ------------------------------------------------------------------------------------ | ------------------------------------- |
 | node           | Provide the valid image name and version for quorum node                             | quorumengineering/quorum:2.1.1        |
 | alpineutils    | Provide the valid image name and version to read certificates from vault server      | ghcr.io/hyperledger/bevel-alpine:latest      |
-| tessera        | Provide the valid image name and version for quorum tessera                          | quorumengineering/tessera:0.9.2       |
 | busybox        | Provide the valid image name and version for busybox                                 | busybox                               |
 | mysql          | Provide the valid image name and version for MySQL. This is used as the DB for TM    | mysql/mysql-server:5.7                |
 
@@ -132,17 +128,18 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 | role               | Provide the service role verified with Vault                             | vault-role                |
 | authpath           | Provide the Vault auth path created for the namespace                    | quorumorg1                |
 
-### tessera
+### genesis
 
-| Name          | Description                                                                                                       | Default Value                     |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| dburl         | Provide the Database URL                                                                                          | jdbc:mysql://localhost:3306/demodb|
-| dbusername    | Provide the Database username                                                                                     | demouser                          |
-| dbpassword    | Provide the Database password                                                                                     | password                          |
-| url           | Provide the tessera node's own url. This should be local. Use http if tls is OFF                                  | ""                                |
-| othernodes    | Provide the list of tessera nodes to connect in `url: <value>` format. This should be reachable from this node    | ""                                |
-| tls           | Provide if tessera will use tls                                                                                   | STRICT                            |
-| trust         | Provide the server/client  trust configuration for transaction manager nodes                                            | TOFU                              |
+| Name    | Description                                    | Default Value |
+| --------| ---------------------------------------------- | ------------- |
+| genesis | Provide the genesis.json file in base64 format | ""            |
+
+
+### staticnodes
+
+| Name            | Description                           | Default Value |
+| ----------------| --------------------------------------| ------------- |
+| staticnodes     | Provide the static nodes as an array  | ""            |
 
 ### proxy
 
@@ -168,17 +165,17 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/qu
 ## Deployment
 ---
 
-To deploy the quorum-tessera-node Helm chart, follow these steps:
+To deploy the quorum-member-node Helm chart, follow these steps:
 
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file to set the desired configuration values.
+1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-validator-node/values.yaml) file to set the desired configuration values.
 2. Run the following Helm command to install the chart:
     ```
     $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./quorum-tessera-node
+    $ helm install <release-name> ./quorum-validator-node
     ```
 Replace `<release-name>` with the desired name for the release.
 
-This will deploy the quorum tessera node to the Kubernetes cluster based on the provided configurations.
+This will deploy the quorum validator node to the Kubernetes cluster based on the provided configurations.
 
 
 <a name = "verification"></a>
@@ -196,11 +193,11 @@ Replace `<namespace>` with the actual namespace where the StatefulSet was create
 ## Updating the Deployment
 ---
 
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node/values.yaml) file with the desired changes and run the following Helm command:
+If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-validator-node/values.yaml) file with the desired changes and run the following Helm command:
 ```
-$ helm upgrade <release-name> ./quorum-tessera-node
+$ helm upgrade <release-name> ./quorum-validator-node
 ```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the quorum tessera node is up to date.
+Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the quorum validator node is up to date.
 
 
 <a name = "deletion"></a>
@@ -217,7 +214,7 @@ Replace `<release-name>` with the name of the release. This command will remove 
 <a name = "contributing"></a>
 ## Contributing
 ---
-If you encounter any bugs, have suggestions, or would like to contribute to the [Quorum Tessera Node Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-tessera-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
+If you encounter any bugs, have suggestions, or would like to contribute to the [Quorum Validator Node Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/develop/platforms/quorum/charts/quorum-validator-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
 
 
 <a name = "license"></a>
