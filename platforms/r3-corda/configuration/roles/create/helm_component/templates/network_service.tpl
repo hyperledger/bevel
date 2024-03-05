@@ -69,4 +69,3 @@ spec:
       authPassword: admin
       dbPassword: newdbnm
       port: {{ nms.ports.servicePort }}
-      
