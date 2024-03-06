@@ -1,0 +1,124 @@
+# The following are for overriding global values
+global:
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+    # Provide the kubernetes host url
+    # Eg. kubernetesUrl: https://10.3.8.5:6443
+    kubernetesUrl: 
+  vault:
+    #Provide the type of vault
+    type: hashicorp # hashicorp | kubernetes
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: quorum
+    #Provide the vault server address
+    address: 
+    #Provide the vault authPath configured to be used.
+    authPath: supplychain
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/supplychain"
+
+  # This section contains the proxy ports.
+  proxy:
+    # Mention the proxy provider. Currently ambassador or none is supported.
+    provider: # ambassador | none
+    # Provide the external URL of the proxy.
+    externalUrlSuffix:  # svc.cluster.local | test.blockchaincloudpoc.com
+    # Mention the p2p port configured on proxy.
+    # NOTE: Make sure that the port is enabled and not already used.
+    # Eg. p2p: 15010
+    p2p: 15010
+
+tessera:
+  enabled: false
+tls:
+  enabled: false
+
+node:
+  quorum:
+    resources:
+      cpuLimit: 1
+      cpuRequest: 0.1
+      memLimit: "2G"
+      memRequest: "1G"
+    dataPath: "data"
+    customLabels: {}
+    networkId: 10
+    replicaCount: 1
+    account:
+      unlock: 0
+      password: 'password'
+      passwordPath: "data/keystore/accountPassword"
+    log:
+      verbosity: 5
+    miner:
+      threads: 1
+      blockPeriod: 5
+    p2p:
+      enabled: true
+      addr: "0.0.0.0"
+      port: 30303
+    rpc:
+      enabled: true
+      addr: "0.0.0.0"
+      port: 8545
+      corsDomain: "*"
+      vHosts: "*"
+      api: "admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul"  
+      authenticationEnabled: false
+    ws:
+      enabled: true
+      addr: "0.0.0.0"
+      port: 8546
+      api: "admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,istanbul"
+      origins: "*"
+      authenticationEnabled: false
+    graphql:
+      enabled: true
+      addr: "0.0.0.0"
+      port: 8547
+      corsDomain: "*"
+      vHosts: "*"
+    metrics:
+      enabled: true
+      pprofaddr: "0.0.0.0"
+      pprofport: 9545
+      serviceMonitorEnabled: false
+    privacy: # TAI
+      url: "http://localhost:9101"
+      pubkeysPath: "/tessera"
+      pubkeyFile: "/tessera/tm.pub"
+
+image:
+  quorum:
+    repository: quorumengineering/quorum
+    tag: 22.7.1
+  hooks:
+    repository: ghcr.io/hyperledger/bevel-k8s-hooks
+    tag: qgt-0.2.12
+  pullPolicy: IfNotPresent
+  pullSecret:
+
+# Fixes permissions of volumes because besu runs as user `besu` and volumes prefer `root`
+volumePermissionsFix:
+  - minikube
+  - aws
+labels:
+  service: []
+  pvc: []
+  deployment: []
+
+# Override necessary Subchart values
+storage:
+  size: "2Gi"
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false

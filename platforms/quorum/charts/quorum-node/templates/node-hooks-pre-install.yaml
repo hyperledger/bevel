@@ -1,0 +1,221 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-node.fullname" . }}-pre-install-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  labels:
+    app.kubernetes.io/name: pre-install-hook
+    app.kubernetes.io/component: keygen
+    app.kubernetes.io/part-of: {{ include "quorum-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-install-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: {{ template "quorum-node.fullname" . }}-keygen
+          image: {{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}
+          securityContext:
+            runAsUser: 0
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          volumeMounts:
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+{{- end }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+                # Check if the vault type is HashiCorp
+{{- if eq .Values.global.vault.type "hashicorp" }}
+                  # Source the script containing vault-related functions
+                  . /scripts/bevel-vault.sh
+                  
+                  echo "Generate a customize token."
+                  vaultBevelFunc "init"
+                  
+                  # Function to safely write keys
+                  safeWriteSecret() {
+                    local key="$1"
+                    local fpath="$2"
+                    
+                    # Read secret from vault
+                    vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}"
+                    
+                    # Check if secrets are available in the vault
+                    if [ "$SECRETS_AVAILABLE" == "yes" ]
+                    then
+                      # Extract secrets from JSON response
+                      local accountAddress=$(echo ${VAULT_SECRET} | jq -r '.["accountAddress"]')
+                      local accountKeystore=$(echo ${VAULT_SECRET} | jq -r '.["accountKeystore_base64"]' | base64 -d)
+                      local accountPassword=$(echo ${VAULT_SECRET} | jq -r '.["accountPassword"]')
+                      local accountPrivateKey=$(echo ${VAULT_SECRET} | jq -r '.["accountPrivateKey"]')
+                      local address=$(echo ${VAULT_SECRET} | jq -r '.["nodeAddress"]')
+                      local nodeKey=$(echo ${VAULT_SECRET} | jq -r '.["nodeKey"]')
+                      nodekey_pub=$(echo ${VAULT_SECRET} | jq -r '.["nodeKeyPub"]')
+                      
+                      # Check if Kubernetes secret exists, if not, create one
+                      if ! kubectl get secret {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then
+                        # Create Kubernetes secret from vault secrets                      
+                        kubectl create secret generic {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} \
+                        --from-literal=accountAddress=${accountAddress} \
+                        --from-literal=accountKeystore=${accountKeystore} \
+                        --from-literal=accountPassword=${accountPassword} \
+                        --from-literal=accountPrivateKey=${accountPrivateKey} \
+                        --from-literal=address=${address} \
+                        --from-literal=nodekey=${nodeKey} \
+                        --from-literal=nodekey.pub=${nodekey_pub}
+                      fi
+                    else
+                      # Read data from files if secrets are not available in the vault
+                      local accountAddress=$(cat "${fpath}/accountAddress")
+                      local accountKeystore_base64=$(cat "${fpath}/accountKeystore" | base64 -w 0)
+                      local accountPassword=$(cat "${fpath}/accountPassword")
+                      local accountPrivateKey=$(cat "${fpath}/accountPrivateKey")
+                      local address=$(cat "${fpath}/address")
+                      local nodekey=$(cat "${fpath}/nodekey")
+                      local nodekey_pub=$(cat "${fpath}/nodekey.pub")
+                      
+                      # Construct JSON payload
+                      echo "
+                        {
+                          \"data\":
+                            {
+                              \"accountAddress\": \"${accountAddress}\",
+                              \"accountKeystore_base64\": \"${accountKeystore_base64}\",
+                              \"accountPassword\": \"${accountPassword}\",
+                              \"accountPrivateKey\": \"${accountPrivateKey}\",
+                              \"nodeAddress\": \"${address}\",
+                              \"nodeKey\": \"${nodekey}\",
+                              \"nodeKeyPub\": \"${nodekey_pub}\"
+                            }
+                        }" > nodePayload.json
+                      
+                      # Push data to vault
+                      vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}" 'nodePayload.json'
+                      
+                      rm nodePayload.json
+                    fi
+                  }
+{{- else }}
+                  safeWriteSecret() {
+                  # Placeholder:
+                  # - Implement code to fetch the keys if using any cloud-native service or platform different from HashiCorp to store the keys
+                  # - After fetching the keys, create Kubernetes secrets from them
+                  # - For guidance, refer to the code written for HashiCorp Vault for the same purpose
+                  return 0
+                  }
+{{- end }}
+                
+                # Check if the secret exists in Kubernetes
+                if ! kubectl get secret {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then
+                  echo "Secret does not exist. Creating secret."
+                  
+                  # Use quorum-genesis-tool to generate genesis, keys and other required files
+                  FOLDER_PATH=$(quorum-genesis-tool --validators 0 --members 1 --bootnodes 0 \
+                    {{ if .Values.node.quorum.account.password }} --accountPassword {{ .Values.node.quorum.account.password }} {{ end }} \
+                    --outputPath /generated-config | tail -1 | sed -e "s/^Artifacts in folder: //")
+                  dir="$FOLDER_PATH/member0"
+
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+                  # Safely write keys for cloud-native services
+                  echo "Creating keys in vault for {{ template "quorum-node.fullname" . }} ..."
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-nodekey ${dir}/nodekey
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-nodekeypub ${dir}/nodekey.pub
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-enode ${dir}/nodekey.pub
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-address ${dir}/address
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-accountPrivateKey ${dir}/accountPrivateKey
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-accountPassword ${dir}/accountPassword
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-accountKeystore ${dir}/accountKeystore
+                  safeWriteSecret {{ template "quorum-node.fullname" . }}-accountAddress ${dir}/accountAddress
+{{- else }}
+                  # Safely write keys to the Hashicorp Vault
+                  safeWriteSecret "{{ template "quorum-node.fullname" . }}-keys" "${dir}"
+{{- end }}
+
+                  # Check if Kubernetes secret exists, if not, create one
+                  if ! kubectl get secret {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then
+                    kubectl create secret generic {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} \
+                    --from-literal=accountAddress=$(cat "${dir}/accountAddress") \
+                    --from-literal=accountKeystore=$(cat "${dir}/accountKeystore") \
+                    --from-literal=accountPassword=$(cat "${dir}/accountPassword") \
+                    --from-literal=accountPrivateKey=$(cat "${dir}/accountPrivateKey") \
+                    --from-literal=address=$(cat "${dir}/address") \
+                    --from-literal=nodekey=$(cat "${dir}/nodekey") \
+                    --from-literal=nodekey.pub=$(cat "${dir}/nodekey.pub")
+                    
+                    nodekey_pub=$(cat "${dir}/nodekey.pub")
+                  fi
+                else
+                  echo "Secret exists. Extract modekey.pub key"
+                  nodekey_pub=$(kubectl get secret {{ template "quorum-node.fullname" . }}-keys --namespace {{ .Release.Namespace }} -o json | jq -r '.data["nodekey.pub"]' | base64 -d)
+                fi
+
+                quorum_peers_configmap="quorum-peers"
+                # Check if the ConfigMap exists
+                if kubectl get configmap "$quorum_peers_configmap" --namespace {{ .Release.Namespace }} &> /dev/null; then
+                    # Get the content of the ConfigMap and save it to a file
+                    kubectl get configmap "$quorum_peers_configmap" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["static-nodes.json"]' > ./static-nodes.json
+                    echo "Content of the ConfigMap has been saved to static-nodes.json"
+                    existingStaticNodes=$(cat ./static-nodes.json)
+
+                    newStaticNode="enode://$nodekey_pub@{{ include "quorum-node.enodeURL" . }}?discport=0"
+
+                    # Check if newStaticNode already exists in existingStaticNodes
+                    if ! echo "$existingStaticNodes" | jq 'contains(["'"$newStaticNode"'"])' | grep -q true; then
+                        existingStaticNodes=$(jq ". + [\"$newStaticNode\"]" <<< "$existingStaticNodes")
+                        echo "$existingStaticNodes" > ./static-nodes.json
+                        
+                        # Update the ConfigMap
+                        kubectl create configmap "$quorum_peers_configmap" --from-file=static-nodes.json=./static-nodes.json --namespace {{ .Release.Namespace }} --dry-run=client -o yaml | kubectl replace -f -
+                    fi
+                else
+                    echo "ConfigMap $quorum_peers_configmap does not exist in namespace {{ .Release.Namespace }}. Creating one."
+                    
+                    # Creating static-nodes.json file
+                    echo "[" > "./static-nodes.json"
+                    echo "\"enode://$nodekey_pub@{{ include "quorum-node.enodeURL" . }}?discport=0\"" >> "./static-nodes.json"
+                    echo "]" >> "./static-nodes.json"
+                    
+                    # Create ConfigMap
+                    kubectl create configmap "$quorum_peers_configmap" --from-file=static-nodes.json=./static-nodes.json --namespace {{ .Release.Namespace }}
+                fi
+                
+                echo "COMPLETED PRE-HOOK"
+{{- if eq .Values.global.vault.type "hashicorp" }}
+      volumes:
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
+{{- end }}

@@ -8,92 +8,96 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tessera-config-{{ .Values.node.name }}
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ include "quorum-tessera-node.fullname" . }}-tessera-config
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: tessera-config
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/component: quorum
+    app.kubernetes.io/part-of: {{ include "quorum-tessera-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-data:
+data:  
   tessera-config.json.tmpl: |-
     {
+      "mode": "orion",
       "useWhiteList": "false",
       "jdbc": {
-        "username": {{ .Values.tessera.dbusername | quote }},
+        "username": {{ .Values.tessera.dbUsername | quote }},
         "password": "",
-        "url": {{ .Values.tessera.dburl | quote }}
+        "url": "jdbc:mysql://{{ include "quorum-tessera-node.fullname" . }}:{{ .Values.tessera.dbport }}/demodb"
       },
       "serverConfigs": [
         {
           "app": "ThirdParty",
           "enabled": true,
-          "serverAddress": "http://{{ .Values.node.name }}-tessera:9080",
+          "serverAddress": "http://{{ include "quorum-tessera-node.fullname" . }}:{{ .Values.tessera.tpport }}",
           "communicationType": "REST"
         },
         {
           "app": "Q2T",
           "enabled": true,
-          "serverAddress": {{ .Values.tessera.clienturl | quote }},          
+          "serverAddress": {{ include "quorum-tessera-node.clientURL" . }},          
           "sslConfig": {
             "tls": "OFF",
             "generateKeyStoreIfNotExisted": true,
-            "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
-            "serverKeyStorePassword": "quorum",
-            "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
-            "serverTrustStorePassword": "quorum",
+            "sslConfigType": "SERVER_ONLY",
             "serverTrustMode": {{ .Values.tessera.trust | quote }},
-            "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
-            "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
-            "clientKeyStorePassword": "quorum",
-            "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
-            "clientTrustStorePassword": "quorum",
+            "serverTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "serverTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "serverTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
             "clientTrustMode": {{ .Values.tessera.trust | quote }},
-            "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
+            "clientTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "clientTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "clientTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
+            "knownClientsFile": "{{ .Values.tessera.dataPath }}/crypto/known_client",
+            "knownServersFile": "{{ .Values.tessera.dataPath }}/crypto/known_server",
+            "clientAuth": false
           },
           "communicationType": "REST"
         },
         {
           "app": "P2P",
           "enabled": true,
-          "serverAddress": {{ .Values.tessera.url | quote }},
+          "serverAddress": {{ include "quorum-tessera-node.tesseraURL" . }},
           "sslConfig": {
-            "tls": {{ .Values.tessera.tls | quote }},
+            "tls": {{ .Values.tessera.tlsMode | quote }},
             "generateKeyStoreIfNotExisted": true,
-            "serverKeyStore": "{{ .Values.node.mountPath }}/tm/server-keystore",
-            "serverKeyStorePassword": "quorum",
-            "serverTrustStore": "{{ .Values.node.mountPath }}/tm/server-truststore",
-            "serverTrustStorePassword": "quorum",
+            "sslConfigType": "SERVER_AND_CLIENT",
             "serverTrustMode": {{ .Values.tessera.trust | quote }},
-            "knownClientsFile": "{{ .Values.node.mountPath }}/tm/knownClients",
-            "clientKeyStore": "{{ .Values.node.mountPath }}/tm/client-keystore",
-            "clientKeyStorePassword": "quorum",
-            "clientTrustStore": "{{ .Values.node.mountPath }}/tm/client-truststore",
-            "clientTrustStorePassword": "quorum",
+            "serverTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "serverTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "serverTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],            
             "clientTrustMode": {{ .Values.tessera.trust | quote }},
-            "knownServersFile": "{{ .Values.node.mountPath }}/tm/knownServers"
+            "clientTlsKeyPath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.key",
+            "clientTlsCertificatePath": "{{ .Values.tessera.dataPath }}/crypto/tessera_cer.pem",
+            "clientTrustCertificates": ["{{ .Values.tessera.dataPath }}/crypto/tessera_ca.pem"],
+            "knownClientsFile": "{{ .Values.tessera.dataPath }}/crypto/known_client2",
+            "knownServersFile": "{{ .Values.tessera.dataPath }}/crypto/known_server2"
           },
           "communicationType": "REST"
         }
       ],
-      "peer": {{ .Values.tessera.othernodes | toPrettyJson | indent 6 }},
+      "peer": [
+        {
+          "url": {{ include "quorum-tessera-node.tesseraURL" . }}
+        }
+        {{- range .Values.tessera.peerNodes }}
+        ,{
+          "url": {{ .url | quote }}
+        }
+        {{- end }}
+      ],
       "keys": {
-          "keyVaultConfigs": [
-              {
-                  "keyVaultType": "HASHICORP",
-                  "properties": {
-                      "url": "{{ $.Values.vault.address }}"
-                  }
-              }
-          ],
-          "keyData": [
-              {
-                  "hashicorpVaultSecretEngineName": "{{ $.Values.vault.secretengine }}",
-                  "hashicorpVaultSecretName": "{{ $.Values.vault.tmsecretpath }}",
-                  "hashicorpVaultPrivateKeyId": "privateKey",
-                  "hashicorpVaultPublicKeyId": "publicKey"
-              }
-          ]
+      {{ if .Values.tessera.password }}
+        "passwordFile": "{{ .Values.tessera.passwordPath }}",
+      {{ end }}
+        "keyData": [
+          {
+            "privateKeyPath": "/keys/tm.key",
+            "publicKeyPath": "/keys/tm.pub"
+          }
+        ]
       },
       "alwaysSendTo": []
     }
