@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get the doorman cert from network-service org
+- name: Get doorman cert from current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: Secret
+    name: "doorman-tls-certs"
+    namespace: "{{ component_ns }}"
+  register: doorman_data
+
+# Get the networkmap cert from network-service org
+- name: Get nms cert from current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: Secret
+    name: "nms-tls-certs"
+    namespace: "{{ component_ns }}"
+  register: nms_data
+
+- name: Save certs locally for secondary init
+  shell: |
+    echo {{ doorman_data.resources[0].data['tls.crt'] }} > {{ files_loc }}/doorman.crt
+    echo {{ nms_data.resources[0].data['tls.crt'] }} > {{ files_loc }}/nms.crt
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/corda-init/files"

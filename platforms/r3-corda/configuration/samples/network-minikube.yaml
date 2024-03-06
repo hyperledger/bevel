@@ -12,7 +12,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: corda
-  version: 4.4
+  version: 4.9
 
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
 
@@ -32,7 +32,7 @@ network:
   # Please ensure all required images are built and stored in this registry. 
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
   
@@ -40,13 +40,11 @@ network:
   network_services:
     - service:
       type: doorman
-      uri: http://<MINIKUBE_IP_ADDRESS>:30030
-      certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+      uri: http://minikube-ip.address:30030
     - service:
       type: networkmap
-      uri: http://<MINIKUBE_IP_ADDRESS>:30040
-      certificate: /home/bevel/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
-  
+      uri: http://minikub-ip.address:30040
+
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
   # then these services should be listed in this section as well.
@@ -58,7 +56,7 @@ network:
       state: London
       location: London
       subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-      type: doorman-nms-notary
+      type: network-service
       external_url_suffix: develop.local.com
   
       cloud_provider: minikube   # Options: aws, azure, gcp
@@ -74,6 +72,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
@@ -95,29 +94,28 @@ network:
         doorman:
           name: doorman
           subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
+          db_subject: "C=US,ST=California,L=San Francisco,O=DB,OU=DBA,CN=mongoDB"
           type: doorman
           ports:
             nodePort: 30030
             servicePort: 8080
             targetPort: 8080
-          tls: "off"                      # off/on based on TLS mode off/on for doorman
         nms:
           name: networkmap
           subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
+          db_subject: "C=US,ST=California,L=San Francisco,O=DB,OU=DBA,CN=mongoDB"
           type: networkmap
           ports:
             nodePort: 30040
             servicePort: 8080
             targetPort: 8080
-          tls: "off"                       # off/on based on TLS mode off/on for nms
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
           name: notary
           subject: "O=Notary,OU=Notary,L=London,C=GB"
+          serviceName: "O=Notary Service,OU=Notary,L=London,C=GB"
+          validating: false
           type: notary
-          validating: false             
           p2p:
             port: 10002
             targetPort: 10002
@@ -158,6 +156,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token

@@ -19,7 +19,7 @@
     state: absent
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
-  ignore_errors: yes
+  ignore_errors: true
 
 # Deletes crypto materials
 - name: Delete Crypto material 
@@ -28,10 +28,10 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/tessera-{{ peer.name }}-keys
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/tlscerts
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/genesis
-  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   loop_control:
     loop_var: peer
-  ignore_errors: yes
+  ignore_errors: true
