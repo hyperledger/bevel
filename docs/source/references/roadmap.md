@@ -18,12 +18,13 @@ timeline
             : Fabric
             : Quorum
     section 2024 Q3
-        Deployment using Kubernetes Operator
-            : Besu
-    section 2024 Q4
         Helm depencencies 
             : Indy
             : Substrate
+        AWS secrets as vault
+    section 2024 Q4
+        Deployment using Kubernetes Operator
+            : Besu
 
 
 ```
@@ -37,27 +38,23 @@ Legend of annotations:
 | :octicons-pin-16:                  | work to do       |
 | :octicons-check-16:                 | work completed   |
 | :material-run:                 | on-going work    |
-| :octicons-trophy-16:            | stretch goal     |
+| :octicons-trophy-16:                  | stretch goal     |
 | :octicons-stop-16:                  | on hold          |
 
 ## Documentation
--  :octicons-check-16: Spell and grammar linting
--  :octicons-check-16: Replace ansible roles readme with high level information
--  :octicons-check-16: Add helm chart readme for platform charts
--  :octicons-check-16: Complete restructure and redesign of documentation
+-  :material-run: Spell linting workflow for PR checks
 -  :material-run: Format/Update configuration file and ops section
+-  :material-run: Troubleshooting guide
+-  :octicons-pin-16: deployment workflow guide
 
 ## General/Shared
 - :material-run: Grafana and Promethus integration
 - :material-run: Consistent variable names for helm chart values
-- :octicons-check-16: Support of Ambassador Edge Stack
-- :octicons-check-16: Add git actions to automate creation of helm repo chart artifacts
-- :octicons-check-16: Creation of vault auth role from the vault-k8s chart
-- :octicons-check-16: Add default values to chart templates/values section
+- :material-run: Add default values to chart templates/values section
 - :octicons-trophy-16:  Improve logging/error messaging in playbooks and log storage
 - :octicons-trophy-16: Devcontainer for vscode containers/codespaces
 - :octicons-trophy-16: Git commit/yaml linting
-- :octicons-trophy-16:  Support for additional vault, hashicorp alternatives
+- :octicons-trophy-16: Support for additional vault, hashicorp alternatives
 - :octicons-stop-16:   Setup AWS cloudwatch exporter
 
 ## Platforms
@@ -66,40 +63,45 @@ Legend of annotations:
     - :octicons-stop-16:   HA Notary options
     - :octicons-stop-16:   Enable PostGreSQL support for Corda Enterprise
     - :octicons-stop-16:   Removal of node
-    - :octicons-stop-16:   Cacti connector for Corda opensource
-    - :octicons-check-16: Corda enterprise Node/Notary v4.9 support
+    - :octicons-pin-16:   Cacti connector for Corda opensource
+    - :octicons-pin-16: Deploy using just helm with no proxy, no vault option
+    - :octicons-pin-16: Corda enterprise and opensource Node/Notary v4.11 support
+    - :octicons-pin-16: Add cordapps operations and update docs
 - R3 Corda OS v5
-    - :octicons-pin-16: Base network deployment
+    - :octicons-stop-16: Base network deployment
 - Hyperledger Fabric
-    - :octicons-check-16: External chaincode for Fabric 2.2.x
-    - :octicons-check-16: Support for Fabric 2.5.x
-    - :material-run: Operational features for Fabric 2.5.x
+    - :octicons-pin-16: Deploy using just helm with no proxy, no vault option
+    - :octicons-pin-16: chaincode and channel mgmt. decoupled from network deployment
     - :octicons-pin-16: chaincode operations via operator console
-    - :octicons-pin-16: chaincode operations automation using bevel-operator-fabric
-    - :octicons-pin-16: chaincode upgrade for external chaincode 
+    - :octicons-stop-16: chaincode operations automation using bevel-operator-fabric
     - :octicons-stop-16: CI/CD piplelines for chaincode deployment
 - Hyperledger Besu
     - :octicons-stop-16:   Enable node discovery
     - :octicons-stop-16:   Enable bootnodes
-    - :octicons-check-16: Add promethus/Grafana chart for node monitoring data
-    - :octicons-check-16: Test onchain permission for Besu platform
-    - :octicons-pin-16: Node version upgrades
-    - :octicons-pin-16: Tessera version upgrades
+    - :octicons-pin-16: Test promethus/Grafana chart for node monitoring data
+    - :octicons-pin-16: Test tls cert creation using letsencrypt
+    - :octicons-pin-16: Test onchain permission for Besu platform
+    - :octicons-pin-16: Addition of new validator node and add guide for the same 
+    - :octicons-pin-16: Besu node version upgrades
+    - :octicons-check-16: Tessera version upgrades
     - :octicons-stop-16: Support for Besu node on public network
 - Quorum
-    - :octicons-pin-16: Deployment using just helm charts
+    - :octicons-pin-16: Deploy using just helm with no proxy, no vault option
+    - :octicons-pin-16: Addition of new validator node and add guide for the same 
 - Hyperledger Indy
-    - :octicons-stop-16:   Removal of organizations from a running Indy Network
-    - ::octicons-pin-16:   Node version upgrades
+    - :octicons-pin-16: Deploy using just helm with no proxy, no vault option
+    - :octicons-pin-16:   Node version upgrades
+    - :octicons-stop-16:  Removal of organizations from a running Indy Network
 - Substrate
+    - :octicons-pin-16: Deploy using just helm with no proxy, no vault option
     - :octicons-trophy-16:  Test with generic substrate node
     - :octicons-trophy-16:  Adding of org/new node
 
 ## Bevel Samples
 
--  :octicons-pin-16: Upgrade Ambassador proxy to Edge stack
--  :octicons-pin-16: Upgrade rest server/middleware applications
--  :octicons-pin-16: Upgrade aca py application
+-  :material-run: Upgrade Ambassador proxy to Edge stack
+-  :material-run: Upgrade rest server/middleware applications
+-  :octicons-pin-16: Test Hyperledger Aries contribution and see if can replace aca-py
 
 ## Bevel Kubernetes Operators
 
@@ -114,5 +116,4 @@ Legend of annotations:
     - :octicons-stop-16:   Architecture diagram
 
 ## DevOps-Pipeline
-
-- :material-run: GitHub Actions automation script for each DLT platform
+- :octicons-pin-16: Chart testing
