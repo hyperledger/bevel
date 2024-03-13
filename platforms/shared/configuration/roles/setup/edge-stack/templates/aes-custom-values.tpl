@@ -57,7 +57,9 @@ emissary-ingress:
 ################################################################################
 ## Ambassador Edge Stack Configuration                                        ##
 ################################################################################
-
+redis:
+  image:
+    tag: 7.2.4
 # The Ambassador Edge Stack is free for limited use without a license key.
 # Go to https://{ambassador-host}/edge_stack/admin/#dashboard to register
 # for a community license key.
