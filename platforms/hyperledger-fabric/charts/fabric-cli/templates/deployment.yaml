@@ -9,6 +9,8 @@ kind: Deployment
 metadata:
   name: {{ .Values.peer.name }}-cli
   namespace: {{ .Values.metadata.namespace }}
+  labels:
+    {{ include "labels.deployment" . | nindent 2 }}
 spec:
   replicas: 1
   selector:
@@ -18,6 +20,7 @@ spec:
     metadata:
       labels:
         app: cli
+        {{ include "labels.deployment" . | nindent 6 }}
     spec:
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       {{- if .Values.vault.imagesecretname }}
