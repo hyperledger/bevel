@@ -44,6 +44,28 @@ spec:
 {% endfor %}
 {% endfor %}
 {% endif %}
+
+{% if network.env.labels is defined %}
+    labels:
+{% if network.env.labels.service is defined %}
+      service:
+{% for key in network.env.labels.service.keys() %}
+        - {{ key }}: {{ network.env.labels.service[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.pvc is defined %}
+      pvc:
+{% for key in network.env.labels.pvc.keys() %}
+        - {{ key }}: {{ network.env.labels.pvc[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.deployment is defined %}
+      deployment:
+{% for key in network.env.labels.deployment.keys() %}
+        - {{ key }}: {{ network.env.labels.deployment[key] | quote }}
+{% endfor %}
+{% endif %}
+{% endif %}
     replicaCount: 1
 
     image:
@@ -74,12 +96,12 @@ spec:
 {% else %}
       imagesecretname: ""
 {% endif %}
-    
-    healthcheck: 
+
+    healthcheck:
       retries: 10
       sleepTimeAfterError: 2
 
-    
+
     org_data:
       external_url_suffix: {{ external_url_suffix }}
       component_subject: {{ component_subject }}

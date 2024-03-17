@@ -50,3 +50,24 @@ spec:
 {% endif %}
     orderer:
       address: {{ orderer.uri }}
+{% if network.env.labels is defined %}
+    labels:
+{% if network.env.labels.service is defined %}
+      service:
+{% for key in network.env.labels.service.keys() %}
+        - {{ key }}: {{ network.env.labels.service[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.pvc is defined %}
+      pvc:
+{% for key in network.env.labels.pvc.keys() %}
+        - {{ key }}: {{ network.env.labels.pvc[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.deployment is defined %}
+      deployment:
+{% for key in network.env.labels.deployment.keys() %}
+        - {{ key }}: {{ network.env.labels.deployment[key] | quote }}
+{% endfor %}
+{% endif %}
+{% endif %}

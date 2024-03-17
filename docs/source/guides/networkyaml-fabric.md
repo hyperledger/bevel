@@ -74,6 +74,7 @@ The fields under `env` section are
 | retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
 |annotations| Use this to pass additional annotations to the `service`, `deployment` and `pvc` elements of Kubernetes|
+|labels| Use this to pass additional labels to the `service`, `deployment` and `pvc` elements of Kubernetes|
 
 
 <a name="docker"></a>

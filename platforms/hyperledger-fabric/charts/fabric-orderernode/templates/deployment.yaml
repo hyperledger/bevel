@@ -15,6 +15,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
+    {{- include "labels.deployment" . | nindent 2 }}
   annotations:
     {{- if $.Values.annotations }}
     {{- range $key, $value := $.Values.annotations.deployment }}
@@ -43,6 +44,7 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/name: {{ $.Values.orderer.name }}
         app.kubernetes.io/instance: {{ .Release.Name }} 
+        {{- include "labels.deployment" . | nindent 6 }}
     spec:    
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       {{- if .Values.vault.imagesecretname }}
@@ -260,6 +262,8 @@ spec:
   #Lables are not being taken by Kubernetes as it dynamically creates PVC
   - metadata:
       name: datadir    
+      labels:
+        {{- include "labels.pvc" . | nindent 6 }}
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: {{ $.Values.storage.storageclassname }}
