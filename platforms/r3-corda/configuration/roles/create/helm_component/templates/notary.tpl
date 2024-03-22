@@ -106,8 +106,10 @@ spec:
 {% if org.cordapps is defined %}    
     cordApps:
       getCordApps: true
-      jars: 
-        {{ org.cordapps.jars | to_nice_yaml | indent(8) }}
+      jars: {{ org.cordapps.jars }}
+{% if org.cordapps.username is defined %} 
+      mavenSecret: "maven-secrets"
+{% endif %}
 {% endif %}
     resources:
       db:

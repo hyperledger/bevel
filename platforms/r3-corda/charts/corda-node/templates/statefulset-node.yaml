@@ -353,43 +353,27 @@ spec:
       - name: init-cordapps
         image: {{ .Values.image.initContainer }}
         imagePullPolicy: Always
-        env:
-          - name: BASE_DIR
-            value: "/base/corda"
-          - name: VAULT_APP_ROLE
-            value: {{ .Values.global.vault.role }}
-          - name: VAULT_ADDR
-            value: {{ .Values.global.vault.address }}
-          - name: KUBERNETES_AUTH_PATH
-            value: {{ .Values.global.vault.authPath }}
-          - name: SECRET_PREFIX
-            value: {{ .Values.global.vault.secretPrefix }}
         command: ["sh", "-c"]
         args:
         - |-
           # crearting cordapps dir in volume to keep jars
           mkdir -p /base/corda/cordapps
           {{- if .Values.cordApps.getCordApps }}
-            mkdir -p /tmp/downloaded-jars
-            # setting up env to get secrets from vault
-            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-            echo "Getting secrets from Vault Server"
-            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
-            
-            # save cordapps repository login password from vault
-            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')                            
-            REPO_USER_PASS=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_password"]')
-            REPO_USER=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data.data["repo_username"]')
+            mkdir -p /tmp/downloaded-jars                      
+            REPO_USER_PASS=$(cat /secret/password)
+            REPO_USER=$(cat /secret/username)
             
             # Downloading official corda provided jars using curl 
             {{- range .Values.cordApps.jars }}
-              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -L {{ .url }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -L {{ .jar.url }}
             {{- end }}
             cp -ar /tmp/downloaded-jars/* /base/corda/cordapps
           {{- end }}  
         volumeMounts:
         - name: node-volume
           mountPath: "/base/corda"
+        - name: maven-secrets
+          mountPath: "/secret"
       containers:
       - name: node
         image: {{ .Values.image.corda.repository }}:{{ .Values.image.corda.tag }}
@@ -629,4 +613,9 @@ spec:
       - name: doorman-certs
         secret:
           secretName: doorman-tls-certs
+{{- end }}
+{{- if .Values.cordApps.mavenSecret }}
+      - name: maven-secrets
+        secret:
+          secretName: {{ .Values.cordApps.mavenSecret }}
 {{- end }}

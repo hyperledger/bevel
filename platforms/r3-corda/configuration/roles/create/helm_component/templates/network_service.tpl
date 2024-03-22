@@ -42,7 +42,9 @@ spec:
       settings:
         networkServices: true
     image: 
-      pullSecret:
+{% if network.docker.username is defined %}
+      pullSecret: regcred
+{% endif %}
       pullPolicy: IfNotPresent
       mongo: 
         repository: mongo
