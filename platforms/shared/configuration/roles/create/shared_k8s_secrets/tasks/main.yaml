@@ -77,3 +77,31 @@
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   when: check == "docker_credentials" and  get_regcred.resources|length == 0
+
+# Check if maven secret exists of in org namespace
+- name: Check if maven secret exists in the namespace
+  k8s_info:
+    kind: Secret
+    namespace: "{{ namespace }}"
+    name: "maven-secrets"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  register: maven_secret
+  when: check == "maven_credentials"
+
+# Create maven secretin org namespace
+- name: Create maven secret for organization
+  k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "maven-secrets"
+        namespace: "{{ namespace }}"
+      stringData:
+        username: "{{ org.cordapps.username }}"
+        password: "{{ org.cordapps.password }}"
+    state: present
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+  when: check == "maven_credentials" and maven_secret.resources|length == 0

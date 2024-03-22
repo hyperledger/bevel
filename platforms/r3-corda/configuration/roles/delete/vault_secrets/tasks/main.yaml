@@ -29,9 +29,23 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ services.peers is defined | ternary( services.peers, services.notary) }}"
+  loop: "{{ services.peers }}"
   loop_control:
     loop_var: peer
+  when: services.peers is defined
+  ignore_errors: true
+
+- name: Delete Crypto for notary
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-registrationcerts
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-tlscerts
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  vars: 
+    peer: "{{ services.notary }}"
+  when: services.notary is defined
   ignore_errors: true
 
 - name: Delete Crypto for network service

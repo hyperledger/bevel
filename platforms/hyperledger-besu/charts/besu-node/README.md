@@ -88,7 +88,7 @@ This is where you can override the values for the [besu-tessera-node subchart](.
 | `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 | `image.besu.repository`   | Besu image repository  | `hyperledger/besu`|
-| `image.besu.tag`   | Besu image tag as per version of Besu  | `22.10.2`|
+| `image.besu.tag`   | Besu image tag as per version of Besu  | `23.10.2`|
 | `image.hooks.repository`  | Quorum/Besu hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
 | `image.hooks.tag`  | Quorum/Besu hooks image tag  | `qgt-0.2.12` |
 
