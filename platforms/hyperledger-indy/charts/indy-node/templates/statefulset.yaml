@@ -7,18 +7,18 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: "{{ $.Values.metadata.name }}"
-  namespace: "{{ $.Values.metadata.namespace }}"
+  name: "{{ $.Values.node.name }}"
+  namespace: {{ .Release.Namespace }}
 spec:
-  serviceName: "{{ $.Values.metadata.name }}"
+  serviceName: "{{ $.Values.node.name }}"
   replicas: 1
   selector:
     matchLabels:
-      app: "{{ $.Values.metadata.name }}"
+      app: "{{ $.Values.node.name }}"
   template:
     metadata:
       labels:
-        app: "{{ $.Values.metadata.name }}"
+        app: "{{ $.Values.node.name }}"
     spec:
       securityContext:
         fsGroup: 1000
@@ -233,7 +233,7 @@ spec:
               mountPath: /var/lib/indy/data
             - name: ebs-indy-node-keys
               mountPath: /var/lib/indy/keys
-            - name: {{ $.Values.metadata.name }}-config
+            - name: {{ $.Values.node.name }}-config
               mountPath: /etc/indy/indy_config.py
               subPath: indy_config.py
             - name: {{ $.Values.organization.name }}-domain-transactions-genesis
@@ -245,9 +245,9 @@ spec:
       imagePullSecrets:
         - name: "{{ $.Values.image.pullSecret }}"
       volumes:
-        - name: {{ $.Values.metadata.name }}-config
+        - name: {{ $.Values.node.name }}-config
           configMap:
-            name: {{ $.Values.metadata.name }}-config
+            name: {{ $.Values.node.name }}-config
         - name:  {{ $.Values.organization.name }}-domain-transactions-genesis
           configMap:
             name: {{ $.Values.organization.name }}-dtg

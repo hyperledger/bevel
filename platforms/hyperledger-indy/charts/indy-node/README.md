@@ -145,10 +145,6 @@ add_new_org: false
 | -------------------- | ---------------------------------------------| ------------- |
 | domainGenesis        | Provide the domain genesis                   | ""            |
 | poolGenesis          | Provide the pool genesis                     | ""            |
- 
-   
-
-### ambassador
 
 ### vault
 
