@@ -1,0 +1,201 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "fabric-ca-server.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/component: fabric
+    app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+  annotations:
+    {{- include "labels.deployment" . | nindent 2 }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/component: fabric
+      app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: helm
+  serviceName: {{ .Release.Name }}
+  volumeClaimTemplates:
+  - metadata:
+      name: ca-server-db-pvc
+      labels:
+        {{- include "labels.deployment" . | nindent 2 }}
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: storage-{{ .Release.Name }}
+      resources:
+        requests:
+          storage: "{{ .Values.storage.size }}"
+  template:
+    metadata:
+      labels:
+        name: {{ .Release.Name }}
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/component: fabric
+        app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ $.Values.image.pullSecret }}
+      {{- end }}
+      volumes:
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      {{- if (not (empty .Values.server.configpath)) }}
+      - name: {{ .Release.Name }}-config-volume
+        configMap:
+          name: {{ .Release.Name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
+      {{ if .Values.global.vault.tls  }}
+      - name: vaultca
+        secret:
+          secretName: "{{ .Values.global.vault.tls }}"
+          items:
+          - key: ca.crt.pem
+            path: ca-certificates.crt
+      {{- end  }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      initContainers:
+      - name: ca-certs-init
+        image: {{ $.Values.image.alpineUtils }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: VAULT_ADDR
+          value: {{ $.Values.global.vault.address }}
+        - name: VAULT_APP_ROLE
+          value: {{ $.Values.global.vault.role }}
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ $.Values.global.vault.authPath }}
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ .Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ .Values.global.vault.secretPrefix }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.global.vault.type }}"
+        - name: COMPONENT_NAME
+          value: {{ .Release.Namespace }}
+        - name: MOUNT_PATH
+          value: /secret
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          source /scripts/bevel-vault.sh
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+    
+          vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/ca"
+
+          ca_cert=$(echo ${VAULT_SECRET} | jq -r ".[\"ca.${COMPONENT_NAME}-cert.pem\"]")
+          echo "${ca_cert}" >> ${MOUNT_PATH}/server.crt
+
+          ca_key=$(echo ${VAULT_SECRET} | jq -r ".[\"${COMPONENT_NAME}-CA.key\"]")
+          echo "${ca_key}" >> ${MOUNT_PATH}/server.key
+             
+          vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/credentials"
+          user=$(echo ${VAULT_SECRET} | jq -r ".[\"user\"]")
+          echo "${user}" >> ${MOUNT_PATH}/user_cred
+
+{{- else }}
+          kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-key}" | base64 -d > ${MOUNT_PATH}/server.key
+          kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-cert}" | base64 -d > ${MOUNT_PATH}/server.crt
+          kubectl get secret ca-credentials --namespace {{ .Release.Namespace }} -o json | jq '.data.user' | tr -d '"' | base64 -d > ${MOUNT_PATH}/user_cred
+{{- end }}            
+        volumeMounts:
+        - name: certificates
+          mountPath: /secret
+        {{ if .Values.global.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      containers:
+      - name: ca
+        image: {{ $.Values.image.ca }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d
+          else
+            sleep 1 && fabric-ca-server start -b {{ $.Values.server.admin }}:`cat /etc/hyperledger/fabric-ca-server-config/user_cred` -d
+          fi
+        ports:
+        - containerPort: 7054
+        - containerPort: 9443
+        env:
+        - name: FABRIC_CA_HOME
+          value: /etc/hyperledger/fabric-ca-server
+        - name: FABRIC_CA_SERVER_CA_NAME
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}"
+        - name: FABRIC_CA_SERVER_CA_CERTFILE
+          value:  /etc/hyperledger/fabric-ca-server-config/server.crt
+        - name: FABRIC_CA_SERVER_CA_KEYFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.key
+        - name: FABRIC_CA_SERVER_TLS_ENABLED
+          value: "{{ $.Values.server.tlsStatus }}"
+        - name: FABRIC_CA_SERVER_DEBUG
+          value: "true"
+        - name: FABRIC_CA_SERVER_TLS_CERTFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.crt
+        - name: FABRIC_CA_SERVER_TLS_KEYFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.key
+        - name: FABRIC_CA_SERVER_DB_DATASOURCE
+          value: /var/hyperledger/fabric-ca-server/db/fabric-ca-server.db
+        - name: FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS
+          value: 0.0.0.0:9443
+        volumeMounts:
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric-ca-server-config
+          readOnly: true
+        - name: ca-server-db-pvc
+          mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configpath)) }}
+        - name: {{ .Release.Name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}

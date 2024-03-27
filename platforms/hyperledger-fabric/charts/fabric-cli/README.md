@@ -99,8 +99,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name          | Description                                 | Default Value                |
 | --------------| --------------------------------------------| -----------------------------|
 | name          | Name of the peer as per deployment YAML     | peer0                        |
-| localmspid    | Local MSP ID for the organization's peer    | Org1MSP                      |
-| tlsstatus     | TLS status for the organization's peer      | true                         |
+| localMspId    | Local MSP ID for the organization's peer    | Org1MSP                      |
+| tlsStatus     | TLS status for the organization's peer      | true                         |
 | address       | Address for the peer                        | peer0.org1-net:7051 |
 
 ### Orderer Configuration

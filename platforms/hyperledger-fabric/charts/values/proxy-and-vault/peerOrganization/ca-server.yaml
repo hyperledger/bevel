@@ -1,0 +1,66 @@
+#helm install carrier-ca -f values/proxy-and-vault/peerOrganization/ca-server.yaml -n carrier-net fabric-ca-server
+global:
+  serviceAccountName: vault-auth
+  vault:
+    type: hashicorp
+    address: http://vault.demo.com:8200
+    authPath: carrier
+    secretEngine: secretsv2
+    secretPrefix: "data/carrier"
+    imageSecretName: regcred
+    tls: false
+
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+    kubernetesUrl: https://kubernetes.url
+
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+cacerts:
+  ca:
+    orgName: carrier
+    subject: /C=GB/ST=London/L=London/O=Carrier
+
+catools:
+  orgData:
+    orgName: carrier
+    type: peer
+    componentSubject: O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB
+    certSubject: O=Carrier/OU=Carrier/L=51.50,-0.13,London/C=GB
+    componentCountry: GB
+    componentState: London
+    componentLocation: London
+
+  peers:
+    - peer0 
+
+  users: 
+    usersList:
+      - user:
+        identity: user1
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+      - user:
+        identity: user2
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+    usersIdentities: 
+      - user1
+      - user2
+
+  checks:
+    refreshCertValue: false
+    addPeerValue: false
+
+server:
+  tlsStatus: true
+  admin: carrier-admin
+
+settings:
+  removeOrdererTlsOnDelete: true
+  removeCertsOnDelete: true

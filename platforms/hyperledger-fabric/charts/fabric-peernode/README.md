@@ -6,16 +6,26 @@
 <a name = "peer-node-hyperledger-fabric-deployment"></a>
 # Peer Node Hyperledger Fabric Deployment
 
-- [Peer Node Hyperledger Fabric Deployment Helm Chart](#peer-node-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+- [Peer Node Hyperledger Fabric Deployment](#peer-node-hyperledger-fabric-deployment)
+  - [Peer Node Hyperledger Fabric Deployment Helm Chart](#peer-node-hyperledger-fabric-deployment-helm-chart)
+  - [Prerequisites](#prerequisites)
+  - [Chart Structure](#chart-structure)
+  - [Configuration](#configuration)
+    - [Metadata](#metadata)
+    - [Labels](#labels)
+    - [Peer](#peer)
+    - [Storage](#storage)
+    - [Vault](#vault)
+    - [Service](#service)
+    - [Proxy](#proxy)
+    - [Config](#config)
+  - [Deployment](#deployment)
+  - [Verification](#verification)
+  - [Updating the Deployment](#updating-the-deployment)
+  - [Deletion](#deletion)
+  - [Contributing](#contributing)
+  - [License](#license)
+    - [Attribution](#attribution)
 
 
 <a name = "peer-node-hyperledger-fabric-deployment-helm-chart"></a>
@@ -60,7 +70,7 @@ fabric-peernode/
 - `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Provides a way to configure the Hyperledger Fabric peer and enable it to join the network, interact with other nodes. The environment variables that are defined in the peer-config ConfigMap are used to configure the peer's runtime behavior. The configuration for the MSP is defined in the msp-config ConfigMap. The core.yaml file is used to configure the chaincode builder
-- `deployment.yaml`: The certificates-init container fetches TLS certificates and other secrets from Vault. The couchdb container runs a CouchDB database that is used to store the ledger state. The {{ $.Values.peer.name }} container runs a Hyperledger Fabric peer that manages the ledger and provides access to the blockchain network. The grpc-web container runs a gRPC-Web proxy that allows gRPC services to be accessed via a web browser.
+- `deployment.yaml`: The certificates-init container fetches TLS certificates and other secrets from Vault. The couchdb container runs a CouchDB database that is used to store the ledger state. The {{ $.Values.global.peer.name }} container runs a Hyperledger Fabric peer that manages the ledger and provides access to the blockchain network. The grpc-web container runs a gRPC-Web proxy that allows gRPC services to be accessed via a web browser.
 - `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7051), events (7053), CouchDB (5984), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
 - `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the peer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the peer service.
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
@@ -87,38 +97,36 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name           | Description                             | Default Value |
 | ---------------| --------------------------------------- | --------------|
-| service        | Extra annotations for service           | ""            |
-| pvc            | Extra annotations for pvc               | ""            |
-| deployment     | Extra annotations for deployment        | ""            |
+| service        | Extra labels for service           | ""            |
+| pvc            | Extra labels for pvc               | ""            |
+| deployment     | Extra labels for deployment        | ""            |
 
 ### Peer
 
 | Name                                      | Description                                                           | Default Value                                 |
 | ------------------------------------------| ----------------------------------------------------------------------| ----------------------------------------------|
 | name                                      | Name of the peer as per deployment yaml                               | peer0                                         |
-| gossippeeraddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-net.svc.cluster.local:7051 |
-| gossipexternalendpoint                    | URL of gossip external endpoint and port for haproxy https service | peer0.org1-net.org1proxy.blockchaincloudpoc.com:443               |
-| localmspid                                | Local MSP ID for the organization                                     | Org1MSP                                       |
-| loglevel                                  | Log level for organization's peer                                     | info                                          |
+| gossipPeerAddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-net.svc.cluster.local:7051 |
+| gossipExternalEndpoint                    | URL of gossip external endpoint and port for haproxy https service | peer0.org1-net.org1proxy.blockchaincloudpoc.com:443               |
+| localMspId                                | Local MSP ID for the organization                                     | Org1MSP                                       |
+| logLevel                                  | Log level for organization's peer                                     | info                                          |
 | tlsstatus                                 | Set to true or false for organization's peer                          | true                                          |
 | builder                                   | Valid chaincode builder image for Fabric                              | hyperledger/fabric-ccenv:2.2.2                |
 | couchdb.username                          | CouchDB username (mandatory if provided)                              | org1-user                                     |
-| configpath                                | Provide the configuration path                                        | ""                                            |
+| configPath                                | Provide the configuration path                                        | ""                                            |
 | core                                      | Provide core configuration                                            | ""                                            |
-| mspconfig.organizationalunitidentifiers   | Provide the members of the MSP in organizational unit identifiers     | ""                                            |
-| mspconfig.nodeOUs.clientOUidentifier.organizationalunitidentifier  | Organizational unit identifier for client nodes          | client                            |
-| mspconfig.nodeOUs.peerOUidentifier.organizationalunitidentifier    | Organizational unit identifier for peer nodes            | peer                              |
-| mspconfig.nodeOUs.adminOUidentifier.organizationalunitidentifier   | Organizational unit identifier for admin nodes (2.2.x)   | admin                             |
-| mspconfig.nodeOUs.ordererOUidentifier.organizationalunitidentifier | Organizational unit identifier for orderer nodes (2.2.x) | orderer                           |
+| mspConfig.organizationalUnitIdentifiers   | Provide the members of the MSP in organizational unit identifiers     | ""                                            |
+| mspConfig.nodeOUs.clientOUIdentifier.organizationalUnitIdentifier  | Organizational unit identifier for client nodes          | client                            |
+| mspConfig.nodeOUs.peerOUIdentifier.organizationalUnitIdentifier    | Organizational unit identifier for peer nodes            | peer                              |
+| mspConfig.nodeOUs.adminOUIdentifier.organizationalUnitIdentifier   | Organizational unit identifier for admin nodes (2.2.x)   | admin                             |
+| mspConfig.nodeOUs.ordererOUIdentifier.organizationalUnitIdentifier | Organizational unit identifier for orderer nodes (2.2.x) | orderer                           |
 
 ### Storage
 
 | Name                      | Description                      | Default Value       |
 | --------------------------| -------------------------------- | ------------------- |
-| peer.storageclassname     | Storage class name for peer      | aws-storageclass         |
-| peer.storagesize          | Storage size for peer            | 512Mi               |
-| couchdb.storageclassname  | Storage class name for CouchDB   | aws-storageclass         |
-| couchdb.storagesize       | Storage size for CouchDB         | 512Mi               |
+| peer.size          | Storage size for peer            | 512Mi               |
+| couchdb.size       | Storage size for CouchDB         | 512Mi               |
 
 ### Vault
 
@@ -138,23 +146,23 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                          | Description                               | Default Value       |
 | ----------------------------- | ------------------------------------------| ------------------- |
-| servicetype                   | Service type for the peer                 | ClusterIP           |
+| serviceType                   | Service type for the peer                 | ClusterIP           |
 | loadBalancerType              | Load balancer type for the peer           | ""                  |
-| ports.grpc.nodeport           | Cluster IP port for grpc service          | ""                  |
-| ports.grpc.clusteripport      | Cluster IP port for grpc service          | 7051                |
-| ports.events.nodeport         | Cluster IP port for event service         | ""                  |
-| ports.events.clusteripport    | Cluster IP port for event service         | 7053                |
-| ports.couchdb.nodeport        | Cluster IP port for CouchDB service       | ""                  |
-| ports.couchdb.clusteripport   | Cluster IP port for CouchDB service       | 5984                |
+| ports.grpc.nodePort           | Cluster IP port for grpc service          | ""                  |
+| ports.grpc.clusterIpPort      | Cluster IP port for grpc service          | 7051                |
+| ports.events.nodePort         | Cluster IP port for event service         | ""                  |
+| ports.events.clusterIpPort    | Cluster IP port for event service         | 7053                |
+| ports.couchdb.nodePort        | Cluster IP port for CouchDB service       | ""                  |
+| ports.couchdb.clusterIpPort   | Cluster IP port for CouchDB service       | 5984                |
 | ports.metrics.enabled         | Enable/disable metrics service            | false               |
-| ports.metrics.clusteripport   | Cluster IP port for metrics service       | 9443                |
+| ports.metrics.clusterIpPort   | Cluster IP port for metrics service       | 9443                |
 
 ### Proxy
 
 | Name                  | Description                                               | Default Value       |
 | ----------------------| ----------------------------------------------------------| ------------------- |
 | provider              | Proxy/ingress provider ( haproxy or none)     | none                |
-| external_url_suffix   | External URL of the organization                          | org1proxy.blockchaincloudpoc.com                  |
+| externalUrlSuffix   | External URL of the organization                          | org1proxy.blockchaincloudpoc.com                  |
 | port                  | External port on proxy service                               | 443                 |
 
 ### Config
