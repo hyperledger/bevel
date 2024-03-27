@@ -34,17 +34,6 @@
     with_items: "{{ network.organizations }}"
     when: network.env.type != 'operator'
 
-  # Prepare ports for Indy
-  - name: Prepare nodes and clients ports for ambassador
-    vars:
-      name: "{{ organizationItem.name }}"
-    set_fact:
-      stewards: "{{ stewards | default([]) + organizationItem.services.stewards | list }}"
-    loop: "{{ network.organizations }}"
-    loop_control:
-      loop_var: organizationItem
-    when: organizationItem.services.stewards is defined and network['type'] == 'indy'
-
   # Setup ambassador edge stack (enabled for besu and quorum)
   - include_role:
       name: setup/edge-stack
