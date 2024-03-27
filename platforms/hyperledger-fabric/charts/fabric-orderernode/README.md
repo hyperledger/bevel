@@ -57,7 +57,7 @@ fabric-orderernode/
 - `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
 - `helpers.tpl`: Contains custom label definitions used in other templates.
 - `configmap.yaml`: Defines two ConfigMaps, one for the orderer configuration and one for the genesis block.
-- `deployment.yaml`: The kafka-healthcheck checks the health of the Kafka brokers before the main container is started. The certificates-init fetches the TLS and MSP certificates from Vault and stores them in a local directory. The {{ $.Values.orderer.name }} runs the Hyperledger Fabric orderer. The grpc-web exposes the orderer's gRPC API over HTTP/WebSockets. These containers are responsible for ensuring that the orderer is up and running, that it has the necessary certificates, and that it can be accessed by clients.
+- `deployment.yaml`: The kafka-healthCheck checks the health of the Kafka brokers before the main container is started. The certificates-init fetches the TLS and MSP certificates from Vault and stores them in a local directory. The {{ $.Values.orderer.name }} runs the Hyperledger Fabric orderer. The grpc-web exposes the orderer's gRPC API over HTTP/WebSockets. These containers are responsible for ensuring that the orderer is up and running, that it has the necessary certificates, and that it can be accessed by clients.
 - `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7050), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
 - `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the orderer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the orderer service.
 - `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
@@ -78,7 +78,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | network.version        | HyperLedger Fabric network version                                    | 2.2.2                                             |
 | images.orderer         | Valid image name and version for fabric orderer                       | ghcr.io/hyperledger/bevel-fabric-orderer:2.2.2                 |
 | images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
-| images.healthcheck     | Valid image name and version for health check of Kafka                | busybox                                          |
+| images.healthCheck     | Valid image name and version for health check of Kafka                | busybox                                          |
 | labels                 | Custom labels                                                         | ""                                               |
 
 ### Orderer
@@ -102,7 +102,6 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                  | Description                        | Default Value   |
 | ----------------------| -----------------------------------| ----------------|
-| storageclassname      | Storage class name for orderer     | aws-storageclassname     |
 | storagesize           | Storage size for storage class     | 512Mi           |
 
 ### Service
@@ -139,8 +138,8 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                        | Description                                                             | Default Value   |
 | --------------------------- | ------------------------------------------------------------------------| ----------------|
-| readinesscheckinterval      | Interval in seconds to check readiness of Kafka services                | 5               |
-| readinessthreshold          | Threshold for checking if specified Kafka brokers are up and running    | 4               |
+| readinessCheckInterval      | Interval in seconds to check readiness of Kafka services                | 5               |
+| readinessThresHold          | Threshold for checking if specified Kafka brokers are up and running    | 4               |
 | brokers                     | List of Kafka broker addresses                                          | ""              |
 
 ### Proxy

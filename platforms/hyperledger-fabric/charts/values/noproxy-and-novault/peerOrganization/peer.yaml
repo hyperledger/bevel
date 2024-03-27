@@ -1,0 +1,34 @@
+#helm install pee0 -f values/noproxy-and-novault/peerOrganization/peer.yaml -n carrier-net fabric-orderernode
+global:
+  serviceAccountName: vault-auth
+  vault:
+    type: kubernetes
+
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+
+  proxy:
+    provider: "none"
+    externalUrlSuffix: carrier-net
+
+cli:
+  enabled: true
+  orderer:
+    address: orderer1.supplychain-net:7050
+  network:
+    version: 2.5.4
+  peer:
+    localMspId: carrierMSP
+    tlsStatus: true
+    address: carrier-net:7051
+
+upgrade: False
+
+peer:
+  gossipPeerAddress: carrier-net:7051
+  gossipExternalEndpoint: carrier-net:7051
+  logLevel: info
+  builder: hyperledger/fabric-ccenv:2.5.4
+  couchdb:
+    username: carrier-user

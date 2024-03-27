@@ -122,9 +122,9 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 
 | Name                      | Description                                        | Default Value  |
 | --------------------------| ---------------------------------------------------| ---------------|
-| servicetype               | Service type for the pod                           | ClusterIP      |
-| ports.tcp.nodeport        | TCP node port to be exposed for CA server          | 30007          |
-| ports.tcp.clusteripport   | TCP cluster IP port to be exposed for CA server    | 7054           |
+| serviceType               | Service type for the pod                           | ClusterIP      |
+| ports.tcp.nodePort        | TCP node port to be exposed for CA server          | 30007          |
+| ports.tcp.clusterIpPort   | TCP cluster IP port to be exposed for CA server    | 7054           |
 
 ### Annotations
 
@@ -139,7 +139,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | ----------------------| -------------------------------------------------------------------------|--------------------------------|
 | provider              | Proxy/ingress provider. Possible values: "haproxy" or "none"             | haproxy                        |
 | type                  | Type of the deployment. Possible values: "orderer", "peer", or "test"    | test                           |
-| external_url_suffix   | External URL suffix for the organization                                 | org1proxy.blockchaincloudpoc.com    |
+| externalUrlSuffix   | External URL suffix for the organization                                 | org1proxy.blockchaincloudpoc.com    |
 
 
 <a name = "deployment"></a>

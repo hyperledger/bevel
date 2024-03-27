@@ -1,0 +1,125 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "fabric-ca-server.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: fabric-ca-server-job-cleanup
+    app.kubernetes.io/component: ca-server-job-cleanup
+    app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fabric-ca-server-job-cleanup
+        app.kubernetes.io/component: ca-server-job-cleanup
+        app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      containers:
+        - name: delete-secrets
+          image: "{{ $.Values.image.alpineUtils }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: COMPONENT_TYPE
+            value: {{ $.Values.catools.orgData.type }}
+          - name: ORDERERS_NAMES
+            value: "{{ $.Values.catools.orderers | join " " -}}"
+          - name: PEERS_NAMES
+            value: "{{ $.Values.catools.peers | join " " -}}"
+          - name: USERS_IDENTITIES
+            value: "{{ $.Values.catools.users.usersIdentities | join " " -}}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+{{- if .Values.settings.removeCertsOnDelete }}
+
+              function deleteSecret {
+                key=$1
+                kubectl get secret ${key} --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                  kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
+                fi
+              }
+              deleteSecret ca-certs
+              deleteSecret ca-credentials
+
+              deleteSecret admin-tls
+              deleteSecret admin-msp
+
+              if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                SERVICES_NAMES=$ORDERERS_NAMES;
+              fi;
+
+              if [ "$COMPONENT_TYPE" = "peer" ]; then
+                SERVICES_NAMES=$PEERS_NAMES;
+              fi;
+
+              for SERVICE in $SERVICES_NAMES
+              do
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  deleteSecret ${SERVICE_NAME}-msp 
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  deleteSecret ${SERVICE_NAME}-msp 
+                fi;
+
+                # Check if orderer/peer msp already created
+                if [ "$COMPONENT_TYPE" = "peer" ]; then
+                  SERVICE_NAME="${SERVICE%%,*}"
+                  deleteSecret ${SERVICE_NAME}-tls
+                fi;
+
+                if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                  SERVICE_NAME="${SERVICE}"
+                  deleteSecret ${SERVICE_NAME}-tls
+                fi;
+              done
+
+               if [ $COMPONENT_TYPE == 'peer' ];
+              then
+                # Check if msp config file already created
+                deleteSecret msp-config 
+                deleteSecret orderer-tls  
+                deleteSecret couchdb    
+              fi;
+
+              if [ "$USERS_IDENTITIES" ]
+              then
+                for user_identity in $USERS_IDENTITIES
+                do
+                  # Check if users tls already created
+                  deleteSecret ${user_identity}-tls
+                  # Check if users msp already created for users
+                  deleteSecret ${user_identity}-msp
+                done
+              fi
+
+{{- end}} 
+
+{{- if .Values.settings.removeOrdererTlsOnDelete }}
+
+              if kubectl get configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert &> /dev/null; then
+                echo "Deleting orderer-tls-cacert configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert
+              fi
+{{- end}}
+

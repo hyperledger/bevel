@@ -7,33 +7,34 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Values.orderer.name }}
-  namespace: {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
   annotations:
-    {{- if $.Values.annotations }}
-    {{- range $key, $value := $.Values.annotations.service }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.service }}
     {{- range $k, $v := $value }}
     {{ $k }}: {{ $v | quote }}
     {{- end }}
     {{- end }}
     {{- end }}
   labels:
-    run: {{ $.Values.orderer.name }}
-    app.kubernetes.io/name: {{ $.Values.orderer.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    run: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app: {{ .Release.Name }}
+    app.kubernetes.io/component: fabric
+    app.kubernetes.io/part-of: {{ include "fabric-orderernode.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
-    {{- include "labels.custom" . | nindent 2 }}
-    {{- include "labels.service" . | nindent 2 }}
 spec:
-  type: {{ $.Values.service.servicetype }}
+  type: {{ $.Values.service.serviceType }}
   selector:
-    app: {{ $.Values.orderer.name }}
+    app: {{ .Release.Name }}
   ports:
   - protocol: TCP
     targetPort: 7050
-    port: {{ $.Values.service.ports.grpc.clusteripport }}
-    {{- if  (ne $.Values.service.servicetype "ClusterIP") }}
+    port: {{ $.Values.service.ports.grpc.clusterIpPort }}
+    {{- if  (ne $.Values.service.serviceType "ClusterIP") }}
     nodePort: {{ $.Values.service.ports.grpc.nodeport }}
     {{- end }}
     name: grpc
@@ -44,61 +45,61 @@ spec:
   - name: operations
     protocol: TCP
     targetPort: 9443
-    port: {{ $.Values.service.ports.metrics.clusteripport }}
-  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
+    port: {{ $.Values.service.ports.metrics.clusterIpPort }}
+  {{- if (eq $.Values.service.serviceType "ClusterIP") }}
   clusterIP: None
   {{- end }}
   
-{{ if eq $.Values.proxy.provider "haproxy" }}
+{{ if eq $.Values.global.proxy.provider "haproxy" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.orderer.name }}
-  namespace: {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
   annotations:
     kubernetes.io/ingress.class: "haproxy"
     ingress.kubernetes.io/ssl-passthrough: "true"  
 spec:
   rules:
-  - host: {{ $.Values.orderer.name }}.{{ $.Values.proxy.external_url_suffix }}
+  - host: {{ .Release.Name }}.{{ $.Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.orderer.name }}
+            name: {{ .Release.Name }}
             port:
-              number: {{ $.Values.service.ports.grpc.clusteripport }}
-  - host: {{ $.Values.orderer.name }}-proxy.{{ $.Values.proxy.external_url_suffix }}
+              number: {{ $.Values.service.ports.grpc.clusterIpPort }}
+  - host: {{ .Release.Name }}-proxy.{{ $.Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.orderer.name }}
+            name: {{ .Release.Name }}
             port:
               number: 7443
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.orderer.name }}-ops
-  namespace: {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}-ops
+  namespace: {{ .Release.Namespace }}
   annotations:
     kubernetes.io/ingress.class: "haproxy"    
 spec:
   rules:  
-  - host: {{ $.Values.orderer.name }}-ops.{{ $.Values.proxy.external_url_suffix }}
+  - host: {{ .Release.Name }}-ops.{{ $.Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.orderer.name }}
+            name: {{ .Release.Name }}
             port:
               number: 10443
 {{ end }}
