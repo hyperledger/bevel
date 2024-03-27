@@ -44,7 +44,7 @@ spec:
         - {{ key }}: {{ value | quote }}
 {% endfor %}
 {% endfor %}
-{% endfor %}
+{% endif %}
 {% if network.env.labels is defined %}
     labels:
 {% if network.env.labels.service is defined %}
