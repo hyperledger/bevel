@@ -104,7 +104,7 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                 | Default Value       |
 | ----------------------| --------------------------- | ------------------- |
 | storageclassname      | Storage class name          | aws-storageclass         |
-| storagesize           | Storage size for CA         | 512Mi               |
+| size           | Storage size for CA         | 512Mi               |
 
 ### Vault
 
@@ -136,12 +136,11 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name                  | Description                       | Default Value   |
 | ----------------------| ----------------------------------| ----------------|
 | external_url_suffix   | External URL of the organization  | org1proxy.blockchaincloudpoc.com              |
-| component_subject     | Organization's subject            | ""              |
-| cert_subject          | Organization's subject            | ""              |
-| component_country     | Organization's country            | UK              |
-| component_state       | Organization's state              | London          |
-| component_location    | Organization's location           | London          |
-| ca_url                | Organization's CA URL             | ""              |
+| componentSubject     | Organization's subject            | ""              |
+| certSubject          | Organization's subject            | ""              |
+| componentCountry     | Organization's country            | UK              |
+| componentState       | Organization's state              | London          |
+| componentLocation    | Organization's location           | London          |
 
 ### Orderers
 
@@ -155,21 +154,21 @@ The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hy
 | Name          | Description                 | Default Value    |
 | --------------| --------------------------- | -----------------|
 | name          | Peer's name                 | peer1            |
-| peer_count    | Total number of peers       | 4                |
+| peerCount    | Total number of peers       | 4                |
 
 ### Users
 
 | Name                  | Description                   | Default Value   |
 | ----------------------| ---------------------------   | ----------------|
-| users_list            | Base64 encoded list of users  | ""              |
-| users_identities      | List of user identities       | ""              |
+| usersList            | Base64 encoded list of users  | ""              |
+| usersIdentities      | List of user identities       | ""              |
 
 ### Checks
 
 | Name                  | Description                 | Default Value       |
 | ----------------------| --------------------------- | ------------------- |
 | refresh_cert_value    | Refresh user certificates   | false                  |
-| add_peer_value        | Add a peer to an existing network    | false                  |
+| addPeerValue        | Add a peer to an existing network    | false                  |
 
 
 <a name = "deployment"></a>

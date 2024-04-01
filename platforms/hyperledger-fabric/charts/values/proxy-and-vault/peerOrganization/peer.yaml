@@ -1,0 +1,39 @@
+#helm install pee0 -f values/proxy-and-vault/peerOrganization/orderer.yaml -n carrier-net fabric-orderernode
+global:
+  serviceAccountName: vault-auth
+  vault:
+    type: hashicorp
+    network: fabric
+    address: http://vault.demo.com:8200
+    authPath: carrier
+    secretEngine: secretsv2
+    secretPrefix: "data/carrier"
+
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+cli:
+  enabled: true
+  orderer:
+    address: orderer1.test.yourdomain.com:443
+  network:
+    version: 2.5.4
+  peer:
+    localMspId: carrierMSP
+    tlsStatus: true
+    address: carrier-net.test.yourdomain.com:443 
+
+upgrade: False
+
+peer:
+  gossipPeerAddress: carrier-net.test.yourdomain.com:443
+  gossipExternalEndpoint: carrier-net.test.yourdomain.com:443
+  logLevel: info
+  builder: hyperledger/fabric-ccenv:2.5.4
+  couchdb:
+    username: carrier-user
