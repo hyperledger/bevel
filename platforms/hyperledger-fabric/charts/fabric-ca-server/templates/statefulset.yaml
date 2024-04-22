@@ -136,9 +136,26 @@ spec:
           echo "${user}" >> ${MOUNT_PATH}/user_cred
 
 {{- else }}
-          kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-key}" | base64 -d > ${MOUNT_PATH}/server.key
-          kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-cert}" | base64 -d > ${MOUNT_PATH}/server.crt
-          kubectl get secret ca-credentials --namespace {{ .Release.Namespace }} -o json | jq '.data.user' | tr -d '"' | base64 -d > ${MOUNT_PATH}/user_cred
+          KUBENETES_SECRET=$(kubectl get secret ca-certs --namespace ${COMPONENT_NAME} -o json)
+          if  [ "$KUBENETES_SECRET" = "" ]; then
+            echo "Certficates absent in kuberenetes secrets"
+            exit 1
+          else
+            CA_KEY=$(echo "$KUBENETES_SECRET" | jq -r ".data.\"ca-${COMPONENT_NAME}-key\""  | base64 -d)
+            CA_CERT=$(echo "$KUBENETES_SECRET" | jq -r ".data.\"ca-${COMPONENT_NAME}-cert\""  | base64 -d)
+            echo "${CA_KEY}" > ${MOUNT_PATH}/server.key
+            echo "${CA_CERT}" > ${MOUNT_PATH}/server.crt
+          fi
+
+          KUBENETES_SECRET=$(kubectl get secret ca-credentials --namespace ${COMPONENT_NAME} -o json)
+          if  [ "$KUBENETES_SECRET" = "" ]; then
+            echo "Certficates absent in kuberenetes secrets"
+            exit 1
+          else
+            CA_USER=$(echo "$KUBENETES_SECRET" | jq -r '.data.user'  | base64 -d)
+            echo "${CA_USER}" > ${MOUNT_PATH}/user_cred
+          fi
+            
 {{- end }}            
         volumeMounts:
         - name: certificates

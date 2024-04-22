@@ -1,0 +1,49 @@
+  ##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configtx-yaml
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: configtx-yaml
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:
+  configtx.yaml: |-
+    {{ tpl (.Files.Get "files/configtx.yaml.tpl") . | nindent 8 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-msp-certs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: admin-msp-certs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:  
+{{- range $org := .Values.organizations }}
+{{- $file := $.Files.Get (printf "files/%s.json" $org.name) }}
+{{- if $file }}
+  {{ $org.name }}.json: |-
+    {{ $.Files.Get (printf "files/%s.json" $org.name) | nindent 4 }}
+{{- end }}
+{{- $file := $.Files.Get (printf "files/%s-config-file.json" $org.name) }}
+{{- if $file }}
+  {{ $org.name }}-config-file.json: |-
+    {{ $.Files.Get (printf "files/%s-config-file.json" $org.name) | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,64 @@
+#helm install ca-certs -f values/proxy-and-vault/ordererOrganization/genesis.yaml -n supplychain-net fabric-genesis
+global:
+  serviceAccountName: vault-auth
+  vault:
+    type: hashicorp
+    address: http://vault.demo.com:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    imageSecretName: regcred
+    tls: false
+
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+network:
+  version: 2.5.4
+
+consensus:
+  name: raft
+
+organizations:
+  - organization:
+    name: supplychain 
+    type: orderer    
+    orderers:
+    - orderer:
+      name: orderer1
+      ordererAddress: orderer1.test.yourdomain.com:443
+    - orderer:
+      name: orderer2
+      ordererAddress: orderer2.test.yourdomain.com:443
+    - orderer:
+      name: orderer3
+      ordererAddress: orderer3.test.yourdomain.com:443     
+
+  - organization:
+    name: carrier
+    type: peer  
+    peers:
+    - peer:
+      name: peer0-carrier          
+      peerAddress: peer0-carrier.carrier-net.test.yourdomain.com:443 # External URI of the peer
+
+channels:
+  - channel:
+    channel_name: Allchannel
+    consortium: SupplyChainConsortium
+    orderers:
+      - supplychain  
+    participants:
+    - organization:
+      name: carrier
+    genesis:
+      name: OrdererGenesis
+
+settings:
+  removeGenesisOnDelete: true
+  removeGenesisConfigMapOnDelete: true
