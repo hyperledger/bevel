@@ -135,23 +135,38 @@ spec:
 {{- else }}
           function getPeerTlsSecret {
             KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacrt}" | base64 -d > ${OUTPUT_PATH}/ca.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.servercrt}" | base64 -d > ${OUTPUT_PATH}/server.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.serverkey}" | base64 -d > ${OUTPUT_PATH}/server.key
+            KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
+
+            TLS_CA_CERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.cacrt'  | base64 -d)
+            TLS_SERVER_CERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.servercrt'  | base64 -d)
+            TLS_SERVER_KEY=$(echo ${KUBENETES_SECRET} | jq -r '.data.serverkey'  | base64 -d)
+            
+            echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
+            echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
+            echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
           }
 
           function getPeerMspSecret {
             KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.admincerts}" | base64 -d > ${OUTPUT_PATH}/admincerts/admin.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacerts}" | base64 -d > ${OUTPUT_PATH}/cacerts/ca.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.keystore}" | base64 -d > ${OUTPUT_PATH}/keystore/server.key
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.signcerts}" | base64 -d > ${OUTPUT_PATH}/signcerts/server.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.tlscacerts}" | base64 -d > ${OUTPUT_PATH}/tlscacerts/tlsca.crt                     
+            KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
+
+            ADMINCERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.admincerts'  | base64 -d)
+            CACERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.cacerts'  | base64 -d)
+            KEYSTORE=$(echo ${KUBENETES_SECRET} | jq -r '.data.keystore'  | base64 -d)
+            SIGNCERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.signcerts'  | base64 -d)
+            TLSCACERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.tlscacerts'  | base64 -d)
+
+            echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+            echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+            echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+            echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+                                     
           }
 
           function getCouchDbPass {
             KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.user}" | base64 -d > ${MOUNT_PATH}/user_cred
+            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.user}" | base64 -d >> ${MOUNT_PATH}/user_cred
           }
 
 {{- end }} 
