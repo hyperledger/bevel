@@ -2,8 +2,8 @@
 global:
   serviceAccountName: vault-auth
   vault:
-    type: hashicorp
-    network: besu
+    type: {{ vault.type | default("hashicorp") }}
+    network: {{ network.type }}
     address: {{ vault.url }}
     authPath: {{ network.env.type }}{{ name }}
     secretEngine: {{ vault.secret_path | default("secretsv2") }}
