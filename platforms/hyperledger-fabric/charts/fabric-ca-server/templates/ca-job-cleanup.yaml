@@ -34,15 +34,6 @@ spec:
           securityContext:
             runAsUser: 0
           imagePullPolicy: IfNotPresent
-          env:
-          - name: COMPONENT_TYPE
-            value: {{ $.Values.catools.orgData.type }}
-          - name: ORDERERS_NAMES
-            value: "{{ $.Values.catools.orderers | join " " -}}"
-          - name: PEERS_NAMES
-            value: "{{ $.Values.catools.peers | join " " -}}"
-          - name: USERS_IDENTITIES
-            value: "{{ $.Values.catools.users.usersIdentities | join " " -}}"
           command: ["sh", "-c"]
           args:
             - |-
@@ -57,73 +48,4 @@ spec:
               }
               deleteSecret ca-certs
               deleteSecret ca-credentials
-
-              deleteSecret admin-tls
-              deleteSecret admin-msp
-
-              if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                SERVICES_NAMES=$ORDERERS_NAMES;
-              fi;
-
-              if [ "$COMPONENT_TYPE" = "peer" ]; then
-                SERVICES_NAMES=$PEERS_NAMES;
-              fi;
-
-              for SERVICE in $SERVICES_NAMES
-              do
-                # Check if orderer/peer msp already created
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  SERVICE_NAME="${SERVICE%%,*}"
-                  deleteSecret ${SERVICE_NAME}-msp 
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  SERVICE_NAME="${SERVICE}"
-                  deleteSecret ${SERVICE_NAME}-msp 
-                fi;
-
-                # Check if orderer/peer msp already created
-                if [ "$COMPONENT_TYPE" = "peer" ]; then
-                  SERVICE_NAME="${SERVICE%%,*}"
-                  deleteSecret ${SERVICE_NAME}-tls
-                fi;
-
-                if [ "$COMPONENT_TYPE" = "orderer" ]; then
-                  SERVICE_NAME="${SERVICE}"
-                  deleteSecret ${SERVICE_NAME}-tls
-                fi;
-              done
-
-               if [ $COMPONENT_TYPE == 'peer' ];
-              then
-                # Check if msp config file already created
-                deleteSecret msp-config 
-                deleteSecret orderer-tls  
-                deleteSecret couchdb    
-              fi;
-
-              if [ "$USERS_IDENTITIES" ]
-              then
-                for user_identity in $USERS_IDENTITIES
-                do
-                  # Check if users tls already created
-                  deleteSecret ${user_identity}-tls
-                  # Check if users msp already created for users
-                  deleteSecret ${user_identity}-msp
-                done
-              fi
-
 {{- end}} 
-
-{{- if .Values.settings.removeOrdererTlsOnDelete }}
-
-              if kubectl get configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert &> /dev/null; then
-                echo "Deleting orderer-tls-cacert configmap in k8s ..."
-                kubectl delete configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert
-              fi
-              if kubectl get configmap --namespace {{ .Release.Namespace }} admin-msp &> /dev/null; then
-                echo "Deleting admin-msp configmap in k8s ..."
-                kubectl delete configmap --namespace {{ .Release.Namespace }} admin-msp
-              fi
-{{- end}}
-
