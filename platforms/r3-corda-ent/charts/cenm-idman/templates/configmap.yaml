@@ -1,14 +1,25 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.prefix }}-idman-conf
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ include "idman.fullname" . }}-conf
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.nodeName }}
+    app.kubernetes.io/name: {{ include "idman.fullname" . }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    {{- include "labels.custom" . | nindent 2 }}
+    app.kubernetes.io/part-of: {{ include "idman.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}   
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
 data:
+  idman.conf: |+
+{{ tpl (.Files.Get "files/idman.conf") . | indent 4 }}
+
   getZoneToken.sh: |+
-    {{ tpl (.Files.Get "files/getZoneToken.sh") . | nindent 4 }}
+{{ tpl (.Files.Get "files/getZoneToken.sh") . | nindent 4 }}

@@ -1,0 +1,130 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "gateway.fullname" . }}
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "gateway.fullname" . }}
+    app.kubernetes.io/name: gateway-statefulset
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: {{ include "gateway.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "gateway.fullname" . }}
+      app.kubernetes.io/name: gateway-statefulset
+      app.kubernetes.io/component: gateway
+      app.kubernetes.io/part-of: {{ include "gateway.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "gateway.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: gateway-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:  
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "gateway.fullname" . }}
+        app.kubernetes.io/name: gateway-statefulset
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/part-of: {{ include "gateway.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      initContainers:
+      - name: init-check-auth
+        env:
+          - name: ACCEPT_LICENSE
+            value: "YES"
+        image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          echo Probing auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }}
+          until nc -w 5 -vz auth.{{ .Release.Namespace }} {{ .Values.global.cenm.auth.port}} > /dev/null 2>&1
+          do
+            echo "Connect to auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }} (tcp) failed: Connection refused"
+          done
+          echo "Connection auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }} successful"
+      containers:
+      - name: gateway
+        env:
+        - name: "CENM_ZONE_PORT"
+          value: "{{ .Values.global.cenm.zone.adminPort }}"
+        image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+        - |-
+          # run the gateway service
+          ./run.sh
+        volumeMounts:
+          - name: gateway-conf
+            mountPath: /opt/cenm/gateway.conf
+            subPath: gateway.conf
+          - name: gateway-conf
+            mountPath: /opt/cenm/run.sh
+            subPath: run.sh
+          - name: gateway-etc
+            mountPath: /opt/cenm/etc
+          - name: cenm-certs
+            mountPath: "/certs"     
+          - name: gateway-logs
+            mountPath: /opt/cenm/logs
+      - name: logs
+        image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          cd /opt/cenm
+          while true; do tail -f logs/gateway-service/*.log 2>/dev/null; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+          - name: gateway-logs
+            mountPath: /opt/cenm/logs
+      volumes:
+      - name: gateway-conf
+        configMap:
+          name: {{ include "gateway.fullname" . }}-conf
+          defaultMode: 0777
+      - name: cenm-certs
+        secret:
+          secretName: cenm-certs
+      - name: gateway-etc
+        emptyDir:
+          medium: Memory
