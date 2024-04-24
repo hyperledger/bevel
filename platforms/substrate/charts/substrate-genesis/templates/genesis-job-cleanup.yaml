@@ -1,0 +1,56 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "hook-succeeded"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ $.Values.global.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: generate-genesis
+        image: "{{ .Values.removeGenesisOnDelete.image.repository }}:{{ .Values.removeGenesisOnDelete.image.tag }}"
+        securityContext:
+            runAsUser: 0
+        imagePullPolicy: {{ .Values.removeGenesisOnDelete.image.pullPolicy }}
+        command:
+            - /bin/bash
+            - -c
+        args:
+        - |
+            {{- if .Values.removeGenesisOnDelete.enabled }}
+                secret_names=$(kubectl get secret -n {{ .Release.Namespace }} | grep substrate-node | awk '{print $1}')
+                
+                while IFS= read -r nodeKeys; do
+                    kubectl delete secret "$nodeKeys" --namespace {{ .Release.Namespace }}
+                done <<< "$secret_names"
+                
+                if kubectl get configmap "substrate-genesis" --namespace {{ .Release.Namespace }}  &> /dev/null; then
+                        kubectl delete configmap "substrate-genesis" --namespace {{ .Release.Namespace }}
+                fi
+            {{- end}}

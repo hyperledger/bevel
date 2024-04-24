@@ -123,11 +123,19 @@ spec:
 
           function getAdminMspSecret {
             KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.admincerts}" | base64 -d > ${OUTPUT_PATH}/admincerts/admin.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacerts}" | base64 -d > ${OUTPUT_PATH}/cacerts/ca.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.keystore}" | base64 -d > ${OUTPUT_PATH}/keystore/server.key
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.signcerts}" | base64 -d > ${OUTPUT_PATH}/signcerts/server.crt
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.tlscacerts}" | base64 -d > ${OUTPUT_PATH}/tlscacerts/tlsca.crt                     
+            KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
+
+            ADMINCERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.admincerts'  | base64 -d)
+            CACERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.cacerts'  | base64 -d)
+            KEYSTORE=$(echo ${KUBENETES_SECRET} | jq -r '.data.keystore'  | base64 -d)
+            SIGNCERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.signcerts'  | base64 -d)
+            TLSCACERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.tlscacerts'  | base64 -d)
+
+            echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
+            echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
+            echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
+            echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
+            echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt               
           }
 
 {{- end }} 
