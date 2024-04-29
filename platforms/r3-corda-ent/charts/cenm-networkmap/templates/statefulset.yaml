@@ -1,0 +1,209 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "networkmap.fullname" . }}
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "networkmap.fullname" . }}
+    app.kubernetes.io/name: networkmap-statefulset
+    app.kubernetes.io/component: networkmap
+    app.kubernetes.io/part-of: {{ include "networkmap.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "networkmap.fullname" . }}
+      app.kubernetes.io/name: networkmap-statefulset
+      app.kubernetes.io/component: networkmap
+      app.kubernetes.io/part-of: {{ include "networkmap.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "networkmap.fullname" . }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: networkmap-h2
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+    - metadata:
+        name: networkmap-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+    - metadata:
+        name: networkmap-etc
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+    - metadata:
+        name: notary-nodeinfo
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "networkmap.fullname" . }}
+        app.kubernetes.io/name: networkmap-statefulset
+        app.kubernetes.io/component: networkmap
+        app.kubernetes.io/part-of: {{ include "networkmap.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}  
+      containers:
+      - name: init-networkmap
+        image: {{ .Values.image.enterpriseCli.repository }}:{{ .Values.image.enterpriseCli.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          # Remove the old network-paramenters files
+          rm -f /opt/cenm/etc/network-parameters-initial.conf
+          # Create the network-paramenters file
+          file="/opt/cenm/etc/network-parameters-initial.conf"
+          # Move to the mount folder containing the notary details
+          cd /opt/cenm/notary-details
+          echo "notaries : [" > $file
+          for notary in nodeInfo*
+          do
+            echo "  {" >> $file
+            echo "    notaryNodeInfoFile: \"notary-nodeinfo/$notary\"" >> $file
+            echo "    validating = $(cat isValidating_$notary)" >> $file
+            echo "  }" >> $file
+          done
+          echo "]" >> $file
+          echo "minimumPlatformVersion = 4" >> $file
+          echo "maxMessageSize = 10485760" >> $file
+          echo "maxTransactionSize = 10485760" >> $file
+          echo "eventHorizonDays = 1" >> $file
+          # Move the node info files to the notary-nodeinfo
+          cp nodeInfo* /opt/cenm/notary-nodeinfo/
+          cp $file /opt/cenm/notary-nodeinfo/
+          # setup the zone token and create the subzone
+          cd /opt/cenm
+          bin/getZoneToken.sh
+          # Keep the container running for network related manual ops
+          tail -f /dev/null
+        volumeMounts:
+        - name: networkmap-etc
+          mountPath: /opt/cenm/etc
+        - name: cenm-certs
+          mountPath: /certs
+        - name: notary-details
+          mountPath: /opt/cenm/notary-details
+        - name: notary-nodeinfo
+          mountPath: /opt/cenm/notary-nodeinfo
+        - name: networkmap-conf
+          mountPath: /opt/cenm/bin/getZoneToken.sh
+          subPath: getZoneToken.sh
+        - name: networkmap-conf
+          mountPath: /opt/cenm/etc/networkmap.conf
+          subPath: networkmap.conf
+      - name: networkmap
+        image: {{ .Values.image.networkmap.repository }}:{{ .Values.image.networkmap.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          # Setup networkwork parameter
+          cp /opt/cenm/etc/networkmap.conf /opt/cenm/etc/networkmap-init.conf
+          NETWORK_PARAM=/opt/cenm/notary-nodeinfo/network-parameters-initial.conf
+          {{- if .Values.nmapUpdate }}
+          # Remove old network param update config
+          rm -f /opt/cenm/notary-nodeinfo/network-parameters-update.conf
+          echo "Starting networkmap update..."
+          echo "# This is a file for updating network parameters" > /opt/cenm/notary-nodeinfo/network-parameters-update.conf
+          NETWORK_PARAM=/opt/cenm/notary-nodeinfo/network-parameters-update.conf
+          cat /opt/cenm/notary-nodeinfo/network-parameters-initial.conf >> /opt/cenm/notary-nodeinfo/network-parameters-update.conf
+          echo 'parametersUpdate {
+                description = "Update network parameters settings"
+                updateDeadline = "'$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ' -d +10minutes)'"
+            }' >> /opt/cenm/notary-nodeinfo/network-parameters-update.conf
+          {{- end }}
+          java -jar bin/networkmap.jar \
+              -f /opt/cenm/etc/networkmap.conf \
+              --set-network-parameters $NETWORK_PARAM \
+              --network-truststore /certs/network-root-truststore.jks \
+              --truststore-password {{ .Values.global.cenm.sharedCreds.truststore }} \
+              --root-alias cordarootca
+          # running the networkmap service
+          bin/run.sh
+        volumeMounts:
+        - name: networkmap-etc
+          mountPath: /opt/cenm/etc
+        - name: networkmap-conf
+          mountPath: /opt/cenm/bin/run.sh
+          subPath: run.sh
+        - name: cenm-certs
+          mountPath: /certs
+        - name: notary-details
+          mountPath: /opt/cenm/notary-details
+        - name: notary-nodeinfo
+          mountPath: /opt/cenm/notary-nodeinfo
+        - name: networkmap-conf
+          mountPath: /opt/cenm/etc/networkmap.conf
+          subPath: networkmap.conf
+        - name: networkmap-logs
+          mountPath: /opt/cenm/logs
+        - name: networkmap-h2
+          mountPath: /opt/cenm/h2
+      - name: logs
+        image: {{ .Values.image.networkmap.repository }}:{{ .Values.image.networkmap.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cd /opt/cenm
+          while true; do tail -f logs/angel-service/*.log 2>/dev/null; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+        - name: networkmap-logs
+          mountPath: /opt/cenm/logs
+      volumes:
+        - name: networkmap-conf
+          configMap:
+            name: {{ include "networkmap.fullname" . }}-conf
+            defaultMode: 0777
+        - name: cenm-certs
+          secret:
+            secretName: cenm-certs
+        - name: notary-details
+          secret:
+            secretName: notary-info

@@ -8,13 +8,15 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.metadata.prefix }}-zone-conf
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ include "zone.fullname" . }}-conf
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.metadata.nodeName }}
+    app.kubernetes.io/name: {{ include "zone.fullname" . }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    {{- include "labels.custom" . | nindent 2 }}
+    app.kubernetes.io/part-of: {{ include "zone.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}   
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
 data:
   run.sh: |+
     {{ tpl (.Files.Get "files/run.sh") . | nindent 4 }}
