@@ -1,0 +1,136 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "signer.fullname" . }}
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "signer.fullname" . }}
+    app.kubernetes.io/name: signer-statefulset
+    app.kubernetes.io/component: signer
+    app.kubernetes.io/part-of: {{ include "signer.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "signer.fullname" . }}
+      app.kubernetes.io/name: signer-statefulset
+      app.kubernetes.io/component: signer
+      app.kubernetes.io/part-of: {{ include "signer.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "signer.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: signer-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "signer.fullname" . }}
+        app.kubernetes.io/name: signer-statefulset
+        app.kubernetes.io/component: signer
+        app.kubernetes.io/part-of: {{ include "signer.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }} 
+      initContainers:
+      - name: init-token
+        image: {{ .Values.image.enterpriseCli.repository }}:{{ .Values.image.enterpriseCli.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cp CM/*.sh bin/
+          chmod +x bin/*
+          bin/getZoneToken.sh
+        volumeMounts:
+        - name: signer-etc
+          mountPath: /opt/cenm/etc
+        - name: cenm-certs
+          mountPath: /certs
+        - name: signer-conf
+          mountPath: /opt/cenm/etc/signer.conf
+          subPath: signer.conf
+        - name: signer-conf
+          mountPath: /opt/cenm/CM/getZoneToken.sh
+          subPath: getZoneToken.sh 
+      containers:
+      - name: signer
+        image: {{ .Values.image.signer.repository }}:{{ .Values.image.signer.tag }}
+        env:
+          - name: ACCEPT_LICENSE
+            value: "YES"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          chmod +x bin/*
+          bin/run.sh
+        volumeMounts:
+        - name: signer-conf
+          mountPath: /opt/cenm/bin/run.sh
+          subPath: run.sh
+        - name: cenm-certs
+          mountPath: /certs
+        - name: signer-conf
+          mountPath: /opt/cenm/etc/signer.conf
+          subPath: signer.conf
+        - name: signer-logs
+          mountPath: /opt/cenm/logs
+      - name: logs
+        image: {{ .Values.image.signer.repository }}:{{ .Values.image.signer.tag }}
+        env:
+        - name: ACCEPT_LICENSE
+          value: "YES"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cd /opt/cenm/
+          while true; do tail -f logs/signing-service/*.log 2>/dev/null ; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+        - name: signer-logs
+          mountPath: /opt/cenm/logs
+      volumes:
+        - name: signer-conf
+          configMap:
+            name: {{ include "signer.fullname" . }}-conf
+            defaultMode: 0777
+        - name: cenm-certs
+          secret:
+            secretName: cenm-certs
+        - name: signer-etc
+          emptyDir:
+            medium: Memory
