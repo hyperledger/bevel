@@ -8,7 +8,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "fabric-catools.fullname" . }}
+  name: {{ template "fabric-catools.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}
@@ -217,19 +217,6 @@ spec:
                 fi
               }
 {{- else }} 
-
-              while true; do
-                POD_NAME="fabric-ca-server-{{ .Release.Name }}-0"
-                pod_describe=$(kubectl describe pod "$POD_NAME" 2>&1)
-                # Check if the pod is in "Running" state
-                if echo "$pod_describe" | grep -q "State:.*Running"; then
-                    echo "The pod $POD_NAME is in Running state."
-                    break
-                else
-                    echo "$POD_NAME is not in Running state or does not exist."
-                    sleep 2s
-                fi
-              done
 
               kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-cert}" | base64 -d > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem
               kubectl get secret ca-certs --namespace {{ .Release.Namespace }} --output="jsonpath={.data.ca-${COMPONENT_NAME}-key}" | base64 -d > ${OUTPUT_PATH}/ca/${COMPONENT_NAME}-CA.key
@@ -483,6 +470,8 @@ spec:
             value: "{{ .Values.global.vault.secretEngine }}"
           - name: VAULT_SECRET_PREFIX
             value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: ORG_NAME_EXT
+            value: {{ $.Values.orgData.orgName }}
           - name: COMPONENT_TYPE
             value: {{ $.Values.orgData.type }}
           - name: COMPONENT_NAME
