@@ -30,7 +30,7 @@ data:
     ORG_NAME="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgName }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="{{ .Release.Name }}.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
     
@@ -51,7 +51,7 @@ data:
     fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
     
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-        mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+        mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
     mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
     cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
@@ -71,7 +71,7 @@ data:
     cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-        mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+        mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
 
     # Get TLS cert for admin and copy to appropriate location
@@ -97,7 +97,7 @@ data:
     ORG_NAME="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgName }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="{{ .Release.Name }}.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
     ORDERER_NAME=$1
@@ -143,7 +143,7 @@ data:
     mkdir ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-      mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      mv ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
     cp ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/orderers/${PEER}/msp/tlscacerts
 
@@ -167,7 +167,7 @@ data:
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgNname }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="{{ .Release.Name }}.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
 
@@ -188,7 +188,7 @@ data:
     fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
     mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
     cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
@@ -210,7 +210,7 @@ data:
     cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
 
     # Get TLS cert for admin and copy to appropriate location
@@ -257,7 +257,7 @@ data:
       # Copy the peer org's admin cert into target MSP directory
       mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
       if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
       fi
       cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
       cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
@@ -278,7 +278,7 @@ data:
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgName }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="{{ .Release.Name }}.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
     NO_OF_PEERS="$PEERS_COUNT"
@@ -302,7 +302,7 @@ data:
     fabric-ca-client getcacert -d -u https://${CA} --tls.certfiles ${ROOT_TLS_CERT} -M ${ORG_CYPTO_FOLDER}/msp
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      mv ${ORG_CYPTO_FOLDER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
     mkdir ${ORG_CYPTO_FOLDER}/msp/tlscacerts
     cp ${ORG_CYPTO_FOLDER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/msp/tlscacerts
@@ -321,7 +321,7 @@ data:
     cp -R ${ORG_HOME}/admin/msp ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}
 
     if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+      mv ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_ADMIN_USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
     fi
 
     # Get TLS cert for admin and copy to appropriate location
@@ -367,7 +367,7 @@ data:
       # Copy the peer org's admin cert into target MSP directory
       mkdir -p ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
       if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+        mv ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
       fi
       cp ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/tlscacerts
       cp ${ORG_CYPTO_FOLDER}/msp/admincerts/${ORG_ADMIN_USER}-cert.pem ${ORG_CYPTO_FOLDER}/peers/${PEER}/msp/admincerts
@@ -390,7 +390,7 @@ data:
     USER_IDENTITIES=$2
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="{{ .Values.orgData.componentSubject }}"
-    CA="{{ .Release.Name }}.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
     if [ "$1" != "peer" ]; then
       ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
       ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
@@ -442,7 +442,7 @@ data:
         cp -R ${ORG_HOME}/client${USER}/msp ${ORG_CYPTO_FOLDER}/users/${ORG_USER}
 
         if [ "{{ .Values.global.proxy.provider }}" != "none" ]; then
-          mv ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/{{ .Release.Name }}-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+          mv ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/*.pem ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${FULLY_QUALIFIED_ORG_NAME}-${EXTERNAL_URL_SUFFIX}.pem
         fi
         mkdir ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/tlscacerts
         cp ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/cacerts/* ${ORG_CYPTO_FOLDER}/users/${ORG_USER}/msp/tlscacerts
@@ -642,8 +642,8 @@ data:
 
             if [ "$PROXY" != "none" ] ; then
 
-              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
               
                 echo "
                   {
@@ -660,8 +660,8 @@ data:
 
             if [ "$PROXY" = "none" ] ; then
 
-                formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-                CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
+                formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+                CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
 
                 echo "
                   {
@@ -799,10 +799,10 @@ data:
 
             if [ "$PROXY" != "none" ] ; then
 
-              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
-              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
-              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
-              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
 
               echo "
                 {
@@ -819,10 +819,10 @@ data:
             fi;
 
             if [ "$PROXY" = "none" ] ; then
-              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
-              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
-              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
-              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts"
+              formatCertificate "${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
+              TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${ORDERER_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
 
               echo "
                 {
@@ -904,7 +904,7 @@ data:
               SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
               kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem \
               --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
@@ -915,7 +915,7 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem \
               --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
@@ -947,10 +947,10 @@ data:
               SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
               kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+              --from-file=cacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem \
-              --from-file=tlscacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+              --from-file=tlscacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
           fi
 
           if [ "$PROXY" = "none" ]
@@ -958,10 +958,10 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+              --from-file=cacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem \
-              --from-file=tlscacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem
+              --from-file=tlscacerts=${ORG_CYPTO_ORDERER_FOLDER}/${ORDERER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem
           fi
         fi
 
@@ -1129,8 +1129,8 @@ data:
 
           if [ "$PROXY" != "none" ] ; then
 
-            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
             
               echo "
                 {
@@ -1147,8 +1147,8 @@ data:
 
           if [ "$PROXY" = "none" ] ; then
 
-              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
-              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
+              formatCertificate "${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/msp"
+              CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/msp/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
 
               echo "
                 {
@@ -1285,10 +1285,10 @@ data:
 
           if [ "$PROXY" != "none" ]
           then
-            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
-            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
-            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
-            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
 
             echo "
               {
@@ -1305,10 +1305,10 @@ data:
 
           if [ "$PROXY" = "none" ]
           then
-            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
-            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
-            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
-            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${PEER_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
 
             echo "
               {
@@ -1557,7 +1557,7 @@ data:
               SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
               kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem \
               --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
@@ -1568,7 +1568,7 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_FOLDER}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+              --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_FOLDER}/msp/signcerts/cert.pem \
               --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
@@ -1601,10 +1601,10 @@ data:
               SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
               kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+              --from-file=cacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem \
-              --from-file=tlscacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+              --from-file=tlscacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
           fi
 
           if [ "$PROXY" = "none" ]
@@ -1612,10 +1612,10 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
               --from-file=admincerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-              --from-file=cacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+              --from-file=cacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
               --from-file=keystore=${SK_NAME} \
               --from-file=signcerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/signcerts/cert.pem \
-              --from-file=tlscacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem
+              --from-file=tlscacerts=${ORG_CYPTO_PEER_FOLDER}/${PEER_NAME}.${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem
           fi
         fi
 
@@ -1666,11 +1666,11 @@ data:
       if [ $? -ne 0 ]; then
         if [ "$PROXY" != "none" ]; then
           kubectl create configmap --namespace {{ .Release.Namespace }} admin-msp --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-            --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+            --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
             --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
         else
           kubectl create configmap --namespace {{ .Release.Namespace }} admin-msp --from-file=admincerts=${ORG_CYPTO_FOLDER}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem \
-            --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+            --from-file=cacerts=${ORG_CYPTO_FOLDER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
             --from-file=tlscacerts=${ORG_CYPTO_FOLDER}/tls/ca.crt
         fi
       fi
@@ -1843,11 +1843,11 @@ data:
   
           if [ "$PROXY" != "none" ] ; then
 
-            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
-            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
-            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
             # En el rol lo copia directamente del tls
-            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem.txt)
 
             echo "
               {
@@ -1864,10 +1864,10 @@ data:
           fi;
             
           if [ "$PROXY" = "none" ] ; then
-            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
-            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
-            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
-            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem.txt)
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts"
+            formatCertificate "${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem" "${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts"
+            CACERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
+            TLSCERTS=$(cat ${FORMAT_CERTIFICATE_PATH}/${USER}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem.txt)
 
             echo "
               {
@@ -1951,10 +1951,10 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
             --from-file=admincerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/admincerts/${USER}@${COMPONENT_NAME}-cert.pem \
-            --from-file=cacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
+            --from-file=cacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem  \
             --from-file=keystore=${SK_NAME} \
             --from-file=signcerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/signcerts/cert.pem \
-            --from-file=tlscacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
+            --from-file=tlscacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-${EXTERNAL_URL_SUFFIX}.pem
         fi
 
         if [ "$PROXY" = "none" ]
@@ -1962,10 +1962,10 @@ data:
             SK_NAME=$(find ${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/keystore/ -name "*_sk")
             kubectl create secret generic ${MPS_KEY} --namespace ${COMPONENT_NAME} \
             --from-file=admincerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/admincerts/${USER}@${COMPONENT_NAME}-cert.pem \
-            --from-file=cacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem  \
+            --from-file=cacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/cacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem  \
             --from-file=keystore=${SK_NAME} \
             --from-file=signcerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/signcerts/cert.pem \
-            --from-file=tlscacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/{{ .Release.Name }}-${COMPONENT_NAME}-7054.pem
+            --from-file=tlscacerts=${ORG_CYPTO_USERS_FOLDER}/${USER}@${COMPONENT_NAME}/msp/tlscacerts/${ORG_NAME_EXT}-ca-${COMPONENT_NAME}-7054.pem
         fi
       fi
       checkSecret $USER-tls
@@ -2005,31 +2005,31 @@ data:
     NodeOUs:
       Enable: true
       ClientOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
         OrganizationalUnitIdentifier: client
       PeerOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
         OrganizationalUnitIdentifier: peer
       AdminOUIdentifier:
-          Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
+          Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
           OrganizationalUnitIdentifier: admin
       OrdererOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-{{ .Values.global.proxy.externalUrlSuffix }}.pem
         OrganizationalUnitIdentifier: orderer
   none-config.yaml: |-
     NodeOUs:
       Enable: true
       ClientOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-7054.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-7054.pem
         OrganizationalUnitIdentifier: client
       PeerOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-7054.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-7054.pem
         OrganizationalUnitIdentifier: peer
       AdminOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-7054.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-7054.pem
         OrganizationalUnitIdentifier: admin
       OrdererOUIdentifier:
-        Certificate: cacerts/{{ .Release.Name }}-{{ .Release.Namespace }}-7054.pem
+        Certificate: cacerts/${ORG_NAME_EXT}-ca-{{ .Release.Namespace }}-7054.pem
         OrganizationalUnitIdentifier: orderer
 
 {{- $file := .Files.Get "files/orderer.crt" }}

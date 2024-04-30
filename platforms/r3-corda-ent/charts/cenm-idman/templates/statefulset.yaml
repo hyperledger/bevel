@@ -1,0 +1,181 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "idman.fullname" . }}
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "idman.fullname" . }}
+    app.kubernetes.io/name: idman-statefulset
+    app.kubernetes.io/component: idman
+    app.kubernetes.io/part-of: {{ include "idman.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "idman.fullname" . }}
+      app.kubernetes.io/name: idman-statefulset
+      app.kubernetes.io/component: idman
+      app.kubernetes.io/part-of: {{ include "idman.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "idman.fullname" . }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: idman-h2
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+    - metadata:
+        name: idman-etc
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+    - metadata:
+        name: idman-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "idman.fullname" . }}
+        app.kubernetes.io/name: idman-statefulset
+        app.kubernetes.io/component: idman
+        app.kubernetes.io/part-of: {{ include "idman.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}  
+      initContainers:
+      - name: init-token
+        image: {{ .Values.image.enterpriseCli.repository }}:{{ .Values.image.enterpriseCli.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          bin/getZoneToken.sh
+        volumeMounts:
+        - name: idman-etc
+          mountPath: /opt/cenm/etc
+        - name: cenm-certs
+          mountPath: /certs
+        - name: idman-conf
+          mountPath: /opt/cenm/bin/getZoneToken.sh
+          subPath: getZoneToken.sh
+        - name: idman-conf
+          mountPath: /opt/cenm/etc/idman.conf
+          subPath: idman.conf      
+      containers:
+      - name: idman
+        image: {{ .Values.image.idman.repository }}:{{ .Values.image.idman.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          # running the idman service
+          /bin/sh
+          # main run
+          if [ -f bin/identitymanager.jar ]
+          then
+              sha256sum bin/identitymanager.jar
+              sha256sum bin/angel.jar
+              cp etc/idman.conf etc/identitymanager.conf
+              cat etc/identitymanager.conf
+              echo
+              echo "CENM: starting Identity Manager process ..."
+              echo
+              java -jar bin/angel.jar \
+              --jar-name=bin/identitymanager.jar \
+              --zone-host=zone.{{ .Release.Namespace }} \
+              --zone-port={{ .Values.global.cenm.zone.enmPort }} \
+              --token=${TOKEN} \
+              --service=IDENTITY_MANAGER \
+              --working-dir=etc/ \
+              --polling-interval=10 \
+              --tls=true \
+              --tls-keystore=/certs/corda-ssl-identity-manager-keys.jks \
+              --tls-keystore-password={{ .Values.global.cenm.sharedCreds.keystore }} \
+              --tls-truststore=/certs/corda-ssl-trust-store.jks \
+              --tls-truststore-password={{ .Values.global.cenm.sharedCreds.truststore }} \
+              --verbose
+              EXIT_CODE=${?}
+          else
+              echo "Missing Identity Manager jar file in bin folder:"
+              ls -al bin
+              EXIT_CODE=110
+          fi
+
+          if [ "${EXIT_CODE}" -ne "0" ]
+          then
+              HOW_LONG={{ .Values.sleepTimeAfterError }}
+              echo
+              echo "exit code: ${EXIT_CODE} (error)"
+              echo "Going to sleep for requested ${HOW_LONG} seconds to let you login and investigate."
+          fi
+          sleep ${HOW_LONG}
+          echo
+        volumeMounts:
+        - name: idman-etc
+          mountPath: /opt/cenm/etc
+        - name: cenm-certs
+          mountPath: /certs
+        - name: idman-conf
+          mountPath: /opt/cenm/etc/idman.conf
+          subPath: idman.conf
+        - name: idman-logs
+          mountPath: /opt/cenm/logs
+        - name: idman-h2
+          mountPath: /opt/cenm/h2
+      - name: logs
+        image: {{ .Values.image.idman.repository }}:{{ .Values.image.idman.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/bash", "-c"]
+        args:
+        - |-
+          cd /opt/cenm
+          while true; do tail -f logs/angel-service/*.log 2>/dev/null; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+        - name: idman-logs
+          mountPath: /opt/cenm/logs
+      volumes:
+        - name: idman-conf
+          configMap:
+            name: {{ include "idman.fullname" . }}-conf
+            defaultMode: 0777
+        - name: cenm-certs
+          secret:
+            secretName: cenm-certs

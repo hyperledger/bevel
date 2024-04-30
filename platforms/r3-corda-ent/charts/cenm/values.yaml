@@ -1,0 +1,96 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for nodechart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: 
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "ambassador" or "none"
+    #Eg. provider: "ambassador"
+    provider: "ambassador"
+    #This field contains the external URL of the node
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+  # global cenm values used by dependency charts
+  cenm:
+    sharedCreds:
+      truststore: password
+      keystore: password
+    identityManager:
+      port: 10000
+      revocation:
+        port: 5053
+      internal:
+        port: 5052
+    auth:
+      port: 8081
+    gateway:
+      port: 8080
+    zone:
+      enmPort: 25000
+      adminPort: 12345
+    networkmap:
+      internal:
+        port: 5050
+
+storage:
+  size: 1Gi
+  dbSize: 5Gi
+  allowedTopologies:
+    enabled: false
+
+image: 
+  #Provide the docker secret name in the namespace
+  #Eg. pullSecret: regcred
+  pullSecret:
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent
+  #Provide a valid image and version for pki
+  pki:
+    repository: corda/enterprise-pkitool
+    tag: 1.5.9-zulu-openjdk8u382
+  hooks:
+    repository: ghcr.io/hyperledger/bevel-build
+    tag: jdk8-stable
+
+settings:
+  removeKeysOnDelete: false
+
+subjects:
+  # Mention the subject for auth
+  # Eg. auth: "CN=Test TLS Auth Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  auth: "CN=Test TLS Auth Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  # Mention the subject for tls crl signer
+  # Eg. tlscrlsigner: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  tlscrlsigner: "CN=Test TLS Signer Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  # Mention the subject for the tls crl issuer
+  # Eg. tlscrlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+  tlscrlissuer: "CN=Corda TLS CRL Authority,OU=Corda UAT,O=R3 HoldCo LLC,L=New York,C=US"
+  # Mention the subject for rootca
+  # Eg. rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+  rootca: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
+  # Mention the subject for subordinateca
+  # Eg. subordinateca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  subordinateca: "CN=Test Subordinate CA Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  # Mention the subject for idmanca
+  # Eg. idmanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  idmanca: "CN=Test Identity Manager Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  # Mention the subject for networkmap
+  # Eg. networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
+  networkmap: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
