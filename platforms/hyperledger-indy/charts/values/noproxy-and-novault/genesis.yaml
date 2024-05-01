@@ -1,0 +1,30 @@
+#helm install genesis -f values/noproxy-and-novault/genesis.yaml -n supplychain-bes besu-genesis
+global:
+  serviceAccountName: bevel-auth
+  vault:
+    type: kubernetes
+  cluster:
+    provider: azure # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false
+    
+settings:
+  # Flag to ensure the genesis configmaps are removed on helm uninstall
+  removeGenesisOnDelete: true
+  # Flag to copy domain and pool genesis from files for secondary members
+  secondaryGenesis: false
+  # Provide the steward details by following trustee tree as per example below
+  trustees:
+    - name: authority-trustee
+      stewards:
+        - name: university-steward-1  # Steward name
+          publicIp: "node-ip"                   # Steward public IP Address /Kubernetes API IP for noproxy
+          nodePort: 30011           # Node external port
+          clientPort: 30012         # Client external port
+        - name: university-steward-2
+          publicIp: "node-ip"
+          nodePort: 30021
+          clientPort: 30022
+        - name: university-steward-3
+          publicIp: "node-ip"
+          nodePort: 30031
+          clientPort: 30032

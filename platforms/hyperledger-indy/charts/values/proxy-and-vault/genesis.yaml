@@ -1,0 +1,46 @@
+#helm install genesis -f values/noproxy-and-novault/genesis.yaml -n supplychain-bes besu-genesis
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: indy
+    #Provide the vault server address
+    address: "http://vault.url:8200"
+    #Provide the vault authPath configured to be used.
+    authPath: authority
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/authority"
+    
+settings:
+  # Flag to ensure the genesis configmaps are removed on helm uninstall
+  removeGenesisOnDelete: true
+  # Flag to copy domain and pool genesis from files for secondary members
+  secondaryGenesis: false
+  # Provide the steward details by following trustee tree as per example below
+  trustees:
+    - name: authority-trustee
+      stewards:
+        - name: university-steward-1  # Steward name
+          publicIp: "ambassador-public-ip"                   # Steward public IP Address /Kubernetes API IP for noproxy
+          nodePort: 15011           # Client external port
+          clientPort: 15012             # Node external port
+        - name: university-steward-2
+          publicIp: "ambassador-public-ip"
+          nodePort: 15021
+          clientPort: 15022
+        - name: university-steward-3
+          publicIp: "ambassador-public-ip"
+          nodePort: 15031
+          clientPort: 15032
+        - name: university-steward-4
+          publicIp: "ambassador-public-ip"
+          nodePort: 15041
+          clientPort: 15042

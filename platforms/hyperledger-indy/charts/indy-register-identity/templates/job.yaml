@@ -1,0 +1,85 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: indy-register-identity-job
+    app.kubernetes.io/component: register-identity-job
+    app.kubernetes.io/part-of: {{ include "indy-register-identity.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 7
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: indy-register-identity-job
+        app.kubernetes.io/component: register-identity-job
+        app.kubernetes.io/part-of: {{ include "indy-register-identity.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      volumes:
+        - name: {{ .Release.Name }}-ptg
+          configMap:
+            name: ptg
+        - name: identity-keys
+          configMap:
+            name: {{ .Release.Name }}-keys
+        - name: admin-public
+          secret:
+            secretName: {{ .Values.admin }}-identity-public
+        - name: admin-private
+          secret:
+            secretName: {{ .Values.admin }}-identity-private
+      containers:
+      - name: register-endorser
+        image: {{ .Values.image.cli }}
+        stdin: true
+        tty: true
+        command: ["sh", "-c"]
+        args:
+        - |
+
+          #apt-get install curl -y
+          
+          ADMIN_SEED=$(cat /data/admin/private/value | jq -r ".seed")
+          ADMIN_DID=$(cat /data/admin/public/value | jq -r ".did")
+          IDENTITY_DID=$(cat /data/identity/did)
+          IDENTITY_VERKEY=$(cat /data/identity/verkey)
+          echo "Running ledger Transaction Script...";
+
+          ./home/indy-ledger.sh $ADMIN_DID $ADMIN_SEED $IDENTITY_DID $IDENTITY_ROLE $IDENTITY_VERKEY $POOL_GENESIS_PATH;
+        env:
+          - name: IDENTITY_ROLE
+            value: "{{ .Values.newIdentity.role }}"
+          - name: POOL_GENESIS_PATH
+            value: /var/lib/indy/genesis/{{ .Values.network }}/pool_transactions_genesis
+        volumeMounts:
+          - name: {{ .Release.Name }}-ptg
+            mountPath: /var/lib/indy/genesis/{{ .Values.network }}/pool_transactions_genesis
+            subPath: pool_transactions_genesis
+          - name: identity-keys
+            mountPath: /data/identity
+          - name: admin-public
+            mountPath: /data/admin/public
+          - name: admin-private
+            mountPath: /data/admin/private

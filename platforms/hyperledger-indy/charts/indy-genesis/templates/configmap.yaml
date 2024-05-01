@@ -1,0 +1,64 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+{{- if .Values.settings.secondaryGenesis }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dtg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:  
+  domain_transactions_genesis: |-
+    {{ .Files.Get "files/domain_transactions_genesis.json" | nindent 8 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ptg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:  
+  pool_transactions_genesis: |-
+    {{ .Files.Get "files/pool_transactions_genesis.json" | nindent 8 }}
+{{- else }}
+{{- range .Values.settings.trustees }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-keys
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:
+  did: |
+{{ $.Files.Get (printf "files/%s-did.json" .name) | replace "\"" "" | indent 4 }}
+  verkey: |
+{{ $.Files.Get (printf "files/%s-verkey.json" .name) | replace "\"" "" | indent 4 }}
+{{- range .stewards }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-keys
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:
+  did: |
+{{ $.Files.Get (printf "files/%s-did.json" .name) | replace "\"" "" | indent 4 }}
+  verkey: |
+{{ $.Files.Get (printf "files/%s-verkey.json" .name) | replace "\"" "" | indent 4 }}
+  blspop: |
+{{ $.Files.Get (printf "files/%s-blspop.json" .name) | replace "\"" "" | indent 4 }}
+  blspub: |
+{{ $.Files.Get (printf "files/%s-blspub.json" .name) | replace "\"" "" | indent 4 }}
+{{- end -}}
+{{- end }}
+{{- end }}
