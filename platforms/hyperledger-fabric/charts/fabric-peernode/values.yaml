@@ -63,6 +63,58 @@ cli:
     #Provide the address for the peer
     #Eg: address: peer0.org1-net:7051
     address: test.blockchaincloudpoc.com:443
+  healthCheck: 
+    retries: 20
+    sleepTimeAfterError: 15
+
+catools:
+  orgData:
+    #Provide organization's name in lowercases
+    #Eg. orgName: supplychain 
+    orgName: supplychain
+    #Provide organization's type (orderer or peer)
+    #Eg. component_type: orderer
+    type:
+    #Provide organization's subject
+    #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
+    componentSubject:
+    #Provide organization's subject
+    #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
+    certSubject:
+    #Provide organization's country
+    #Eg. UK
+    componentCountry: UK
+    #Provide organization's state
+    #Eg. London
+    componentState: London
+    #Provide organization's location
+    #Eg. Lodon
+    componentLocation: Lodon
+  
+  #Provide peer's names
+  peers:
+    - peer0-carrier
+
+  users: 
+    # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
+    usersList:
+      - user:
+        identity: user1
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+      - user:
+        identity: user2
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+    #Base64 encoded list of users
+    #Eg. IC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMQogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgIgICAgICAgIC0ga2V5OiBrZXkyCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMgogICAgICAgIC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMgogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgICAgICAgICB2YWx1ZTogdmFsdWUxCiAgICAgICAgICAgIC0ga2V5OiBrZXkzCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMw==
+    usersListAnsible:
+    #Provides a list of user identities
+    usersIdentities:
+      - user1
+      - user2
 
 image:
   #Provide the valid image name and version for fabric couchdb
@@ -77,11 +129,6 @@ image:
   #Provide the valid image name and version for fabric tools
   #Eg. fabrictools: hyperledger/fabric-tools:1.4.0
   fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
-
-labels:
-  service: []
-  pvc: []
-  deployment: []
 
 peer:
   #Provide the url of gossipping peer and port to be mentioned is grpc cluster IP port
@@ -185,6 +232,14 @@ config:
       # Provide the requests cpu for node
       # Eg. cpu: 0.25
         cpu: 0.25
+
+settings:
+  # Flag to ensure the certificates configmaps are removed on helm uninstall
+  removeConfigMapsOnDelete: true
+  # Flag to ensure the certificates secrets are removed on helm uninstall
+  removeCertsOnDelete: true
+  # Flag indicating the creation of certificates. This flag must be set to true when installing the first peer and false in the others.
+  generateCertificates: true
 
 labels:
   service: []

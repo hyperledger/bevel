@@ -1,0 +1,76 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "fabric-orderernode.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: fabric-orderernode-job-cleanup
+    app.kubernetes.io/component: orderernode-job-cleanup
+    app.kubernetes.io/part-of: {{ include "fabric-orderernode.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fabric-orderernode-job-cleanup
+        app.kubernetes.io/component: orderernode-job-cleanup
+        app.kubernetes.io/part-of: {{ include "fabric-orderernode.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      containers:
+        - name: delete-secrets
+          image: "{{ $.Values.image.alpineUtils }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ORDERERS_NAMES
+            value: "{{ $.Values.catools.orderers | join " " -}}"
+          command: ["sh", "-c"]
+          args:
+            - |-
+{{- if .Values.settings.removeCertsOnDelete }}
+
+              function deleteSecret {
+                key=$1
+                kubectl get secret ${key} --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                  kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
+                fi
+              }
+
+              deleteSecret admin-tls
+              deleteSecret admin-msp
+
+              for ORDERER in $ORDERERS_NAMES
+              do
+                ORDERER_NAME="${ORDERER}"
+                deleteSecret ${ORDERER_NAME}-msp 
+                deleteSecret ${ORDERER_NAME}-tls
+              done
+
+{{- end}} 
+
+{{- if .Values.settings.removeOrdererTlsOnDelete }}
+
+              if kubectl get configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert &> /dev/null; then
+                echo "Deleting orderer-tls-cacert configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} orderer-tls-cacert
+              fi
+              if kubectl get configmap --namespace {{ .Release.Namespace }} admin-msp &> /dev/null; then
+                echo "Deleting admin-msp configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} admin-msp
+              fi
+{{- end}}
+
