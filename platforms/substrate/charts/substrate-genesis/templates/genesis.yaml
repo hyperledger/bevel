@@ -59,15 +59,17 @@ spec:
         - name: VAULT_SECRET_PREFIX
           value: {{ .Values.global.vault.secretPrefix }}
         - name: VAULT_SECRET_ENGINE
-          value: "{{ .Values.global.vault.secretEngine }}"
+          value: {{ .Values.global.vault.secretEngine }}
+        - name: VAULT_TYPE
+          value: {{ .Values.global.vault.type }}
+        - name: CERTS_SECRET_PREFIX
+          value: {{ .Values.global.vault.certPrefix }}
 {{- end }}
         - name: MOUNT_PATH
           value: "certcheck"
         command: ["bash", "-c"]
         args:
         - |-
-
-          #!/usr/bin/env bash
 
           echo "Step 1: Check if the node image is available and install necessary packages if needed."
           {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
@@ -123,7 +125,7 @@ spec:
 
           echo "Step 5: Insert AURA & GRANDPA keys into genesis for validators."
           echo "Inserting keys into genesis for validators"
-          for ((i=1; i<= {{ $.Values.node.validator.count }}; i++)); do
+          for ((i=1; i<={{ $.Values.node.validator.count }}; i++)); do
             secret_data=$(kubectl get secret "substrate-node-validator-${i}-keys" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d)
             
             # Check if secret_data is empty or not
@@ -153,7 +155,7 @@ spec:
           done <<< "$secret_names"
 
           echo "Step 6: Adding member accounts and their balances to genesis."
-          for ((i=1; i<= {{ $.Values.node.member.count }}; i++)); do
+          for ((i=1; i<={{ $.Values.node.member.count }}; i++)); do
             account_addr=$(kubectl get secret "substrate-node-member-$i-keys" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.account_addr')
             # Add account address and balance into genesis block
             GENESIS=$(echo "$GENESIS" | jq --arg account_id "$account_addr" --arg balance {{ $.Values.node.member.balance }} '.genesis.runtime.balances.balances += [[$account_id, ($balance | tonumber)]]')
@@ -195,6 +197,29 @@ spec:
             kubectl create configmap "substrate-genesis" --namespace {{ .Release.Namespace }} --from-file=genesis="${MOUNT_PATH}/genesis_base64" --from-file=sudoKeygenOutput="${MOUNT_PATH}/sudoKeygenOutput.json"
           fi
           echo "COMPLETED!"
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          # Initialize the token
+          . /scripts/bevel-vault.sh
+          vaultBevelFunc "init"
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/genesis"
+          vaultBevelFunc "readJson" "$vault_secret_key"
+
+          # The vault CLI is required for this job as the genesis file is too large to be passed in via a vault API call
+          echo "Installing Vault CLI"
+          curl -O -L https://releases.hashicorp.com/vault/1.7.1/vault_1.7.1_linux_amd64.zip
+          unzip vault_1.7.1_linux_amd64.zip
+          {{- if eq $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
+          export PATH=$PATH:~/workspace
+          {{- else }}
+          mv vault /bin
+          {{- end }}
+          vault --version
+          # Save the generated keys to VAULT
+          if [ "$SECRETS_AVAILABLE" == "no" ]; then
+            vault_secret_key="${VAULT_SECRET_ENGINE}/${CERTS_SECRET_PREFIX}/genesis"
+            vault kv put "$vault_secret_key" genesis=@"${MOUNT_PATH}/genesis_base64" sudo_details=@"${MOUNT_PATH}/sudoKeygenOutput.json"
+          fi
+{{- end }}
       volumes:
         - name: certcheck
           emptyDir:
