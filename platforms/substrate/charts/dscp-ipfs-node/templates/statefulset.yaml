@@ -98,11 +98,13 @@ spec:
             - name: VAULT_ADDR
               value: {{ $.Values.global.vault.address }}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.global.vault.authpath }}
+              value: {{ $.Values.global.vault.authPath }}
             - name: VAULT_APP_ROLE
               value: {{ $.Values.global.vault.role }}
-            - name: CERTS_SECRET_PREFIX
-              value: {{ .Values.global.vault.certsecretprefix }}
+            - name: VAULT_SECRET_ENGINE
+              value: {{ .Values.global.vault.secretEngine }}
+            - name: VAULT_SECRET_PREFIX
+              value: {{ .Values.global.vault.secretPrefix }}
 {{- end }}
           volumeMounts:
             - mountPath: {{ .Values.config.ipfsDataPath }}
@@ -167,7 +169,7 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
 
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              vault_secret_key="${CERTS_SECRET_PREFIX}/ipfs"
+              vault_secret_key="${VAULT_SECRET_ENGINE}"/"${VAULT_SECRET_PREFIX}/ipfs"
               # Save the generated keys to VAULT
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
