@@ -45,12 +45,12 @@ docker run -it --rm -e VAULT_TOKEN=<your_token> <docker_url>/bevel-indy-key-mgmt
 
 Insert to vault:
 ```bash
-docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.1 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
+docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
 ```
 
 Print on console:
 ```bash
-docker run -it --rm  ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.1 bash -c "generate_identity my-identity provider.stewards | jq"
+docker run -it --rm  ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6 bash -c "generate_identity my-identity provider.stewards | jq"
 ```
 > You could use `| jq` for smooth printing of JSON
 

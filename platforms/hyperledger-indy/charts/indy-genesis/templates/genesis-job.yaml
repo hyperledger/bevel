@@ -1,0 +1,159 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "indy-genesis.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: indy-genesis-job
+    app.kubernetes.io/component: genesis-job
+    app.kubernetes.io/part-of: {{ include "indy-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: indy-genesis-job
+        app.kubernetes.io/component: genesis-job
+        app.kubernetes.io/part-of: {{ include "indy-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      containers:
+        - name: genesis
+          image: {{ .Values.image.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh
+          {{- if eq .Values.global.vault.type "hashicorp" }}
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+          {{- end }}
+          command: ["sh", "-c"]
+          args:
+            - |
+
+              #!/bin/bash
+{{- if .Values.settings.secondaryGenesis }}
+              echo "Secondary Genesis, config maps are created from local files."
+{{- else }}
+              domain_genesis=""
+              first_global_trustee_did=""
+              seqNo=1
+              pool_genesis=""
+              pseqNo=1
+              {{- range .Values.settings.trustees }}
+                echo "Trustee: {{ .name }}"
+                trustee_did=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.did}')
+                trustee_verkey=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.verkey}')
+                if [ -z "$first_global_trustee_did" ]
+                then
+                  first_global_trustee_did="${trustee_did}"
+                  JSON_STRING=$( jq -n -c \
+                      --arg trustee_did "${trustee_did}" \
+                      --arg trustee_verkey "${trustee_verkey}" \
+                      --arg seqNo $seqNo \
+                      --arg alias "{{ .name }}" \
+                      '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+                else
+                  JSON_STRING=$( jq -n -c \
+                      --arg trustee_did "${trustee_did}" \
+                      --arg trustee_verkey "${trustee_verkey}" \
+                      --arg first_global_trustee_did "${first_global_trustee_did}" \
+                      --arg seqNo $seqNo \
+                      --arg alias "{{ .name }}" \
+                      '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$trustee_did,"role":"0","verkey":$trustee_verkey},"metadata":{"from":$first_global_trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+                fi
+                seqNo=$((seqNo + 1))
+                domain_genesis="${domain_genesis}${JSON_STRING}\n"
+                
+                {{- range .stewards }}
+                  echo "Steward: {{ .name }}"
+                  steward_did=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.did}')
+                  steward_verkey=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.verkey}')
+                  
+                  JSON_STRING=$( jq -n -c \
+                        --arg steward_did "${steward_did}" \
+                        --arg trustee_did "${trustee_did}" \
+                        --arg steward_verkey "${steward_verkey}" \
+                        --arg seqNo $seqNo \
+                        --arg alias "{{ .name }}" \
+                        '{"reqSignature":{},"txn":{"data":{"alias":$alias,"dest":$steward_did,"role":"2","verkey":$steward_verkey},"metadata":{"from":$trustee_did},"type":"1"},"txnMetadata":{"seqNo":$seqNo|tonumber},"ver":"1"}')
+
+                  seqNo=$((seqNo + 1))
+                  domain_genesis="${domain_genesis}${JSON_STRING}\n"
+
+                  bls_key=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.blspub}')
+                  bls_key_pop=$(kubectl get configmap {{ .name }}-keys -o jsonpath='{.data.blspop}')
+                  txn_id=$(echo {{ .name }} | sha256sum | awk '{print $1}')
+                  json=$( jq -n -c \
+                      --arg alias "{{ .name }}" \
+                      --arg blskey "${bls_key}" \
+                      --arg blskey_pop "${bls_key_pop}" \
+                      --arg client_ip "{{ .publicIp }}" \
+                      --arg client_port {{ .clientPort }} \
+                      --arg node_ip "{{ .publicIp }}" \
+                      --arg node_port {{ .nodePort }} \
+                      --arg type "VALIDATOR" \
+                      --arg dest "${steward_verkey}" \
+                      --arg from "${steward_did}" \
+                      --arg seqNo ${pseqNo} \
+                      --arg txnId "${txn_id}" \
+                      '{"reqSignature":{},"txn":{"data":{"data":{"alias":$alias,"blskey":$blskey,"blskey_pop":$blskey_pop,"client_ip":$client_ip,"client_port":$client_port|tonumber,"node_ip":$node_ip,"node_port":$node_port|tonumber,"services":[$type]},"dest":$dest},"metadata":{"from":$from},"type":"0"},"txnMetadata":{"seqNo":$seqNo|tonumber,"txnId":$txnId},"ver":"1"}')
+                  
+                  pool_genesis="${pool_genesis}${json}\n"
+                  pseqNo=$((pseqNo + 1))
+                {{- end }}
+              {{- end }}
+              
+              echo -e "${domain_genesis}"
+              kubectl create configmap --namespace {{ .Release.Namespace }} dtg --from-literal=domain_transactions_genesis="$(echo -e $domain_genesis)"
+              echo -e "${pool_genesis}"
+              kubectl create configmap --namespace {{ .Release.Namespace }} ptg --from-literal=pool_transactions_genesis="$(echo -e $pool_genesis)"
+{{- end }}
+      volumes:
+      {{- if eq .Values.global.vault.type "hashicorp" }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      {{- end }}
+      - name: package-manager
+        configMap:
+          name: package-manager
+          defaultMode: 0777

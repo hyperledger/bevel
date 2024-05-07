@@ -6,7 +6,7 @@
 # Charts for Hyperledger Besu components
 
 ## About
-This folder contains the helm charts which are used for the deployment of the Hyperledger Besu components. Each helm that you can use has the following keys and you need to set them. The `global.cluster.provider` is used as a key for the various cloud features enabled. Also you only need to specify one cloud provider, **not** both if deploying to cloud. As of writing this doc, AWS is fully supported.
+This folder contains the helm charts which are used for the deployment of the Hyperledger Besu components. Each helm chart that you can use has the following keys and you need to set them. The `global.cluster.provider` is used as a key for the various cloud features to be enabled. Also you only need to specify one cloud provider, **not** both if deploying to cloud. As of writing this doc, AWS is fully supported.
 
 ```yaml
 global:

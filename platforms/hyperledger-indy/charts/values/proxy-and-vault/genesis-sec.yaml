@@ -1,0 +1,26 @@
+#helm install genesis -f values/noproxy-and-novault/genesis.yaml -n supplychain-bes besu-genesis
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: indy
+    #Provide the vault server address
+    address: "http://vault.url:8200"
+    #Provide the vault authPath configured to be used.
+    authPath: university
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/university"
+    
+settings:
+  # Flag to ensure the genesis configmaps are removed on helm uninstall
+  removeGenesisOnDelete: true
+  # Flag to copy domain and pool genesis from files for secondary members
+  secondaryGenesis: true

@@ -7,276 +7,172 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ $.Values.metadata.name }}"
-  namespace: "{{ $.Values.metadata.namespace }}"
+  name: {{ include "indy-key-mgmt.name" . }}-job
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "hook-succeeded"
   labels:
-    app: "{{ $.Values.metadata.name }}"
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: indy-key-mgmt-job
+    app.kubernetes.io/component: key-mgmt-job
+    app.kubernetes.io/part-of: {{ include "indy-key-mgmt.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
 spec:
+  backoffLimit: 3
   template:
     metadata:
       labels:
-        app: "{{ $.Values.metadata.name }}"
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: indy-key-mgmt-job
+        app.kubernetes.io/component: key-mgmt-job
+        app.kubernetes.io/part-of: {{ include "indy-key-mgmt.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
     spec:
       restartPolicy: OnFailure
       imagePullSecrets:
-        - name: "{{ $.Values.image.pullSecret }}"
-      serviceAccountName: {{ $.Values.account.service }}
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
       containers:
-        - name:  "{{ $.Values.image.name }}"
-          image: "{{ $.Values.image.repository }}"
+        - name: generate-keys
+          image: {{ .Values.image.keyUtils }}
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh
+          {{- if eq .Values.global.vault.type "hashicorp" }}
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+          {{- end }}
           command: ["/bin/bash", "-c"]
           args:
-            - |-              
-              apt-get update;
-              apt-get install curl -y;
-              validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
+            - |
+
+              # Install necessary packages using custom package manager script
+              . /scripts/package-manager.sh
+              packages_to_install="curl"
+              install_packages "$packages_to_install"
+              # Download kubectl binary
+              curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl;
+              chmod u+x kubectl && mv kubectl /usr/local/bin/kubectl;
+
+{{- if eq .Values.global.vault.type "hashicorp" }}
+              . /scripts/bevel-vault.sh
+              echo "Getting Vault Token..."
+              vaultBevelFunc "init"
+              # Function to store secrets into Vault as well as K8s
+              function safeWriteSecret {
+                path=$1
+                subpath=$2
+                value=$3
+                secretName=$(echo $subpath | sed 's/\//-/g' |sed 's/_/-/g')
+                vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${path}/${subpath}"
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
                 then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${1})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                      echo "Http response code from Vault - $http_code"
-                      if test "$curl_response" != "0"; then
-                        echo "Error: curl command failed with error code - $curl_response"
-                        exit 1
-                      fi
+                  # Create the Kubernetes Secret with data from Vault
+                  echo "Secret found in Vault, only creating k8s secrets"
+                  kubectl get secret --namespace {{ $.Release.Namespace }} "${secretName}"
+                  if [ $? -ne 0 ]; then
+                    kubectl create secret --namespace {{ $.Release.Namespace }} generic "${secretName}" --from-literal="value=${VAULT_SECRET}"
                   fi
+                else
+                  echo "Secret to be created on Vault and k8s"
+                  # Store the value in Vault
+                  echo "
+                  {
+                    \"data\": $value
+                  }" > payload.json
+
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${path}/${subpath}" 'payload.json'
+                  rm payload.json
+                  # Create the Kubernetes Secret using kubectl
+                  kubectl create secret --namespace {{ $.Release.Namespace }} generic "${secretName}" --from-literal="value=$value"
                 fi
               }
-
-              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
-              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
-              VAULT_TOKEN=$(cat token);
-              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
-              validateVaultResponse ${response_status};
-
-            {{- if eq $.Values.vault.version "2" }}
-              generate_identityv2 {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }} 2
-            {{- else }}
-              generate_identity {{ $.Values.vault.identity }} {{ $.Values.vault.keyPath }} vault {{ $.Values.vault.address }}
-            {{- end }}
-
-              echo "Check if certs are stored in vault"
-              curl --request POST --data '{"jwt": "'"$KUBE_TOKEN"'", "role": "{{ $.Values.account.role }}"}' {{ $.Values.vault.address }}/v1/auth/{{ $.Values.vault.auth_path }}/login | jq -j '.auth.client_token' > token;
-              VAULT_TOKEN=$(cat token);
-              response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/auth/token/lookup-self)
-              validateVaultResponse ${response_status};
-
-              trustees_path={{ $.Values.vault.certsecretprefix }}/data/trustees
-              stewards_path={{ $.Values.vault.certsecretprefix }}/data/stewards
-              endorsers_path={{ $.Values.vault.certsecretprefix }}/data/endorsers
-
-              client_public_keys=false client_verif_keys=false client_private_keys=false client_sig_keys=false identity_private_keys=false identity_public_keys=false node_verif_keys=false node_bls_keys=false node_public_keys=false node_sig_keys=false node_private_bls_keys=false node_private_keys=false
-              COUNTER=1
-              while [ ${COUNTER} -lt {{ $.Values.vault.retries }} ]
-              do
-                # client_public_keys=false client_verif_keys=false client_private_keys=false client_sig_keys=false identity_private_keys=false identity_public_keys=false node_verif_keys=false node_bls_keys=false node_public_keys=false node_sig_keys=false node_private_bls_keys=false node_private_keys=false
-
-                for field in $stewards_path $endorsers_path $trustees_path
-                do
-                  if [ "$client_public_keys" == false ]
-                  then
-                    # Check if client public keys are stored in vault or not
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/client/public/public_keys | jq -r 'if .errors then . else . end')
-                    public_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["public_key"]' 2>&1)
-                    if [ "$public_key" == "null" ] || [ "$public_key" == "parse error"* ]
-                    then
-                      client_public_keys=false
-                      echo "Client public keys are not present in vault"
+{{- else }}
+              # When Vault type is not hahsicorp
+              # function to create kubernetes secrets, add additional conditions here if cloud KMS is used
+              function safeWriteSecret {
+                path=$1
+                subpath=$2
+                value=$3
+                secretName=$(echo $subpath | sed 's/\//-/g' |sed 's/_/-/g')
+                # Create the Kubernetes Secret using kubectl
+                kubectl get secret --namespace {{ $.Release.Namespace }} "${secretName}"
+                if [ $? -ne 0 ]; then
+                  kubectl create secret --namespace {{ $.Release.Namespace }} generic "${secretName}" --from-literal="value=$value"
+                fi
+              }
+{{- end }}
+              # function to write/save all secrets by parsing the json
+              function writeAllSecret {
+                identity=$1
+                secretData=$2
+                path=$3
+                jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$secretData" | \
+                while read -r key value; do
+                  jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$value" | \
+                  while read -r subkey subvalue; do
+                    if [ "$key" == "identity" ]; then
+                      # Do not iterate as identity has only 1 level of keys
+                      safeWriteSecret $path "$identity/$key/$subkey" "$subvalue"
                     else
-                      client_public_keys=true
-                      echo "Successfully got client public keys"
+                      # Otherwise, iterate over next set of key-value pairs
+                      jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$subvalue" | \
+                      while read -r key1 value1; do
+                        safeWriteSecret $path "$identity/$key/$subkey/$key1" "$value1"
+                      done
                     fi
-                  fi
-
-                  # Check if client verif keys are stored in vault or not
-                  if [ "$client_verif_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/client/public/verif_keys | jq -r 'if .errors then . else . end')
-                    verification_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["verification-key"]' 2>&1)
-                    if [ "$verification_key" == "null" ] || [ "$verification_key" == "parse error"* ]
-                    then
-                      client_verif_keys=false
-                      echo "Client verif keys are not present in vault"
-                    else
-                      client_verif_keys=true
-                      echo "Successfully got client verification keys"
-                    fi
-                  fi
-
-                  # Check if client private keys are stored in vault or not
-                  if [ "$client_private_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/client/private/private_keys | jq -r 'if .errors then . else . end')
-                    private_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.vault.identity }}C.key_secret"]' 2>&1)
-                    if [ "$private_key" == "null" ] || [ "$private_key" == "parse error"* ]
-                    then
-                      client_private_keys=false
-                      echo "Client private keys are not present in vault"
-                    else
-                      client_private_keys=true
-                      echo "Successfully got client private keys"
-                    fi
-                  fi
-
-                  # Check if client sig keys are stored in vault or not
-                  if [ "$client_sig_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/client/private/sig_keys | jq -r 'if .errors then . else . end')
-                    sig_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.vault.identity }}C.key_secret"]' 2>&1)
-                    if [ "$sig_key" == "null" ] || [ "$sig_key" == "parse error"* ]
-                    then
-                      client_sig_keys=false
-                      echo "Client sig keys are not present in vault"
-                    else
-                      client_sig_keys=true
-                      echo "Successfully got client private signature keys"
-                    fi
-                  fi
-
-                  # Check if identity private keys are stored in vault or not
-                  if [ "$identity_private_keys" == false ]
-                  then
-                    # Check if identity keys are stored in vault or not
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/identity/private | jq -r 'if .errors then . else . end')
-                    private_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["seed"]' 2>&1)
-                    if [ "$private_key" == "null" ] || [ "$private_key" == "parse error"* ]
-                    then
-                      identity_private_keys=false
-                      echo "Identity private keys are not present in vault"
-                    else
-                      identity_private_keys=true
-                      echo "Successfully got identity private keys"
-                    fi
-                  fi
-
-                  # Check if identity public keys are stored in vault or not
-                  if [ "$identity_public_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/identity/public | jq -r 'if .errors then . else . end')
-                    public_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["did"]' 2>&1)
-                    if [ "$public_key" == "null" ] || [ "$public_key" == "parse error"* ]
-                    then
-                      identity_public_keys=false
-                      echo "Identity public keys are not present in vault"
-                    else
-                      identity_public_keys=true
-                      echo "Successfully got identity public keys"
-                    fi
-                  fi
-
-                  # Check if node verif keys are stored in vault or not
-                  if [ "$node_verif_keys" == false ]
-                  then                
-                    # Check if node keys are stored in vault or not
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/public/verif_keys | jq -r 'if .errors then . else . end')
-                    verification_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["verification-key"]' 2>&1)
-                    if [ "$verification_key" == "null" ] || [ "$verification_key" == "parse error"* ]
-                    then
-                      node_verif_keys=false
-                      echo "Node verif keys are not present in vault"
-                    else
-                      node_verif_keys=true
-                      echo "Successfully got node verification keys"
-                    fi
-                  fi
-
-                  # Check if node bls keys are stored in vault or not
-                  if [ "$node_bls_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/public/bls_keys | jq -r 'if .errors then . else . end')
-                    bls_public_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bls-public-key"]' 2>&1)
-                    bls_key_pop=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bls-key-pop"]' 2>&1)
-                    bls_pk=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bls_pk"]' 2>&1)
-                    if [ "$bls_public_key" = "null" ] || [ "$bls_key_pop" = "null" ] || [ "$bls_pk" = "null" ] || [ "$bls_public_key" == "parse error"* ] || [ "$bls_key_pop" == "parse error"* ] || [ "$bls_pk" == "parse error"* ]
-                    then
-                      node_bls_keys=false
-                      echo "Node bls keys are not present in vault"
-                    else
-                      node_bls_keys=true
-                      echo "Successfully got node bls keys"
-                    fi
-                  fi
-
-                  # Check if node public keys are stored in vault or not
-                  if [ "$node_public_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/public/public_keys | jq -r 'if .errors then . else . end')
-                    public_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["public_key"]' 2>&1)
-                    if [ "$public_key" == "null" ] || [ "$public_key" == "parse error"* ]
-                    then
-                      node_public_keys=false
-                      echo "Node public keys are not present in vault"
-                    else
-                      node_public_keys=true
-                      echo "Successfully got node public keys"
-                    fi
-                  fi
-
-                  # Check if node sig keys are stored in vault or not
-                  if [ "$node_sig_keys" == false ]
-                  then  
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/private/sig_keys | jq -r 'if .errors then . else . end')
-                    sig_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.vault.identity }}.key_secret"]' 2>&1)
-                    if [ "$sig_key" == "null" ] || [ "$sig_key" == "parse error"* ]
-                    then
-                      node_sig_keys=false
-                      echo "Node sig keys are not present in vault"
-                    else
-                      node_sig_keys=true
-                      echo "Successfully got node private signature keys"
-                    fi
-                  fi
-
-                  # Check if node private bls keys are stored in vault or not
-                  if [ "$node_private_bls_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/private/bls_keys | jq -r 'if .errors then . else . end')
-                    bls_sk=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["bls_sk"]' 2>&1)
-                    if [ "$bls_sk" == "null" ] || [ "$bls_sk" == "parse error"* ]
-                    then
-                      node_private_bls_keys=false
-                      echo "Node private bls keys are not present in vault"
-                    else
-                      node_private_bls_keys=true
-                      echo "Successfully got node private bls keys"
-                    fi
-                  fi
-
-                  # Check if node private keys are stored in vault or not
-                  if [ "$node_private_keys" == false ]
-                  then
-                    LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" {{ $.Values.vault.address }}/v1/${field}/{{ $.Values.vault.identity }}/node/private/private_keys | jq -r 'if .errors then . else . end')
-                    private_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ $.Values.vault.identity }}.key_secret"]' 2>&1)
-                    if [ "$private_key" == "null" ] || [ "$private_key" == "parse error"* ]
-                    then
-                      node_private_keys=false
-                      echo "Node private keys are not present in vault"
-                    else
-                      node_private_keys=true
-                      echo "Successfully got node private keys"
-                    fi
-                  fi
-
-                  if [ "$client_public_keys" == true ] || [ "$client_verif_keys" == true ] || [ "$client_private_keys" == true ] || [ "$client_sig_keys" == true ] || [ "$identity_private_keys" == true ] || [ "$identity_public_keys" == true ] || [ "$node_verif_keys" == true ] || [ "$node_bls_keys" == true ] || [ "$node_public_keys" == true ] || [ "$node_sig_keys" == true ] || [ "$node_private_bls_keys" == true ] || [ "$node_private_keys" == true ]
-                  then
-                    echo "All crypto materials are successfully stored in vault"
-                    break
-                  else
-                    echo "Crypto materials are not stored in vault"
-                    if [ "$COUNTER" -ge {{ $.Values.vault.retries }} ]
-                    then
-                      echo "Retry attempted $COUNTER times, certificates have not been saved in vault"
-                      exit 1
-                    fi
-                  fi
+                  done
                 done
-                COUNTER=`expr "$COUNTER" + 1`
-              done
+              }
+              echo "Generating the secrets for each identity"
+            {{- if .Values.settings.identities.trustee }}
+              trustees_json=$(generate_identity {{ .Values.settings.identities.trustee }} trustees)
+              # Parse the JSON and create Kubernetes secrets
+              json=$(echo "$trustees_json" | jq -r '.trustees."{{ .Values.settings.identities.trustee }}"')
+              writeAllSecret "{{ .Values.settings.identities.trustee }}" "$json" "trustees"
+            {{- end }}
+            {{- if .Values.settings.identities.endorser }}
+              endorsers_json=$(generate_identity {{ .Values.settings.identities.endorser }} endorsers)
+              # Parse the JSON and create Kubernetes secrets
+              json=$(echo "$endorsers_json" | jq -r '.endorsers."{{ .Values.settings.identities.endorser }}"')
+              writeAllSecret "{{ .Values.settings.identities.endorser }}" "$json" "endorsers"
+            {{- end }}
+            {{- range .Values.settings.identities.stewards }}
+              stewards_json=$(generate_identity {{ . }} stewards)
+              # Parse the JSON and create Kubernetes secrets
+              json=$(echo "$stewards_json" | jq -r '.stewards."{{ . }}"')
+              writeAllSecret "{{ . }}" "$json" "stewards"
+            {{- end }}
+      volumes:
+      {{- if eq .Values.global.vault.type "hashicorp" }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      {{- end }}
+      - name: package-manager
+        configMap:
+          name: package-manager
+          defaultMode: 0777

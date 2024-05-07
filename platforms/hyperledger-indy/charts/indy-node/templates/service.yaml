@@ -7,35 +7,45 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ $.Values.node.name }}"
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "indy-node.fullname" . }}
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: {{ include "indy-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
 spec:
-  type: {{ $.Values.service.type }}
+  type: {{ .Values.settings.serviceType }}
   ports:
   - name: indy-node-node
-    port: {{ $.Values.service.ports.nodePort }}
-    targetPort: {{ $.Values.service.ports.nodeTargetPort }}
-    {{ if eq $.Values.service.type "NodePort" }}
-    nodePort: {{ $.Values.service.ports.nodeTargetPort }}
+    port: {{ .Values.settings.node.port }}
+    targetPort: {{ .Values.settings.node.port }}
+    {{ if eq .Values.settings.serviceType "NodePort" }}
+    nodePort: {{ .Values.settings.node.externalPort }}
     {{ end }}
   - name: indy-node-client
-    port: {{ $.Values.service.ports.clientPort }}
-    targetPort: {{ $.Values.service.ports.clientTargetPort }}
-    {{ if eq $.Values.service.type "NodePort" }}
-    nodePort: {{ $.Values.service.ports.clientTargetPort }}
+    port: {{ .Values.settings.client.port }}
+    targetPort: {{ .Values.settings.client.port }}
+    {{ if eq .Values.settings.serviceType "NodePort" }}
+    nodePort: {{ .Values.settings.client.externalPort }}
     {{ end }}
   selector:
-    app: "{{ $.Values.node.name }}"
+    app: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "indy-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
 
-{{- if eq $.Values.proxy.provider "ambassador" }}
+{{- if eq .Values.global.proxy.provider "ambassador" }}
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Listener
 metadata:
-  name: "{{ .Values.node.name }}-node-listener"
+  name: "{{ .Release.Name }}-node-listener"
   namespace: {{ .Release.Namespace }}
 spec:
-  port: {{ .Values.node.ambassadorPort }}
+  port: {{ .Values.settings.node.externalPort }}
   protocol: TCP
   securityModel: XFP
   hostBinding:
@@ -45,20 +55,20 @@ spec:
 apiVersion: getambassador.io/v3alpha1
 kind: TCPMapping
 metadata:
-  name: "{{ .Values.node.name }}-node-mapping"
+  name: "{{ .Release.Name }}-node-mapping"
   namespace: {{ .Release.Namespace }}
 spec:
-  port: {{ .Values.node.ambassadorPort }}
-  service: "{{ .Values.node.name }}.{{ .Release.Namespace }}:{{ .Values.service.ports.nodeTargetPort }}"
+  port: {{ .Values.settings.node.externalPort }}
+  service: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.settings.node.port }}
 
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Listener
 metadata:
-  name: "{{ .Values.node.name }}-client-listener"
+  name: "{{ .Release.Name }}-client-listener"
   namespace: {{ .Release.Namespace }}
 spec:
-  port: {{ .Values.client.ambassadorPort }}
+  port: {{ .Values.settings.client.externalPort }}
   protocol: TCP
   securityModel: XFP
   hostBinding:
@@ -68,10 +78,9 @@ spec:
 apiVersion: getambassador.io/v3alpha1
 kind: TCPMapping
 metadata:
-  name: "{{ .Values.node.name }}-client-mapping"
+  name: "{{ .Release.Name }}-client-mapping"
   namespace: {{ .Release.Namespace }}
 spec:
-  port: {{ .Values.client.ambassadorPort }}
-  service:  "{{ .Values.node.name }}.{{ .Release.Namespace }}:{{ .Values.service.ports.clientTargetPort }}"
+  port: {{ .Values.settings.client.externalPort }}
+  service: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.settings.client.port }}
 {{- end }}
-
