@@ -263,8 +263,9 @@ spec:
                 EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
                 EXTERNAL_P2P_PORT="{{ .Values.node.ports.p2p }}"
               {{- else if eq .Values.proxy.provider "ambassador" }}
-                EXTERNAL_ADDRESS="{{ .Values.proxy.external_url }}"
+                EXTERNAL_ADDRESS="{{ $fullname }}-${POD_INDEX}.{{ .Values.proxy.external_url }}"
                 EXTERNAL_P2P_PORT="{{ .Values.proxy.p2p }}"
+                echo "test-one"
               {{- end }}
 
               echo "PARA_CHAIN_P2P_PORT:$PARA_CHAIN_P2P_PORT"
@@ -477,4 +478,4 @@ spec:
         storageClassName: storage-{{ .Release.Name }}
         resources:
           requests:
-            storage: {{ .Values.node.dataVolumeSize }}
+            storage: {{ .Values.storage.size }}
