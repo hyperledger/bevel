@@ -66,7 +66,113 @@ spec:
           args:
             - |
 {{- if (eq .Values.global.vault.type "hashicorp") }}
-              echo "Implement hashicorp vault method"
+              . /scripts/bevel-vault.sh
+              echo "Getting vault Token..."
+              vaultBevelFunc "init"
+              #Read if secret exists in Vault
+              vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/cenm-certs"
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  # Get secret from Vault and create the k8s secret if it does not exist
+                  kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                  if [ $? -ne 0 ]; then
+                    CORDA_SSL_IDENTITY_MANAGER_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["idmansslkeys_base64"]')
+                    CORDA_SSL_NETWORK_MAP_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["nmssslkeys_base64"]')
+                    CORDA_SSL_AUTH_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["authsslkeys_base64"]')
+                    CORDA_SSL_ROOT_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["rootsslkeys_base64"]')
+                    CORDA_SSL_TRUSTSTORE=$(echo ${VAULT_SECRET} | jq -r '.["ssltrustore_base64"]')
+                    NETWORK_ROOT_TRUSTSTORE=$(echo ${VAULT_SECRET} | jq -r '.["nmstruststore_base64"]')
+                    CORDA_SSL_SIGNER_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["signerkeys_base64"]')
+                    IDENTITY_MANAGER_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["idmankeystore_base64"]')
+                    NETWORK_MAP_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["nmskeystore_base64"]')
+                    TLS_CRL=$(echo ${VAULT_SECRET} | jq -r '.["tlscrl_base64"]')
+                    ROOT_CRL=$(echo ${VAULT_SECRET} | jq -r '.["rootcrl_base64"]')
+                    SUBORDINATE_CRL=$(echo ${VAULT_SECRET} | jq -r '.["subordinatecrl_base64"]')
+                    
+                    echo "creating tmp files for the cert"
+                    echo $CORDA_SSL_IDENTITY_MANAGER_KEYS | base64 -d > /tmp/corda-ssl-identity-manager-keys.jks
+                    echo $CORDA_SSL_NETWORK_MAP_KEYS | base64 -d > /tmp/corda-ssl-network-map-keys.jks
+                    echo $CORDA_SSL_AUTH_KEYS | base64 -d > /tmp/corda-ssl-auth-keys.jks 
+                    echo $CORDA_SSL_ROOT_KEYS | base64 -d > /tmp/corda-ssl-root-keys.jks
+                    echo $CORDA_SSL_TRUSTSTORE | base64 -d > /tmp/corda-ssl-trust-store.jks 
+                    echo $NETWORK_ROOT_TRUSTSTORE | base64 -d > /tmp/network-root-truststore.jks  
+                    echo $CORDA_SSL_SIGNER_KEYS | base64 -d > /tmp/corda-ssl-signer-keys.jks
+                    echo $IDENTITY_MANAGER_KEYSTORE | base64 -d > /tmp/identity-manager-key-store.jks
+                    echo $NETWORK_MAP_KEYSTORE | base64 -d > /tmp/network-map-key-store.jks
+                    echo $TLS_CRL | base64 -d > /tmp/tls.crl
+                    echo $ROOT_CRL | base64 -d > /tmp/root.crl
+                    echo $SUBORDINATE_CRL | base64 -d > /tmp/subordinate.crl
+                    
+                    echo "creating kubernetes secrets.."
+                    kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                      --from-file=corda-ssl-identity-manager-keys.jks=/tmp/corda-ssl-identity-manager-keys.jks \
+                      --from-file=corda-ssl-network-map-keys.jks=/tmp/corda-ssl-network-map-keys.jks \
+                      --from-file=corda-ssl-auth-keys.jks=/tmp/corda-ssl-auth-keys.jks \
+                      --from-file=corda-ssl-root-keys.jks=/tmp/corda-ssl-root-keys.jks \
+                      --from-file=corda-ssl-trust-store.jks=/tmp/corda-ssl-trust-store.jks \
+                      --from-file=network-root-truststore.jks=/tmp/network-root-truststore.jks \
+                      --from-file=corda-ssl-signer-keys.jks=/tmp/corda-ssl-signer-keys.jks \
+                      --from-file=identity-manager-key-store.jks=/tmp/identity-manager-key-store.jks \
+                      --from-file=network-map-key-store.jks=/tmp/network-map-key-store.jks \
+                      --from-file=tls.crl=/tmp/tls.crl \
+                      --from-file=root.crl=/tmp/root.crl \
+                      --from-file=subordinate.crl=/tmp/subordinate.crl
+                  fi
+                else
+                  # Save Certs to Vault
+                  # Use -w0 to get single line base64 -w0
+                  CORDA_SSL_IDENTITY_MANAGER_KEYS=$(cat ${fpath}/idman/certs/corda-ssl-identity-manager-keys.jks | base64 -w0)
+                  CORDA_SSL_NETWORK_MAP_KEYS=$(cat ${fpath}/networkmap/corda-ssl-network-map-keys.jks | base64 -w0)
+                  CORDA_SSL_AUTH_KEYS=$(cat ${fpath}/root/corda-ssl-auth-keys.jks | base64 -w0)
+                  CORDA_SSL_ROOT_KEYS=$(cat ${fpath}/root/corda-ssl-root-keys.jks | base64 -w0)
+                  CORDA_SSL_TRUSTSTORE=$(cat ${fpath}/root/corda-ssl-trust-store.jks | base64 -w0)
+                  NETWORK_ROOT_TRUSTSTORE=$(cat ${fpath}/root/network-root-truststore.jks | base64 -w0)
+                  CORDA_SSL_SIGNER_KEYS=$(cat ${fpath}/signer/corda-ssl-signer-keys.jks| base64 -w0)
+                  IDENTITY_MANAGER_KEYSTORE=$(cat ${fpath}/signer/identity-manager-key-store.jks  | base64 -w0)
+                  NETWORK_MAP_KEYSTORE=$(cat ${fpath}/signer/network-map-key-store.jks | base64 -w0)
+                  TLS_CRL=$(cat ${fpath}/idman/crls/tls.crl | base64 -w0)
+                  ROOT_CRL=$(cat ${fpath}/idman/crls/root.crl | base64 -w0)
+                  SUBORDINATE_CRL=$(cat ${fpath}/idman/crls/subordinate.crl | base64 -w0)
+                  # create a JSON file for the data related to node crypto
+                  echo "
+                  {
+                    \"data\":
+                      {
+                        \"idmansslkeys_base64\": \"${CORDA_SSL_IDENTITY_MANAGER_KEYS}\",
+                        \"nmssslkeys_base64\": \"${CORDA_SSL_NETWORK_MAP_KEYS}\",
+                        \"authsslkeys_base64\": \"${CORDA_SSL_AUTH_KEYS}\",
+                        \"rootsslkeys_base64\": \"${CORDA_SSL_ROOT_KEYS}\",
+                        \"ssltrustore_base64\": \"${CORDA_SSL_TRUSTSTORE}\",
+                        \"nmstruststore_base64\": \"${NETWORK_ROOT_TRUSTSTORE}\",
+                        \"signerkeys_base64\": \"${CORDA_SSL_SIGNER_KEYS}\",
+                        \"idmankeystore_base64\": \"${IDENTITY_MANAGER_KEYSTORE}\",
+                        \"nmskeystore_base64\": \"${NETWORK_MAP_KEYSTORE}\",
+                        \"tlscrl_base64\": \"${TLS_CRL}\",
+                        \"rootcrl_base64\": \"${ROOT_CRL}\",
+                        \"subordinatecrl_base64\": \"${SUBORDINATE_CRL}\"
+                      }
+                  }" > payload.json
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-certs" 'payload.json'
+                  rm payload.json
+                  # Also create the k8s secret
+                  kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                      --from-file=corda-ssl-identity-manager-keys.jks=${fpath}/idman/certs/corda-ssl-identity-manager-keys.jks \
+                      --from-file=corda-ssl-network-map-keys.jks=${fpath}/networkmap/corda-ssl-network-map-keys.jks \
+                      --from-file=corda-ssl-auth-keys.jks=${fpath}/root/corda-ssl-auth-keys.jks \
+                      --from-file=corda-ssl-root-keys.jks=${fpath}/root/corda-ssl-root-keys.jks \
+                      --from-file=corda-ssl-trust-store.jks=${fpath}/root/corda-ssl-trust-store.jks \
+                      --from-file=network-root-truststore.jks=${fpath}/root/network-root-truststore.jks \
+                      --from-file=corda-ssl-signer-keys.jks=${fpath}/signer/corda-ssl-signer-keys.jks \
+                      --from-file=identity-manager-key-store.jks=${fpath}/signer/identity-manager-key-store.jks \
+                      --from-file=network-map-key-store.jks=${fpath}/signer/network-map-key-store.jks \
+                      --from-file=tls.crl=${fpath}/idman/crls/tls.crl \
+                      --from-file=root.crl=${fpath}/idman/crls/root.crl \
+                      --from-file=subordinate.crl=${fpath}/idman/crls/subordinate.crl
+                fi
+              }
 {{- else }}
               function safeWriteSecret {
                 key=$1
@@ -310,9 +416,8 @@ spec:
                         }
                     }   
                 }' >> pki.conf
+                time java -Xmx256M -jar bin/pkitool.jar --config-file pki.conf
               fi;
-              time java -Xmx256M -jar bin/pkitool.jar --config-file pki.conf
-              
               # TODO: Move these to pki image
               apt install curl
               curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl

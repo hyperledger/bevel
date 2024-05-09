@@ -43,3 +43,32 @@ spec:
     targetPort: {{ .Values.adminListener.port }}
     protocol: TCP
     name: adminlistener
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+---
+## Host for doorman
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Release.Name }}-doorman
+spec:
+  hostname: {{ .Release.Name }}-doorman.{{ .Values.global.proxy.externalUrlSuffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: doorman-tls-certs
+    namespace: {{ .Release.Namespace }}
+---
+## Mapping for doorman port
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-mapping
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ .Release.Name }}-doorman.{{ .Values.global.proxy.externalUrlSuffix }}
+  prefix: /
+  service: {{ include "idman.name" . }}.{{ .Release.Namespace }}:{{ .Values.global.cenm.identityManager.port }}
+{{- end }}
