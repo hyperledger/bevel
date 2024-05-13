@@ -52,14 +52,6 @@ spec:
             storage: {{ .Values.storage.size }}
   {{- end }}
     - metadata:
-        name: node-certificates
-      spec:
-        storageClassName: storage-{{ .Release.Name }}
-        accessModes: [ "ReadWriteOnce" ]
-        resources:
-          requests:
-            storage: {{ .Values.storage.size }}
-    - metadata:
         name: node-cordapps
       spec:
         storageClassName: storage-{{ .Release.Name }}
@@ -97,6 +89,65 @@ spec:
         - name: {{ .Values.image.pullSecret }}
       {{- end }}  
       initContainers:
+      - name: init-certs
+        image: {{ .Values.image.bevelAlpine.repository }}:{{ .Values.image.bevelAlpine.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+          echo "Implement hashicorp releayed method"
+          . /scripts/bevel-vault.sh
+          echo "Getting vault Token..."
+          vaultBevelFunc "init"
+          # Read if secret exists in Vault
+          vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Release.Name }}-certs"
+          if [ "$SECRETS_AVAILABLE" == "yes" ]
+          then
+            NODE_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["nodekeystore_base64"]')
+            SSL_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["sslkeystore_base64"]')
+            TRUSTSTORE=$(echo ${VAULT_SECRET} | jq -r '.["truststore_base64"]')
+            echo "saving the cert contents to file"
+            echo $NODE_KEYSTORE | base64 -d > /opt/corda/certificates/nodekeystore.jks
+            echo $SSL_KEYSTORE | base64 -d > /opt/corda/certificates/sslkeystore.jks
+            echo $TRUSTSTORE | base64 -d > /opt/corda/certificates/truststore.jks
+           fi
+        {{- else }}
+          kubectl get secret {{ .Release.Name }}-certs --namespace {{ .Release.Namespace }} -o json > /opt/corda/certificates/tmp 2>&1
+          if [ $? -eq 0 ]
+          then
+            NODE_KEYSTORE=$(cat /opt/corda/certificates/tmp | jq -r '.data."nodekeystore.jks"')
+            SSL_KEYSTORE=$(cat /opt/corda/certificates/tmp | jq -r '.data."sslkeystore.jks"')
+            TRUSTSTORE=$(cat /opt/corda/certificates/tmp | jq -r '.data."truststore.jks"')
+            rm -f /opt/corda/certificates/tmp
+            echo "saving the cert contents to file"
+            echo $NODE_KEYSTORE | base64 -d > /opt/corda/certificates/nodekeystore.jks
+            echo $SSL_KEYSTORE | base64 -d > /opt/corda/certificates/sslkeystore.jks
+            echo $TRUSTSTORE | base64 -d > /opt/corda/certificates/truststore.jks
+          fi
+        {{- end }}
+          echo "Completed ..."
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+        env:
+        - name: VAULT_ADDR
+          value: "{{ .Values.global.vault.address }}"
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ .Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ .Values.global.vault.secretPrefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: "{{ .Values.global.vault.authPath }}"
+        - name: VAULT_APP_ROLE
+          value: "{{ .Values.global.vault.role }}"
+        - name: VAULT_TYPE
+          value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+        volumeMounts:
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+        - name: node-certificates
+          mountPath: /opt/corda/certificates
       - name: init-registration
         image: {{ .Values.image.node.repository }}:{{ .Values.image.node.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -113,10 +164,16 @@ spec:
           subPath: node-initial-registration.sh
         - name: node-certificates
           mountPath: /opt/corda/certificates
-      {{- if .Values.nodeConf.notary }}
+        {{- if .Values.tls.enabled }}
+        - name: nms-certs
+          mountPath: "/certs/nms"
+        - name: doorman-certs
+          mountPath: "/certs/doorman"
+        {{- end }}
+        {{- if .Values.nodeConf.notary }}
         - name: notary-nodeinfo
           mountPath: /opt/corda/additional-node-infos
-      {{- end }}
+        {{- end }}
         - name: node-logs
           mountPath: /opt/corda/logs
         - name: node-h2
@@ -133,6 +190,57 @@ spec:
         - |-
         {{- if (eq .Values.global.vault.type "hashicorp") }}
           echo "Implement hashicorp releayed method"
+          . /scripts/bevel-vault.sh
+          echo "Getting vault Token..."
+          vaultBevelFunc "init"
+          # Read if secret exists in Vault
+          vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Release.Name }}-certs"
+          function safeWriteSecret {
+            key=$1
+            fpath=$2
+            if [ "$SECRETS_AVAILABLE" == "yes" ]
+            then
+              kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+              if [ $? -ne 0 ]; then
+                NODE_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["nodekeystore_base64"]')
+                SSL_KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["sslkeystore_base64"]')
+                TRUSTSTORE=$(echo ${VAULT_SECRET} | jq -r '.["truststore_base64"]')
+
+                echo "creating tmp files for the cert"
+                echo $NODE_KEYSTORE | base64 -d > ${fpath}/nodekeystore.jks
+                echo $SSL_KEYSTORE | base64 -d > ${fpath}/sslkeystore.jks
+                echo $TRUSTSTORE | base64 -d > ${fpath}/truststore.jks
+                
+                kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                  --from-file=nodekeystore.jks=${fpath}/nodekeystore.jks \
+                  --from-file=sslkeystore.jks=${fpath}/sslkeystore.jks \
+                  --from-file=truststore.jks=${fpath}/truststore.jks
+              fi
+            else
+              # Save Certs to Vault
+              # Use -w0 to get single line base64 -w0
+              NODE_KEYSTORE=$(cat ${fpath}/nodekeystore.jks | base64 -w0)
+              SSL_KEYSTORE=$(cat ${fpath}/sslkeystore.jks | base64 -w0)
+              TRUSTSTORE=$(cat ${fpath}/truststore.jks | base64 -w0)
+        
+              # create a JSON file for the data related to node crypto
+              echo "
+              {
+                \"data\":
+                  {
+                    \"nodekeystore_base64\": \"${NODE_KEYSTORE}\",
+                    \"sslkeystore_base64\": \"${SSL_KEYSTORE}\",
+                    \"truststore_base64\": \"${TRUSTSTORE}\"
+                  }
+              }" > /tmp/payload.json
+              vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-certs" '/tmp/payload.json'
+              rm /tmp/payload.json
+              kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                  --from-file=nodekeystore.jks=${fpath}/nodekeystore.jks \
+                  --from-file=sslkeystore.jks=${fpath}/sslkeystore.jks \
+                  --from-file=truststore.jks=${fpath}/truststore.jks
+            fi
+          }
         {{- else }}
           function safeWriteSecret {
             key=$1
@@ -145,6 +253,7 @@ spec:
                 --from-file=truststore.jks=${fpath}/truststore.jks
             fi
           }
+        {{- end }}
         {{- if .Values.nodeConf.notary }}
           function safeWriteNotaryNodeInfo {
             key=$1
@@ -174,17 +283,16 @@ spec:
             fi
           }
         {{- end }}
-        {{- end }}
         {{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
           echo "Implement Cloud Native method"
         {{- else }}
           safeWriteSecret {{ .Release.Name }} /opt/corda/certificates
-        {{- if .Values.nodeConf.notary }}
-          safeWriteNotaryNodeInfo notary /opt/corda/additional-node-infos
-        {{- end }}
+          {{- if .Values.nodeConf.notary }}
+            safeWriteNotaryNodeInfo notary /opt/corda/additional-node-infos
+          {{- end }}
         {{- end }}
           echo "Completed ..."
-      {{- if (eq .Values.global.vault.type "hashicorp") }}
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
         env:
         - name: VAULT_ADDR
           value: "{{ .Values.global.vault.address }}"
@@ -198,15 +306,15 @@ spec:
           value: "{{ .Values.global.vault.role }}"
         - name: VAULT_TYPE
           value: "{{ .Values.global.vault.type }}"
-      {{- end }}
+        {{- end }}
         volumeMounts:
         - name: scripts-volume
           mountPath: /scripts/bevel-vault.sh
           subPath: bevel-vault.sh
-      {{- if .Values.nodeConf.notary }}
+        {{- if .Values.nodeConf.notary }}
         - name: notary-nodeinfo
           mountPath: /opt/corda/additional-node-infos
-      {{- end }}
+        {{- end }}
         - name: node-certificates
           mountPath: /opt/corda/certificates 
       - name: init-cordapps
@@ -246,14 +354,6 @@ spec:
             memory: 2G
           requests:
             memory: 1G
-        ports:
-        - containerPort: {{ .Values.nodeConf.p2pPort }}
-          name: p2p
-        livenessProbe:
-          tcpSocket:
-            port: {{ .Values.nodeConf.p2pPort }}
-          initialDelaySeconds: 65
-          periodSeconds: 30
         volumeMounts:
         - name: node-cordapps
           mountPath: /opt/corda/cordapps
@@ -265,10 +365,16 @@ spec:
         - name: node-conf
           mountPath: /opt/corda/bin/run.sh
           subPath: run.sh
-      {{- if .Values.nodeConf.notary }}
+        {{- if .Values.tls.enabled }}
+        - name: nms-certs
+          mountPath: "/certs/nms"
+        - name: doorman-certs
+          mountPath: "/certs/doorman"
+        {{- end }}
+        {{- if .Values.nodeConf.notary }}
         - name: notary-nodeinfo
           mountPath: /opt/corda/additional-node-infos
-      {{- end }}
+        {{- end }}
         - name: node-certificates
           mountPath: /opt/corda/certificates
         - name: node-logs
@@ -300,8 +406,19 @@ spec:
           configMap:
             name: bevel-vault-script
             defaultMode: 0777
+        - name: node-certificates
+          emptyDir:
+            medium: Memory
         {{- if .Values.cordApps.mavenSecret }}
         - name: maven-secrets
           secret:
             secretName: {{ .Values.cordApps.mavenSecret }}
+        {{- end }}
+        {{- if .Values.tls.enabled }}
+        - name: doorman-certs
+          secret:
+            secretName: doorman-tls-certs
+        - name: nms-certs
+          secret:
+            secretName: nms-tls-certs
         {{- end }}

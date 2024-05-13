@@ -1,24 +1,23 @@
 #!/bin/sh
 NETWORK_ROOT_TRUSTSTORE=/certs/network-root-truststore.jks
+JAVA_ARGS="-Dcapsule.jvm.args='-Xmx3G'"
 
-#
-# we start CENM services up almost in parallel so wait until idman port is open
-#
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+CUSTOM_SSL_TRUSTSTORE=/opt/corda/certificates/corda-ssl-custom-trust-store.jks
+JAVA_ARGS="-Dcapsule.jvm.args='-Xmx3G' -Djavax.net.ssl.trustStore=${CUSTOM_SSL_TRUSTSTORE}"
+yes | keytool -importcert -file /certs/doorman/tls.crt -storepass {{ .Values.nodeConf.creds.truststore }} -alias {{ .Values.nodeConf.doormanDomain }} -keystore $CUSTOM_SSL_TRUSTSTORE
+yes | keytool -importcert -file /certs/nms/tls.crt -storepass {{ .Values.nodeConf.creds.truststore }} -alias {{ .Values.nodeConf.networkMapDomain }} -keystore $CUSTOM_SSL_TRUSTSTORE
+{{- end }}
 
-timeout 10m bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do echo "Waiting for Identity Manager to be accessible ..."; sleep 5; done' {{ .Values.nodeConf.doormanDomain }} {{ .Values.nodeConf.doormanPort }}
-
-# two main reason for endless loop:
-#   - repeat in case IdMan is temporarily not available (real life experience ...)
-#   - kubernetes monitoring: pod stuck in initContainer stage - helps with monitoring
 while true
 do
     if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
     then
-        sleep 30 # guards against "Failed to find the request with id: ... in approved or done requests. This might happen when the Identity Manager was restarted during the approval process."
         echo
         echo "Node: running initial registration ..."
         echo
-        java -Dcapsule.jvm.args='-Xmx3G' -jar bin/corda.jar \
+        java $JAVA_ARGS \
+        -jar bin/corda.jar \
           initial-registration \
         --config-file=etc/node.conf \
         --log-to-console \

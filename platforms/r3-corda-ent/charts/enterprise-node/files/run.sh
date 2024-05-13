@@ -1,17 +1,12 @@
 #!/bin/sh
-MIGRATION_ARGS='--core-schemas --app-schemas'
 
-# Wait for networkmap service to be up
-timeout 10m bash -c '
-    until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do
-        echo "Waiting for Networkmap to be accessible ..."
-        sleep 5
-    done
-    if [ $? -eq 124 ]; then
-        echo "Timeout occurred!"
-        exit 1  
-    fi
-' {{ .Values.nodeConf.networkmapDomain }} {{ .Values.nodeConf.networkmapPort }}
+NODE_SSL_TRUSTSTORE=/opt/corda/certificates/truststore.jks
+
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+yes | keytool -importcert -file /certs/doorman/tls.crt -storepass {{ .Values.nodeConf.creds.truststore }} -alias {{ .Values.nodeConf.doormanDomain }} -keystore $NODE_SSL_TRUSTSTORE
+yes | keytool -importcert -file /certs/nms/tls.crt -storepass {{ .Values.nodeConf.creds.truststore }} -alias {{ .Values.nodeConf.networkMapDomain }} -keystore $NODE_SSL_TRUSTSTORE
+{{- end }}
+
 
 #
 # main run
@@ -20,11 +15,21 @@ if [ -f bin/corda.jar ]
 then
     echo "running DB migration.."
     echo
-    java -jar bin/corda.jar run-migration-scripts $MIGRATION_ARGS -f etc/node.conf 
+    java -Djavax.net.ssl.trustStore=$NODE_SSL_TRUSTSTORE \
+    -Djavax.net.ssl.keyStore=/opt/corda/certificates/sslkeystore.jks \
+    -Djavax.net.ssl.keyStorePassword={{ .Values.nodeConf.creds.keystore }} \
+    -jar bin/corda.jar run-migration-scripts --core-schemas --app-schemas \
+    -f etc/node.conf 
     echo
     echo "Corda: starting node ..."
     echo
-    java -jar bin/corda.jar -f etc/node.conf
+    java -Djavax.net.ssl.trustStore=$NODE_SSL_TRUSTSTORE \
+    -Djavax.net.ssl.trustStorePassword={{ .Values.nodeConf.creds.truststore }} \
+    -Djavax.net.ssl.keyStore=/opt/corda/certificates/sslkeystore.jks \
+    -Djavax.net.ssl.keyStorePassword={{ .Values.nodeConf.creds.keystore }} \
+    -jar bin/corda.jar \
+    -f etc/node.conf
+    echo
     EXIT_CODE=${?}
 else
     echo "Missing node jar file in bin directory:"

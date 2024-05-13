@@ -33,10 +33,5 @@ Create idman url depending on proxy mode
 */}}
 {{- define "identityManager.URL" -}}
 {{- $port := .Values.global.cenm.identityManager.port | int -}}
-{{- $extport := 443 | int -}}
-{{- if eq .Values.global.proxy.provider "ambassador" -}}
-    {{- printf "https://idman.%s:%d" .Values.global.proxy.externalUrlSuffix $extport }}
-{{- else -}}
-    {{- printf "http://idman.%s:%d" .Release.Namespace $port }}
-{{- end -}}
+{{- printf "http://idman.%s:%d" .Release.Namespace $port }}
 {{- end -}}

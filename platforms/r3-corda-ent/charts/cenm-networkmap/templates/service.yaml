@@ -39,3 +39,32 @@ spec:
     targetPort: {{ .Values.adminListener.port }}
     protocol: TCP
     name: adminlistener
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+---
+## Host for doorman
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Release.Name }}-nms
+spec:
+  hostname: cenm-nms.{{ .Values.global.proxy.externalUrlSuffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: nms-tls-certs
+    namespace: {{ .Release.Namespace }}
+---
+## Mapping for nms port
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-mapping
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: cenm-nms.{{ .Values.global.proxy.externalUrlSuffix }}
+  prefix: /
+  service: {{ include "networkmap.name" . }}.{{ .Release.Namespace }}:{{ .Values.global.cenm.networkmap.port }}
+{{- end }}

@@ -41,3 +41,32 @@ spec:
     protocol: TCP
     name: ssh
 {{- end }}
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+---
+## Host for doorman
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: {{ .Release.Name }}-node
+spec:
+  hostname: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
+  acmeProvider:
+    authority: none
+  requestPolicy:
+    insecure:
+      action: Reject
+  tlsSecret:
+    name: {{ .Release.Name }}-tls-certs
+    namespace: {{ .Release.Namespace }}
+---
+## Mapping for nms port
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: {{ .Release.Name }}-mapping
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
+  prefix: /
+  service: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.nodeConf.p2pPort }}
+{{- end }}
