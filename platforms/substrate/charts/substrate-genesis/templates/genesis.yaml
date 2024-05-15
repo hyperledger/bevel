@@ -15,6 +15,7 @@ metadata:
     "helm.sh/hook-weight": "2"
     "helm.sh/hook-delete-policy": "before-hook-creation"
   labels:
+    app: genesis
     app: {{ .Release.Name }}
     app.kubernetes.io/name: {{ .Release.Name }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -201,9 +202,10 @@ spec:
           # Initialize the token
           . /scripts/bevel-vault.sh
           vaultBevelFunc "init"
+          
           vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/genesis"
           vaultBevelFunc "readJson" "$vault_secret_key"
-
+          
           # The vault CLI is required for this job as the genesis file is too large to be passed in via a vault API call
           echo "Installing Vault CLI"
           curl -O -L https://releases.hashicorp.com/vault/1.7.1/vault_1.7.1_linux_amd64.zip

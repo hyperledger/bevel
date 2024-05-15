@@ -16,7 +16,6 @@ spec:
         name: flux-{{ network.env.type }}
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/substrate-node
-
   values:
     image:
       repository: {{ network.docker.url }}/{{ network.config.node_image }}
@@ -44,7 +43,12 @@ spec:
     node:
       name: {{ peer.name }}
       chain: {{ network.config.chain }}
-      command: {{ command }}      
+      command: {{ command }}
+      isBootnode:
+        enabled: {{ isBootnode }}
+        bootnodeName: validator-1
+        bootnodeAddr: validator-1.{{ external_url }}
+        bootnodePort: 15051
       dataVolumeSize: 10Gi
       replicas: 1
       role: {{ role }}
@@ -62,19 +66,9 @@ spec:
         - "--rpc-cors=all"
         - "--unsafe-ws-external"
         - "--unsafe-rpc-external"
-{% if bootnode_data is defined %}
-        - "--bootnodes '{{ bootnode_data[1:] | join(',') }}'"
-{% endif %}
 {% if peer.type == 'member' %}
         - "--pruning=archive"
 {% endif %}
-      keys:
-        - type: "gran"
-          scheme: "ed25519"
-          seed: "grandpa_seed"
-        - type: "aura"
-          scheme: "sr25519"
-          seed: "aura_seed"
       persistGeneratedNodeKey: false
 
       resources: {}
@@ -102,15 +96,22 @@ spec:
 
     proxy:
       provider: ambassador
-      external_url: {{ peer.name }}.{{ external_url }}
+      external_url: {{ external_url }}
       p2p: {{ peer.p2p.ambassador }}
       certSecret: {{ org.name | lower }}-ambassador-certs
 
     storageClass: {{ storageclass_name }}
+
+    storage:
+      size: "10Gi"
+      reclaimPolicy: "Delete"
+      volumeBindingMode: Immediate
+      allowedTopologies:
+        enabled: false
 
     vault:
       address: {{ vault.url }}      
       secretPrefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}
       authPath: {{ network.env.type }}{{ name }}
       appRole: vault-role
-      image: ghcr.io/hyperledger/alpine-utils:1.0 
+      image: ghcr.io/hyperledger/alpine-utils:1.0

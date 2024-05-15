@@ -169,7 +169,7 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
 
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              vault_secret_key="${VAULT_SECRET_ENGINE}"/"${VAULT_SECRET_PREFIX}/ipfs"
+              vault_secret_key="${VAULT_SECRET_ENGINE}"/"${VAULT_SECRET_PREFIX}-ipfs-keys"
               # Save the generated keys to VAULT
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
@@ -263,7 +263,7 @@ spec:
       spec:
         accessModes: [ "ReadWriteOnce" ]
         {{- if .Values.storage.storageClass }}
-        storageClassName: storage-{{ .Release.Name }}
+        storageClassName: substrate-storage-{{ .Release.Name }}
         {{- end }}
         resources:
           requests:

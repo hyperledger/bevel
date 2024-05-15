@@ -50,6 +50,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels
 */}}
 {{- define "node.selectorLabels" -}}
+name: {{ include "node.name" . }}
 app.kubernetes.io/name: {{ include "node.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
