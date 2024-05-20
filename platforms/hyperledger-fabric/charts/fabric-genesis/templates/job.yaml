@@ -248,7 +248,7 @@ spec:
           - name: VAULT_TYPE
             value: "{{ $.Values.global.vault.type }}"
           - name: NETWORK_VERSION
-            value: "{{ $.Values.network.version }}"
+            value: "{{ $.Values.global.network.version }}"
           - name: COMPONENT_NAME
             value: {{ .Release.Namespace }}
           - name: OS
@@ -258,7 +258,16 @@ spec:
           command: ["sh", "-c"]
           args:
             - |-
-
+              #!/usr/bin/env sh
+              safeConfigmap () {
+                FOLDER_PATH=$1
+                NAME=$2
+                KEY=$3
+                kubectl get configmap --namespace ${COMPONENT_NAME} ${NAME}
+                if [ $? -ne 0 ]; then
+                  kubectl create configmap --namespace ${COMPONENT_NAME} ${NAME} --from-file=${KEY}=$FOLDER_PATH
+                fi
+              }
               . /scripts/package-manager.sh
               # Define the packages to install
               packages_to_install="jq curl wget"
@@ -279,21 +288,29 @@ spec:
                 version2_2=`echo $NETWORK_VERSION | grep -c 2.2`
                 if [ $version2_5 = 1 ]; then
                   echo "version 2.5"
-                  ./configtxgen -profile {{ $channel.genesis.name }} -channelID {{ $channel.channel_name | lower}} -outputBlock allchannel.genesis.block
+                  ./configtxgen -profile {{ $channel.genesis.name }} -channelID {{ $channel.channelName | lower }} -outputBlock allchannel.genesis.block
                 elif [ $version2_2 = 1 ]; then
                   echo "version 2.2"
+                  ./configtxgen -profile {{ $channel.channelName }} -outputCreateChannelTx {{ $channel.channelName | lower }}.tx -channelID {{ $channel.channelName | lower }}
+                  cat {{ $channel.channelName | lower }}.tx | base64 > {{ $channel.channelName | lower }}.tx.base64
+                    safeConfigmap {{ $channel.channelName | lower }}.tx.base64 channel-artifacts-{{ $channel.channelName | lower }} channel.tx.base64
+                  {{- range $participant := $channel.participants }}
+                    ./configtxgen -profile {{ $channel.channelName }} -outputAnchorPeersUpdate {{ $channel.channelName | lower }}{{ $participant.name }}MSPAnchor.tx -channelID {{ $channel.channelName | lower }} -asOrg {{ $participant.name }}MSP -configPath ./
+                    cat {{ $channel.channelName | lower }}{{ $participant.name }}MSPAnchor.tx | base64 > {{ $channel.channelName | lower }}{{ $participant.name }}MSPAnchor.tx.base64
+                    safeConfigmap {{ $channel.channelName | lower }}{{ $participant.name }}MSPAnchor.tx.base64 anchorpeer-artifacts-{{ $channel.channelName | lower }} anchors.tx.base64
+                  {{- end }}
                   ./configtxgen -profile {{ $channel.genesis.name }} -channelID syschannel -outputBlock allchannel.genesis.block
                 else
                   echo "version 1.4"
                   ./configtxgen -profile {{ $channel.genesis.name }} -channelID syschannel -outputBlock allchannel.genesis.block
                 fi
-                cat {{ $channel.channel_name | lower}}.genesis.block | base64 > {{ $channel.channel_name | lower}}.genesis.block.base64
+                cat {{ $channel.channelName | lower}}.genesis.block | base64 > {{ $channel.channelName | lower}}.genesis.block.base64
                 {{- if eq $.Values.global.vault.type "hashicorp" }}
                   . /scripts/bevel-vault.sh
                   echo "Getting vault Token..."
                   vaultBevelFunc "init" 
 
-                  GENESIS=$(cat {{ $channel.channel_name | lower}}.genesis.block.base64) 
+                  GENESIS=$(cat {{ $channel.channelName | lower}}.genesis.block.base64) 
 
                   echo "
                     {
@@ -303,19 +320,15 @@ spec:
                         }  
                     }" > payload.json
                   
-                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ $channel.channel_name | lower}}" 'payload.json'
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ $channel.channelName | lower}}" 'payload.json'
                   rm payload.json              
                 {{- else }}
-                  kubectl get secret "{{ $channel.channel_name | lower}}-genesis" --namespace ${COMPONENT_NAME} -o json > /dev/null 2>&1
+                  kubectl get secret "{{ $channel.channelName | lower}}-genesis" --namespace ${COMPONENT_NAME} -o json > /dev/null 2>&1
                   if [ $? -ne 0 ]; then
-                    kubectl create secret generic "{{ $channel.channel_name | lower}}-genesis" --namespace ${COMPONENT_NAME} --from-file=genesis={{ $channel.channel_name | lower}}.genesis.block
+                    kubectl create secret generic "{{ $channel.channelName | lower}}-genesis" --namespace ${COMPONENT_NAME} --from-file=genesis={{ $channel.channelName | lower}}.genesis.block
                   fi
                 {{- end }}
-                kubectl get configmap --namespace ${COMPONENT_NAME} {{ $channel.channel_name | lower}}-genesis-file
-                if [ $? -ne 0 ]; then
-                  kubectl create configmap --namespace ${COMPONENT_NAME} {{ $channel.channel_name | lower}}-genesis-file --from-file=genesis.block.base64={{ $channel.channel_name | lower}}.genesis.block.base64
-                fi
-                cat {{ $channel.channel_name | lower}}.genesis.block
+                safeConfigmap {{ $channel.channelName | lower}}.genesis.block.base64 {{ $channel.channelName | lower}}-genesis-file genesis.block.base64
               {{- end }}
           volumeMounts:
           - name: scripts-volume

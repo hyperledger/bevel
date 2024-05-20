@@ -6,16 +6,25 @@
 <a name = "create-channel-hyperledger-fabric-deployment"></a>
 # Create Channel Hyperledger Fabric Deployment
 
-- [Create Channel Hyperledger Fabric Deployment Helm Chart](#create-channel-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+- [Create Channel Hyperledger Fabric Deployment](#create-channel-hyperledger-fabric-deployment)
+  - [Create Channel Hyperledger Fabric Deployment Helm Chart](#create-channel-hyperledger-fabric-deployment-helm-chart)
+  - [Prerequisites](#prerequisites)
+  - [Chart Structure](#chart-structure)
+  - [Configuration](#configuration)
+    - [Metadata](#metadata)
+    - [Deployment](#deployment)
+    - [Peer](#peer)
+    - [Vault](#vault)
+    - [Channel](#channel)
+    - [Orderer](#orderer)
+    - [Other](#other)
+  - [Deployment](#deployment-1)
+  - [Verification](#verification)
+  - [Updating the Deployment](#updating-the-deployment)
+  - [Deletion](#deletion)
+  - [Contributing](#contributing)
+  - [License](#license)
+    - [Attribution](#attribution)
 
 
 <a name = "create-channel-hyperledger-fabric-deployment-helm-chart"></a>

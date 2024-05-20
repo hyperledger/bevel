@@ -3,19 +3,21 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
+{{- if eq .Values.peer.type "anchor" }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fabric-channel-create.fullname" . }}
+  name: anchorpeer-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    {{- include "labels.deployment" . | nindent 2 }}
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
   labels:
     app: {{ .Release.Name }}
-    app.kubernetes.io/name: createchannel-{{ .Release.Name }}
-    app.kubernetes.io/component: fabric-channel-create-job
-    app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
+    app.kubernetes.io/name: anchorpeer-{{ .Release.Name }}
+    app.kubernetes.io/component: fabric-anchorpeer-job
+    app.kubernetes.io/part-of: anchorpeer-{{ .Release.Name }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
@@ -26,9 +28,9 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
-        app.kubernetes.io/name: createchannel-{{ .Release.Name }}
-        app.kubernetes.io/component: fabric-channel-create-job
-        app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
+        app.kubernetes.io/name: anchorpeer-{{ .Release.Name }}
+        app.kubernetes.io/component: fabric-anchorpeer-job
+        app.kubernetes.io/part-of: anchorpeer-{{ .Release.Name }}
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
@@ -47,14 +49,16 @@ spec:
           secretName: {{ $.Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
-            path: ca-certificates.crt
-      {{ end  }}
-      - name: channel-artifacts-{{ .Release.Name }}
-        configMap:
-          name: channel-artifacts-{{ .Release.Name }}
+            path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
+      {{ end }}
       - name: certificates
         emptyDir:
           medium: Memory
+      {{- if ne $.Values.global.network.version "2.5.4" }}
+      - name: anchorpeer-artifacts
+        configMap:
+          name: anchorpeer-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-artifacts
+      {{- end }}
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
@@ -84,6 +88,7 @@ spec:
 {{- if eq .Values.global.vault.type "hashicorp" }}
 
           . /scripts/bevel-vault.sh
+          # Calling a function to retrieve the vault token.
           vaultBevelFunc "init"
 
           function getOrdererTlsSecret {
@@ -95,6 +100,7 @@ spec:
 
             TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
             echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
+
           }
 
           function getAdminMspSecret {
@@ -118,7 +124,6 @@ spec:
           }
 
 {{- else }}
-
           function getOrdererTlsSecret {
             KEY=$1
             kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
@@ -154,7 +159,8 @@ spec:
           mkdir -p ${OUTPUT_PATH}/keystore
           mkdir -p ${OUTPUT_PATH}/signcerts
           mkdir -p ${OUTPUT_PATH}/tlscacerts
-          getAdminMspSecret admin-msp  
+          getAdminMspSecret admin-msp 
+
         volumeMounts:
         {{ if .Values.global.vault.tls  }}
         - name: vaultca
@@ -165,10 +171,10 @@ spec:
           mountPath: /secret
         - name: scripts-volume
           mountPath: /scripts/bevel-vault.sh
-          subPath: bevel-vault.sh
+          subPath: bevel-vault.sh     
       containers:
-      - name: createchannel
-        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }}  
+      - name: anchorpeer
+        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }}
         imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
@@ -176,48 +182,65 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-          CHANNEL_TX=$(jq -r '.data."channel.tx.base64"' ./channel-artifacts/channel.tx.json)
-          echo $CHANNEL_TX | base64 -d > channel.tx
+        
+          version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
 
-          echo "Fetch block to see if channel has already been created..."
-          tls_status=${CORE_PEER_TLS_ENABLED}
-          if [ "$tls_status" = "true" ]
+          if [ $version2_5 = 1 ]
           then
-            peer channel fetch 0 -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA} -o ${ORDERER_URL} /tmp/${CHANNEL_NAME}.block
+            echo "Fetching the most recent configuration block for the channel"
+            peer channel fetch config config_block.pb -o ${ORDERER_URL} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
+
+            echo "Decoding config block to JSON and isolating config to ${CORE_PEER_LOCALMSPID}config.json"
+            configtxlator proto_decode --input config_block.pb --type common.Block --output config_block.json 
+            jq .data.data[0].payload.data.config config_block.json >"${CORE_PEER_LOCALMSPID}config.json"
+
+            CHECK_ANCHOR=$(jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values.AnchorPeers.value.anchor_peers' ${CORE_PEER_LOCALMSPID}config.json)
+
+            PORT="${CORE_PEER_ADDRESS##*:}"
+            HOST="${CORE_PEER_ADDRESS%%:*}"
+            if echo "$CHECK_ANCHOR" | grep -q "$HOST"; then
+                echo "The anchopeer has already been created"
+            else 
+              jq '.channel_group.groups.Application.groups.'${CORE_PEER_LOCALMSPID}'.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "'$HOST'","port": '$PORT'}]},"version": "0"}}' ${CORE_PEER_LOCALMSPID}config.json > ${CORE_PEER_LOCALMSPID}modified_config.json
+
+              configtxlator proto_encode --input "${CORE_PEER_LOCALMSPID}config.json" --type common.Config --output original_config.pb
+              configtxlator proto_encode --input "${CORE_PEER_LOCALMSPID}modified_config.json" --type common.Config --output modified_config.pb
+              configtxlator compute_update --channel_id "${CHANNEL_NAME}" --original original_config.pb --updated modified_config.pb --output config_update.pb
+              configtxlator proto_decode --input config_update.pb --type common.ConfigUpdate --output config_update.json
+              echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat config_update.json)'}}}' | jq . >config_update_in_envelope.json
+              configtxlator proto_encode --input config_update_in_envelope.json --type common.Envelope --output "${CORE_PEER_LOCALMSPID}anchors.tx"
+
+              peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile ${ORDERER_CA}   
+            fi   
           else
-            peer channel fetch 0 -c ${CHANNEL_NAME} -o ${ORDERER_URL} /tmp/${CHANNEL_NAME}.block
-          fi
-          if [ -f /tmp/${CHANNEL_NAME}.block ]
-          then
-            echo "Channel ${CHANNEL_NAME} is already created."
-          else
-            echo "Creating Channel ${CHANNEL_NAME}"
-            version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
+            echo "Updating anchor peer for the channel ${CHANNEL_NAME}"
+            tls_status=${CORE_PEER_TLS_ENABLED}
             if [ "$tls_status" = "true" ]
             then
-              if [ $version1_4 = 1 ]
-              then
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA}
-              else
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --outputBlock /tmp/${CHANNEL_NAME}.block
-              fi
+              peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
             else
-              if [ $version1_4 = 1 ]
-              then 
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx
-              else
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --outputBlock /tmp/${CHANNEL_NAME}.block
-              fi
+              peer channel fetch 0 ${CHANNEL_NAME}.block -o ${ORDERER_URL} -c ${CHANNEL_NAME} 
+            fi
+            ANCHORS_TX=$(jq -r '.data."anchors.tx.base64"' ./channel-artifacts/anchors.tx.json)
+            echo $ANCHORS_TX | base64 -d > ${CORE_PEER_LOCALMSPID}anchors.tx
+            if [ "$tls_status" = "true" ]
+            then
+              peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile ${ORDERER_CA}
+            else
+              peer channel update -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f ${CORE_PEER_LOCALMSPID}anchors.tx
             fi
           fi
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
         envFrom:
         - configMapRef:
-            name: {{ .Release.Name }}-config
+            name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
-        - name: channel-artifacts-{{ .Release.Name }}
+        {{- if ne $.Values.global.network.version "2.5.4" }}
+        - name: anchorpeer-artifacts
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
           readOnly: true
+        {{- end }}
+{{- end }}

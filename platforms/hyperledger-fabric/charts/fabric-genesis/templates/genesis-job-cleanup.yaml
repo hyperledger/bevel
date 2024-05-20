@@ -49,15 +49,23 @@ spec:
               }
               
               {{- range $channel := $.Values.channels }}
-                deleteSecret {{ $channel.channel_name | lower}}-genesis
+                deleteSecret {{ $channel.channelName | lower}}-genesis
               {{- end}} 
 {{- end}} 
-{{- if .Values.settings.removeGenesisConfigMapOnDelete }}
-              {{- range $channel := $.Values.channels }}
-                if kubectl get configmap --namespace {{ $.Release.Namespace }}  {{ $channel.channel_name | lower}}-genesis-file &> /dev/null; then
-                  echo "Deleting {{ $channel.channel_name | lower}}-genesis-file configmap in k8s ..."
-                  kubectl delete configmap --namespace {{ $.Release.Namespace }} {{ $channel.channel_name | lower}}-genesis-file
+{{- if .Values.settings.removeConfigMapOnDelete }}
+
+              function deleteConfigMap {
+                key=$1
+                kubectl get configmap ${key} --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                  kubectl delete configmap ${key} --namespace {{ .Release.Namespace }}
                 fi
+              }
+              
+              {{- range $channel := $.Values.channels }}
+                deleteConfigMap {{ $channel.channelName | lower}}-genesis-file
+                deleteConfigMap channel-artifacts-{{ $channel.channelName | lower }} 
+                deleteConfigMap anchorpeer-artifacts-{{ $channel.channelName | lower }}  
               {{- end}} 
 {{- end}}
   

@@ -95,9 +95,9 @@ spec:
               TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
               TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
               
-              echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
-              echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
-              echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+              echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
+              echo "${TLS_SERVER_CERT}" > ${OUTPUT_PATH}/server.crt
+              echo "${TLS_SERVER_KEY}" > ${OUTPUT_PATH}/server.key
               PEER_TLS_SECRET=true
             else
               PEER_TLS_SECRET=false
@@ -117,11 +117,11 @@ spec:
               SIGNCERTS=$(echo ${VAULT_SECRET} | jq -r '.["signcerts"]')
               TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
 
-              echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
-              echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
-              echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
-              echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
-              echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+              echo "${ADMINCERT}" > ${OUTPUT_PATH}/admincerts/admin.crt
+              echo "${CACERTS}" > ${OUTPUT_PATH}/cacerts/ca.crt
+              echo "${KEYSTORE}" > ${OUTPUT_PATH}/keystore/server.key
+              echo "${SIGNCERTS}" > ${OUTPUT_PATH}/signcerts/server.crt
+              echo "${TLSCACERTS}" > ${OUTPUT_PATH}/tlscacerts/tlsca.crt
               PEER_MSP_SECRET=true
             else
               PEER_MSP_SECRET=false
@@ -136,7 +136,7 @@ spec:
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
               PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.["user"]')
-              echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred
+              echo "${PASSWORD}" > ${MOUNT_PATH}/user_cred
               DB_PASS_SECRET=true
             else
               DB_PASS_SECRET=false
@@ -154,9 +154,9 @@ spec:
               TLS_SERVER_CERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.servercrt'  | base64 -d)
               TLS_SERVER_KEY=$(echo ${KUBENETES_SECRET} | jq -r '.data.serverkey'  | base64 -d)
               
-              echo "${TLS_CA_CERT}" >> ${OUTPUT_PATH}/ca.crt
-              echo "${TLS_SERVER_CERT}" >> ${OUTPUT_PATH}/server.crt
-              echo "${TLS_SERVER_KEY}" >> ${OUTPUT_PATH}/server.key
+              echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
+              echo "${TLS_SERVER_CERT}" > ${OUTPUT_PATH}/server.crt
+              echo "${TLS_SERVER_KEY}" > ${OUTPUT_PATH}/server.key
               PEER_TLS_SECRET=true
             fi
           }
@@ -173,11 +173,11 @@ spec:
               SIGNCERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.signcerts'  | base64 -d)
               TLSCACERTS=$(echo ${KUBENETES_SECRET} | jq -r '.data.tlscacerts'  | base64 -d)
 
-              echo "${ADMINCERT}" >> ${OUTPUT_PATH}/admincerts/admin.crt
-              echo "${CACERTS}" >> ${OUTPUT_PATH}/cacerts/ca.crt
-              echo "${KEYSTORE}" >> ${OUTPUT_PATH}/keystore/server.key
-              echo "${SIGNCERTS}" >> ${OUTPUT_PATH}/signcerts/server.crt
-              echo "${TLSCACERTS}" >> ${OUTPUT_PATH}/tlscacerts/tlsca.crt
+              echo "${ADMINCERT}" > ${OUTPUT_PATH}/admincerts/admin.crt
+              echo "${CACERTS}" > ${OUTPUT_PATH}/cacerts/ca.crt
+              echo "${KEYSTORE}" > ${OUTPUT_PATH}/keystore/server.key
+              echo "${SIGNCERTS}" > ${OUTPUT_PATH}/signcerts/server.crt
+              echo "${TLSCACERTS}" > ${OUTPUT_PATH}/tlscacerts/tlsca.crt
               PEER_MSP_SECRET=true
             fi
                                       
@@ -187,7 +187,7 @@ spec:
             KEY=$1
             kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
             if [ $? -eq 0 ]; then
-              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.user}" | base64 -d >> ${MOUNT_PATH}/user_cred
+              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.user}" | base64 -d > ${MOUNT_PATH}/user_cred
               DB_PASS_SECRET=true
             else
               DB_PASS_SECRET=false
@@ -242,7 +242,7 @@ spec:
           subPath: bevel-vault.sh
       containers:
       - name: couchdb
-        image: {{ $.Values.image.couchdb }}:{{ $.Values.cli.network.version }}
+        image: {{ $.Values.image.couchdb }}:{{ $.Values.global.network.version }}
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -281,7 +281,7 @@ spec:
         - name: certificates
           mountPath: /etc/hyperledger/fabric/crypto
       - name: {{ .Release.Name }}
-        image: {{ $.Values.image.peer }}:{{ $.Values.cli.network.version }} 
+        image: {{ $.Values.image.peer }}:{{ $.Values.global.network.version }} 
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -308,7 +308,7 @@ spec:
           containerPort: 9443
         env:
         - name: PEER_IMAGE
-          value: "{{ $.Values.image.peer }}:{{ $.Values.cli.network.version }}"
+          value: "{{ $.Values.image.peer }}:{{ $.Values.global.network.version }}"
         - name: IS_UPGRADE
           value: "{{ $.Values.upgrade }}"
         envFrom:

@@ -1,17 +1,17 @@
 Capabilities:
-{{- if or (eq $.Values.network.version "2.2.2") (eq $.Values.network.version "2.5.4") }}
+{{- if or (eq $.Values.global.network.version "2.2.2") (eq $.Values.global.network.version "2.5.4") }}
   Channel: &ChannelCapabilities
     V2_0: true
   Orderer: &OrdererCapabilities
     V2_0: true
   Application: &ApplicationCapabilities
-{{- if eq $.Values.network.version "2.5.4" }}
+{{- if eq $.Values.global.network.version "2.5.4" }}
     V2_5: true
   {{- else }}
     V2_0: true
   {{- end }}
 {{- end }}
-{{- if eq $.Values.network.version "1.4.8" }}
+{{- if eq $.Values.global.network.version "1.4.8" }}
 {{- if eq $.Values.consensus.name "kafka"}}
   Global: &ChannelCapabilities
     V1_1: true
@@ -32,7 +32,7 @@ Capabilities:
 
 Application: &ApplicationDefaults
   Organizations:
-{{- if or (eq $.Values.network.version "2.2.2") (eq $.Values.network.version "2.5.4") }}
+{{- if or (eq $.Values.global.network.version "2.2.2") (eq $.Values.global.network.version "2.5.4") }}
   Policies: &ApplicationDefaultPolicies
     LifecycleEndorsement:
         Type: ImplicitMeta
@@ -54,7 +54,7 @@ Application: &ApplicationDefaults
     <<: *ApplicationCapabilities
 
 Channel: &ChannelDefaults
-{{- if or (eq $.Values.network.version "2.2.2") (eq $.Values.network.version "2.5.4") }}
+{{- if or (eq $.Values.global.network.version "2.2.2") (eq $.Values.global.network.version "2.5.4") }}
   Policies:
     Readers:
       Type: ImplicitMeta
@@ -88,7 +88,7 @@ Organizations:
       Endorsement:
         Type: Signature
         Rule: "OR('{{ $org.name }}MSP.member')"
-    {{- if and ($org.orderers) (eq $.Values.network.version "2.5.4")}}
+    {{- if ($org.orderers) }}
     OrdererEndpoints:
     {{- range $orderer := $org.orderers }}
     {{- if eq $.Values.global.proxy.provider "none" }}
@@ -98,7 +98,7 @@ Organizations:
     {{- end }}
     {{- end }}
     {{- end }}
-    {{- if and ($org.peers) (ne $.Values.network.version "2.5.4") }}
+    {{- if and ($org.peers) (ne $.Values.global.network.version "2.5.4") }}
     AnchorPeers:
     {{- range $peer := $org.peers }}
     {{- if eq $.Values.global.proxy.provider "none" }}
@@ -214,7 +214,7 @@ Profiles:
 {{- range $orderer := $channel.orderers }}
         - *{{ $orderer }}Org
 {{- end }}
-{{- if ne $.Values.network.version "2.5.4" }}
+{{- if ne $.Values.global.network.version "2.5.4" }}
     Consortiums:
       {{ $channel.consortium }}:
         Organizations:
@@ -223,7 +223,7 @@ Profiles:
           - *{{ $org.name }}Org
 {{- end }}      
 {{- end }} 
-  {{ $channel.channel_name }}:
+  {{ $channel.channelName }}:
     <<: *ChannelDefaults
     Consortium: {{ $channel.consortium }}
 {{- end }} 
@@ -233,7 +233,7 @@ Profiles:
 {{- range $org := $channel.participants }}
         - *{{ $org.name }}Org
 {{- end }}
-{{- if eq $.Values.network.version "2.5.4" }}
+{{- if eq $.Values.global.network.version "2.5.4" }}
       Capabilities: *ApplicationCapabilities
 {{- end }}
 {{- end }}
