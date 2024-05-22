@@ -4,14 +4,14 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Create the value files for each validator node of organization
-- name: Create value file for validator for each node
+# Generate member node helmrelease file
+- name: Create value file for member nodes
   include_role:
     name: create/helm_component
   vars:
     component_name: "{{ peer.name }}"
     type: "node_substrate"
-    storageclass_name: "{{ item.cloud_provider }}storageclass"
+    storageclass_name: "{{ item.name | lower }}-bevel-storageclass"
     external_url: "{{ item.external_url_suffix }}"
     vault: "{{ item.vault }}"
     git_url: "{{ item.gitops.git_url }}"
@@ -20,13 +20,10 @@
     docker_url: "{{ network.docker.url }}"
     charts_dir: "{{ item.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"    
+    bootnode_data: "{{ lookup('file', '{{ network.config.bootnodes }}').splitlines() }}"
     command: "{{ network.config.command }}"
-    role: "validator"
-    isBootnode: "{{ false if peer.type == 'bootnode' else true }}"
-  loop: "{{ peers }}"
-  loop_control:
-    loop_var: peer
-  when: peer.type in ['validator', 'bootnode']
+    role: "full"
+    isBootnode: true
 
 # Git Push : Push the above generated files to git directory 
 - name: Git Push
@@ -36,3 +33,15 @@
     GIT_DIR: "{{ playbook_dir }}/../../../"
     gitops: "{{ item.gitops }}"
     msg: "[ci skip] Pushing Peer files"
+
+# Check if ipfs-bootnode is running
+- name: Check if {{ peer.name }} is running
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}"
+    component_type: Pod
+    label_selectors:
+      - name = {{ component_name }}
+    namespace: "{{ component_ns }}"
+  tags: notest

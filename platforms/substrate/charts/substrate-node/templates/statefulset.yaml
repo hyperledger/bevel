@@ -198,25 +198,21 @@ spec:
 
             #!/bin/sh
 
-              # STEP-1
               echo "Step 1: Install necessary packages using custom package manager script"
               . /scripts/package-manager.sh
               packages_to_install="jq curl"
               install_packages "$packages_to_install"
 
-              # STEP-2
               echo "STEP-2: Download and set up kubectl for Kubernetes management"
               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
               chmod +x kubectl
               mv kubectl /usr/local/bin/
               kubectl version --client
 
-              # STEP-3
               echo "Step 3: Extract chain specification (genesis) from Kubernetes ConfigMap and store it"
               chain_spec=$(kubectl get configmap "substrate-genesis" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["genesis"]')
               echo "${chain_spec}" | base64 -d > {{ .Values.node.customChainspecPath }}
 
-              # STEP-4
               echo "Step 4: Retrieve secret keys from Kubernetes Secrets if available"
               secretName="substrate-node-{{ .Release.Name }}-keys"
               if kubectl get secret "${secretName}" --namespace {{ .Release.Namespace }} >/dev/null 2>&1; then
@@ -233,14 +229,12 @@ spec:
                 BOOTNODE_ID=$(kubectl get secret "substrate-node-{{ .Values.node.isBootnode.bootnodeName }}-keys" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.node_id')
               {{- end }}
 
-              # STEP-5
               echo "Step 5: Insert keys into Keystore using dscp-node command-line tool"
               # Insert AURA key into Keystore
               ./{{ .Values.node.command }} key insert --base-path=/data --chain=/data/chainspec.json --key-type=aura --scheme=Sr25519 --suri="${AURA_SECRETPHRASE}" && echo "Inserted key aura into Keystore" || echo "Failed to insert key aura into Keystore."
               # Insert GRANPA key into Keystore
               ./{{ .Values.node.command }} key insert --base-path=/data --chain=/data/chainspec.json --key-type=gran --scheme=Ed25519 --suri="${GRAN_SECRETPHRASE}" && echo "Inserted key gran into Keystore" || echo "Failed to insert key gran into Keystore."
 
-              # STEP-6
               echo "Step 6: Determine various ports and external addresses for P2P communication"
               POD_INDEX="${HOSTNAME##*-}"
               {{- if and (.Values.node.perNodeServices.createP2pService) (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
@@ -259,21 +253,14 @@ spec:
                 EXTERNAL_ADDRESS=$(curl -sS {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }})
               {{- else if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") }}
                 EXTERNAL_ADDRESS=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
-                EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
-                EXTERNAL_P2P_PORT="{{ .Values.node.ports.p2p }}"
               {{- else if eq .Values.proxy.provider "ambassador" }}
                 EXTERNAL_ADDRESS="{{ $fullname }}-${POD_INDEX}.{{ .Values.proxy.external_url }}"
                 EXTERNAL_P2P_PORT="{{ .Values.proxy.p2p }}"
-                echo "test-one"
+              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
+                EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
+                EXTERNAL_P2P_PORT="{{ .Values.node.ports.p2p }}"
               {{- end }}
 
-              echo "PARA_CHAIN_P2P_PORT:$PARA_CHAIN_P2P_PORT"
-              echo "RELAY_CHAIN_P2P_PORT:$RELAY_CHAIN_P2P_PORT"
-              echo "EXTERNAL_ADDRESS:$EXTERNAL_ADDRESS"
-              echo "EXTERNAL_P2P_PORT:$EXTERNAL_P2P_PORT"
-
-              # STEP-7
               echo "Step 7: Start the node"
               exec {{ .Values.node.command }} \
               --name=${POD_NAME} \
@@ -475,7 +462,7 @@ spec:
           kind: VolumeSnapshot
           apiGroup: snapshot.storage.k8s.io
         {{- end }}
-        storageClassName: storage-{{ .Release.Name }}
+        storageClassName: substrate-storage-{{ .Release.Name }}
         resources:
           requests:
             storage: {{ .Values.storage.size }}

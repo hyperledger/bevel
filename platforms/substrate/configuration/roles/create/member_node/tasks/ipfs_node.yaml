@@ -1,0 +1,68 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Set node_list to empty
+- name: Set node_list to []
+  set_fact:
+    node_list: []
+
+# Fetch the bootnode's node ID from Vault
+- name: Fetch node_id of {{ peer.name }} node
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl get secret "substrate-node-{{ peer.name | lower }}-keys" --namespace {{ component_ns }} -o jsonpath="{.data['substrate-node-keys']}" | base64 -d | jq -r '.data.node_id'
+  register: node_id
+  ignore_errors: true
+
+# Append bootnode information to node_list
+- name: Collect Bootnode data
+  set_fact:
+    node_list={{ node_list|default([]) + [ {'bootnode_id':node_id.stdout, 'external_url':internal_url, 'p2p_port':peer.ipfs.swarmPort} ] }}
+  vars:
+    internal_url: "{{ peer.name }}-ipfs-swarm.{{ component_ns }}.svc.cluster.local"
+
+# Create a file to store bootnode information only if not already available
+- name: Create bootnode file
+  template:
+    src: "ipfsbootnode.tpl"
+    dest: "{{ network.config.ipfsbootnodes }}"
+
+# Generate IPFS node HelmRelease file
+- name: "Create ipfs node release file"
+  include_role:
+    name: create/helm_component
+  vars:    
+    component_name: "{{ peer.name }}-ipfs-node"
+    type: "dscp_ipfs_node"
+    storageclass_name: "{{ item.name | lower }}-bevel-storageclass"
+    external_url: "{{ item.external_url_suffix }}"
+    vault_key: "{{ name }}/substrate-node-{{ peer.name | lower }}"
+    git_url: "{{ item.gitops.git_url }}"
+    git_branch: "{{ item.gitops.branch }}"
+    org: "{{ item }}"
+    docker_url: "{{ network.docker.url }}"
+    charts_dir: "{{ item.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+    ipfs_bootnode: "{{ lookup('file', '{{ network.config.ipfsbootnodes }}').splitlines() }}"
+
+# Git Push : Push the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    gitops: "{{ item.gitops }}"
+    msg: "[ci skip] Pushing Peer files"
+
+# Check if IPFS-bootnode is running
+- name: Check if {{ peer.name }} is running
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "{{ peer.name }}-ipfs"
+    component_type: Pod
+    label_selectors:
+      - name = {{ component_name }}
+    namespace: "{{ component_ns }}"
