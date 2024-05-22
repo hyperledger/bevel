@@ -53,7 +53,7 @@ Configure `settings.generateCertificates` field with value `true` for the genera
 
 ```bash
 # Install the Orderers
-helm install orderer1 ./fabric-orderernode --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/orderer.yaml
+helm install orderer1 ./fabric-orderernode --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/orderer.yaml --set settings.generateCertificates=true
 helm install orderer2 ./fabric-orderernode --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/orderer.yaml
 helm install orderer3 ./fabric-orderernode --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/orderer.yaml
 ```
@@ -83,7 +83,7 @@ cd ../..
 helm dependency update fabric-peernode
 
 # Install the Peers
-helm install peer0-carrier ./fabric-peernode --namespace carrier-net --values ./values/noproxy-and-novault/peerOrganization/peer.yaml
+helm install peer0-carrier ./fabric-peernode --namespace carrier-net --values ./values/noproxy-and-novault/peerOrganization/peer.yaml --set settings.generateCertificates=true
 ```
 
 ### Generate genesis file
@@ -97,6 +97,33 @@ kubectl --namespace carrier-net get configmap msp-config-file -o json > carrier-
 cd ../..
 helm install genesis ./fabric-genesis --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/genesis.yaml
 ```
+
+### Create channel for Hyperledger Fabric 2.5.4
+```bash
+# Install create channel
+helm install allchannel ./fabric-osnadmin-channel-create --namespace supplychain-net --values ./values/noproxy-and-novault/ordererOrganization/osn-create-channel.yaml
+
+# Install join channel and anchorpeer
+helm install peer0-carrier-allchannel ./fabric-channel-join --namespace carrier-net --values ./values/noproxy-and-novault/peerOrganization/join-channel.yaml
+```
+**Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
+
+### Create channel for Hyperledger Fabric 2.2.2
+```bash
+
+# Obtain the file channel.tx and place it in fabric-channel-create/files
+kubectl --namespace supplychain-net get configmap channel-artifacts-allchannel -o json > channel.tx.json
+
+# Install create channel
+helm install allchannel ./fabric-channel-create --namespace carrier-net --values ./values/noproxy-and-novault/peerOrganization/create-channel.yaml
+
+# Get the file anchors.tx and place it in fabric-channel-join/files
+kubectl --namespace supplychain-net get configmap anchorpeer-artifacts-allchannel -o json > anchors.tx.json
+
+# Install join channel and anchorpeer
+helm install peer0-carrier-allchannel ./fabric-channel-join --namespace carrier-net --values ./values/noproxy-and-novault/peerOrganization/join-channel.yaml
+```
+**Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
 
 ### _With Haproxy proxy and Vault_
 
@@ -116,7 +143,7 @@ Configure `settings.generateCertificates` field with value `true` for the genera
 
 ```bash
 # Install the Orderers
-helm install orderer1 ./fabric-orderernode --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/orderer.yaml
+helm install orderer1 ./fabric-orderernode --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/orderer.yaml --set settings.generateCertificates=true
 helm install orderer2 ./fabric-orderernode --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/orderer.yaml
 helm install orderer3 ./fabric-orderernode --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/orderer.yaml
 ```
@@ -130,7 +157,7 @@ kubectl create namespace carrier-net
 
 kubectl -n carrier-net create secret generic roottoken --from-literal=token=<VAULT_ROOT_TOKEN>
 
-helm install carrier-ca ./fabric-ca-server --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/ca-server.yaml
+helm install carrier-ca ./fabric-ca-server --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/ca-server.yaml 
 
 ```
 Configure `settings.generateCertificates` field with value `true` for the generation of the cryptographic materials. This value should only be set to `true` in first peer to be installed and `false` in the others.
@@ -149,7 +176,7 @@ cd ../..
 helm dependency update fabric-peernode
 
 # Install the Peers
-helm install peer0-carrier ./fabric-peernode --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/peer.yaml
+helm install peer0-carrier ./fabric-peernode --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/peer.yaml --set settings.generateCertificates=true
 ```
 
 ### Generate genesis file
@@ -164,10 +191,40 @@ cd ../..
 helm install genesis ./fabric-genesis --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/genesis.yaml
 ```
 
+### Create channel for Hyperledger Fabric 2.5.4
+```bash
+# Install create channel
+helm install allchannel ./fabric-osnadmin-channel-create --namespace supplychain-net --values ./values/proxy-and-vault/ordererOrganization/osn-create-channel.yaml
+
+# Install join channel and anchorpeer
+helm install peer0-carrier-allchannel ./fabric-channel-join --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/join-channel.yaml
+```
+**Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
+
+### Create channel for Hyperledger Fabric 2.2.2
+```bash
+
+# Obtain the file channel.tx and place it in fabric-channel-create/files
+kubectl --namespace supplychain-net get configmap channel-artifacts-allchannel -o json > channel.tx.json
+
+# Install create channel
+helm install allchannel ./fabric-channel-create --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/create-channel.yaml
+
+# Get the file anchors.tx and place it in fabric-channel-join/files
+kubectl --namespace supplychain-net get configmap anchorpeer-artifacts-allchannel -o json > anchors.tx.json
+
+# Install join channel and anchorpeer
+helm install peer0-carrier-allchannel ./fabric-channel-join --namespace carrier-net --values ./values/proxy-and-vault/peerOrganization/join-channel.yaml
+```
+**Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
+
 ### Clean-up
 
-To clean up, just uninstall the helm releases.
+To clean up, just uninstall the helm releases
 ```bash
+helm uninstall --namespace carrier-net peer0-carrier-allchannel
+helm uninstall --namespace supplychain-net allchannel
+helm uninstall --namespace carrier-net allchannel
 helm uninstall --namespace supplychain-net orderer1
 helm uninstall --namespace supplychain-net orderer2
 helm uninstall --namespace supplychain-net orderer3
