@@ -167,7 +167,7 @@ data:
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgNname }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
 
@@ -230,7 +230,7 @@ data:
       CSR_HOSTS=${PEER}
       for i in "${ALTERNATIVE_ORG_NAMES[@]}"
       do
-        CSR_HOSTS="${CSR_HOSTS},peer${COUNTER}.${i}"
+        CSR_HOSTS="${CSR_HOSTS},${PEER_NAME}.${i}"
       done
       echo "Registering and enrolling $PEER with csr hosts ${CSR_HOSTS}"
       
@@ -278,7 +278,7 @@ data:
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="C={{ .Values.orgData.componentCountry }},ST={{ .Values.orgData.componentState }},L={{ .Values.orgData.componentLocation }},O={{ .Values.orgData.orgName }}"
     SUBJECT_PEER="{{ .Values.orgData.componentSubject }}"
-    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME}-ca.{{ .Release.Namespace }}:7054"
     CA_ADMIN_USER="${ORG_NAME}-admin"
     CA_ADMIN_PASS="${ORG_NAME}-adminpw"
     NO_OF_PEERS="$PEERS_COUNT"
@@ -390,7 +390,7 @@ data:
     USER_IDENTITIES=$2
     AFFILIATION="{{ .Values.orgData.orgName }}"
     SUBJECT="{{ .Values.orgData.componentSubject }}"
-    CA="${ORG_NAME_EXT}-ca.{{ .Release.Namespace }}:7054"
+    CA="${ORG_NAME}-ca.{{ .Release.Namespace }}:7054"
     if [ "$1" != "peer" ]; then
       ORG_CYPTO_FOLDER="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}"
       ROOT_TLS_CERT="/crypto-config/ordererOrganizations/${FULLY_QUALIFIED_ORG_NAME}/ca/ca.${FULLY_QUALIFIED_ORG_NAME}-cert.pem"
@@ -1488,12 +1488,14 @@ data:
         do
           if [ -e /certcheck/absent_orderer_tls_cert.txt ] && [ "$ORDERER_TLS_WRITTEN" =  "false" ]
           then
-            # formatting is needed because bas64 encoding removed the newlines, so they need to be added again
-            while read line || [ -n "$line" ];
-            do 
-              echo "$line\n"; 
-            done <  /tlscerts/orderer.crt > orderer.formatted
-            ORDERER_TLS=$(cat orderer.formatted)
+            cp /tlscerts/orderer.crt orderer.crt
+            grep -v '^$' "/tlscerts/orderer.crt" > orderer.crt
+
+            cat orderer.crt
+            formatCertificate "orderer.crt" "./"
+            ORDERER_TLS=$(cat orderer.crt.txt)
+
+            cat orderer.crt.txt
             echo "
               {
                 \"data\": 
@@ -2033,7 +2035,7 @@ data:
         OrganizationalUnitIdentifier: orderer
 
 {{- $file := .Files.Get "files/orderer.crt" }}
-{{ if and (eq $.Values.orgData.type "peer") $file }}
+{{- if and (eq $.Values.orgData.type "peer") $file }}
 ---
 apiVersion: v1
 kind: ConfigMap
