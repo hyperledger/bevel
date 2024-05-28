@@ -115,7 +115,7 @@ helm install supplychain ./quorum-node --namespace supplychain-quo --values ./va
 ### Setting Up Another Member in a Different Namespace
 
 ```bash
-# Get the genesis and static nodes from existing member and and place them in the directory 'besu-genesis/files'
+# Get the genesis and static nodes from existing member and and place them in the directory 'quorum-genesis/files'
 cd ./quorum-genesis/files/
 kubectl --namespace supplychain-quo get configmap quorum-peers -o jsonpath='{.data.static-nodes\.json}' > static-nodes.json
 kubectl --namespace supplychain-quo get configmap quorum-genesis  -o jsonpath='{.data.genesis\.json}' > genesis.json

@@ -10,7 +10,14 @@
     name: setup/genesis/secondary
   vars:
     values_dir: "./build/{{ component_ns }}"
+  when: org.type == 'member'
 
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.type == 'member' and org.services.peers is defined
+  
 # Creates the Besu node value files for each node of organization
 - name: Create value file for Besu node
   include_role:
@@ -44,21 +51,3 @@
     component_name: "{{ member.name | lower }}"
     namespace: "{{ component_ns }}"
   when: org.services.peers is defined
-
-# Get the Genesis and staticnodes
-- name: Get genesis and staticnodes
-  include_role: 
-    name: get/genesis
-  when: org.services.peers is defined
-
-# Add the enode of new organizations to each of the existing nodes using rpc call only when ambassador is used
-- name: Adding the enode of new peer to all existing peer.
-  include_role: 
-    name: setup/new_member
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when:
-    - org.services.peers is defined
-    - network.config.besu_nodes is defined
-    - network.env.proxy == 'ambassador'

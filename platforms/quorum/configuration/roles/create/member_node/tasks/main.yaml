@@ -1,12 +1,53 @@
-# Create helm release files for member nodes
-- name: Create helm release files for member nodes
-  include_tasks: member_main.yaml
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Execute only for members
+- name: Perform secondary genesis
+  include_role:
+    name: setup/genesis/secondary
   vars:
-    peer_query: "peers[?type=='member']"
-    member_node: "{{ org.services | json_query(peer_query) | first | default() }}"
-  loop: "{{ peers }}"
+    values_dir: "./build/{{ component_ns }}"
+  when: org.type == 'member'
+
+# Get the Genesis and staticnodes
+- name: Get genesis and staticnodes
+  include_role: 
+    name: get/genesis
+  when: org.type == 'member' and org.services.peers is defined
+
+# Creates the Quorum node value files for each node of organization
+- name: Create value file for Quorum node
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ peer.name }}"
+    type: "memberquorum"
+  loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: peer
-  when:
-    - member_node | length > 0
-    - peer.type == 'member'
+  when: org.services.peers is defined
+  
+# Pushes the above generated files to git directory 
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing Member node files"
+  when: org.services.peers is defined
+
+# Wait for the last Member to be running
+- name: "Wait for the last member to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    member: "{{ org.services.peers | last }}"
+    label_selectors:
+      - app.kubernetes.io/release = {{ member.name | lower }}
+    component_type: "Pod"
+    component_name: "{{ member.name | lower }}"
+    namespace: "{{ component_ns }}"
+  when: org.services.peers is defined

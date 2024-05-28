@@ -1,0 +1,30 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get the genesis file from current org
+- name: Get genesis from config map of current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: ConfigMap
+    name: "quorum-genesis"
+    namespace: "{{ component_ns }}"
+  register: genesis_data
+
+# Get the static node file from current org
+- name: Get static-nodes from config map of current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: ConfigMap
+    name: "quorum-peers"
+    namespace: "{{ component_ns }}"
+  register: nodes_data
+
+- name: Save genesis locally for Secondary genesis
+  shell: |
+    echo {{ genesis_data.resources[0].data['genesis.json'] | to_nice_json }} > {{ files_loc }}/genesis.json
+    echo {{ nodes_data.resources[0].data['static-nodes.json'] | to_nice_json }} > {{ files_loc }}/static-nodes.json
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/quorum-genesis/files"
