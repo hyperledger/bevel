@@ -17,8 +17,7 @@ metadata:
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-  annotations:
-    {{- include "labels.deployment" . | nindent 2 }}
+    {{- include "labels.deployment" . | nindent 4 }}
 spec:
   updateStrategy:
     type: RollingUpdate 
@@ -45,32 +44,32 @@ spec:
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
-        {{- include "labels.deployment" . | nindent 6 }}
+        {{- include "labels.deployment" . | nindent 8 }}
     spec:   
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       initContainers:
       - name: certificates-init
-        image: {{ $.Values.image.alpineUtils }}
+        image: {{ .Values.image.alpineUtils }}
         imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
-          value: {{ $.Values.global.vault.address }}
+          value: {{ .Values.global.vault.address }}
         - name: VAULT_SECRET_ENGINE
-          value: "{{ $.Values.global.vault.secretEngine }}"
+          value: "{{ .Values.global.vault.secretEngine }}"
         - name: VAULT_SECRET_PREFIX
-          value: "{{ $.Values.global.vault.secretPrefix }}"
+          value: "{{ .Values.global.vault.secretPrefix }}"
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.global.vault.authPath }}
+          value: {{ .Values.global.vault.authPath }}
         - name: VAULT_APP_ROLE
-          value: {{ $.Values.global.vault.role }}
+          value: {{ .Values.global.vault.role }}
         - name: MOUNT_PATH
           value: /secret
         - name: VAULT_TYPE
-          value: "{{ $.Values.global.vault.type }}"
+          value: "{{ .Values.global.vault.type }}"
         - name: PEER_NAME
           value: {{ .Release.Name }}
         command: ["sh", "-c"]
@@ -85,15 +84,15 @@ spec:
           vaultBevelFunc "init"
 
           function getPeerTlsSecret {
-            KEY=$1/tls
+            KEY=$1-tls
       
             echo "Getting TLS certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/peers/${KEY}"
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
-              TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-              TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
-              TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
+              TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca_crt"]')
+              TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server_crt"]')
+              TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server_key"]')
               
               echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
               echo "${TLS_SERVER_CERT}" > ${OUTPUT_PATH}/server.crt
@@ -105,10 +104,10 @@ spec:
           }
 
           function getPeerMspSecret {
-            KEY=$1/msp
+            KEY=$1-msp
 
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/peers/${KEY}"
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
               ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
@@ -126,21 +125,6 @@ spec:
             else
               PEER_MSP_SECRET=false
             fi     
-          }
-
-          function getCouchDbPass {
-            KEY=$1
-
-            echo "Getting TLS certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY}"
-            if [ "$SECRETS_AVAILABLE" == "yes" ]
-            then
-              PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.["user"]')
-              echo "${PASSWORD}" > ${MOUNT_PATH}/user_cred
-              DB_PASS_SECRET=true
-            else
-              DB_PASS_SECRET=false
-            fi  
           }
  
 {{- else }}
@@ -182,21 +166,10 @@ spec:
             fi
                                       
           }
-
-          function getCouchDbPass {
-            KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.user}" | base64 -d > ${MOUNT_PATH}/user_cred
-              DB_PASS_SECRET=true
-            else
-              DB_PASS_SECRET=false
-            fi     
-          }
 {{- end }} 
 
           COUNTER=1
-          while [ "$COUNTER" -le {{ $.Values.cli.healthCheck.retries }} ]
+          while [ "$COUNTER" -le {{ .Values.peer.healthCheck.retries }} ]
           do
             OUTPUT_PATH="${MOUNT_PATH}/tls"
             mkdir -p ${OUTPUT_PATH}
@@ -210,20 +183,18 @@ spec:
             mkdir -p ${OUTPUT_PATH}/tlscacerts
             getPeerMspSecret ${PEER_NAME}
 
-            getCouchDbPass couchdb
-
-            if [ "$PEER_TLS_SECRET" = "true" ] && [ "$PEER_MSP_SECRET" = "true" ] && [ "$DB_PASS_SECRET" = "true" ]
+            if [ "$PEER_TLS_SECRET" = "true" ] && [ "$PEER_MSP_SECRET" = "true" ]
             then
               echo "Peer certificates have been obtained correctly"
               break
             else
-              echo "Peer certificates have not been obtained, sleeping for {{ $.Values.cli.healthCheck.sleepTimeAfterError }}"
-              sleep {{ $.Values.cli.healthCheck.sleepTimeAfterError }}
+              echo "Peer certificates have not been obtained, sleeping for {{ .Values.peer.healthCheck.sleepTimeAfterError }}"
+              sleep {{ .Values.peer.healthCheck.sleepTimeAfterError }}
               COUNTER=`expr "$COUNTER" + 1`
             fi
           done
 
-          if [ "$COUNTER" -gt {{ $.Values.cli.healthCheck.retries }} ]
+          if [ "$COUNTER" -gt {{ .Values.peer.healthCheck.retries }} ]
           then
             echo "Retry attempted `expr $COUNTER - 1` times, The peer certificates have not been obtained."
             exit 1
@@ -242,7 +213,7 @@ spec:
           subPath: bevel-vault.sh
       containers:
       - name: couchdb
-        image: {{ $.Values.image.couchdb }}:{{ $.Values.global.network.version }}
+        image: {{ .Values.image.couchdb }}:{{ .Values.global.version }}
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -252,36 +223,32 @@ spec:
           chmod 664 /opt/couchdb/etc/*.ini
           chmod 664 /opt/couchdb/etc/local.d/*.ini
           chmod 775 /opt/couchdb/etc/*.d
-          if [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ -z $COUCHDB_USER ]
+          if [ -z $COUCHDB_USER ]
           then
-            echo " Error! Please provide username for the password "
+            echo " Error! Please provide username for CouchDB."
             exit 1
             break
-          elif [ -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
+          elif [ -z $COUCHDB_PASSWORD ]
           then
-            export COUCHDB_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
-            break
-          elif [ ! -e /etc/hyperledger/fabric/crypto/user_cred ] && [ ! -z $COUCHDB_USER ]
-          then
-            echo " Error! Please provide password for username $COUCHDB_USER "
+            echo " Error! Please provide password for username $COUCHDB_USER."
             exit 1
             break
-          else
-            :
           fi
           tini -- /docker-entrypoint.sh /opt/couchdb/bin/couchdb
         ports:
         - containerPort: 5984
         env:
         - name: COUCHDB_USER
-          value: "{{ $.Values.peer.couchdb.username }}"
+          value: "{{ .Values.peer.couchdb.username }}"
+        - name: COUCHDB_PASSWORD
+          value: "{{ .Values.peer.couchdb.password }}"
         volumeMounts:
         - name: datadir-couchdb
           mountPath: /opt/couchdb/data
         - name: certificates
           mountPath: /etc/hyperledger/fabric/crypto
       - name: {{ .Release.Name }}
-        image: {{ $.Values.image.peer }}:{{ $.Values.global.network.version }} 
+        image: {{ .Values.image.peer }}:{{ .Values.global.version }} 
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -292,7 +259,7 @@ spec:
           fi
 
           cp /etc/hyperledger/fabric/NodeOUconfig/mspConfig  /etc/hyperledger/fabric/crypto/msp/config.yaml
-          export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=`cat /etc/hyperledger/fabric/crypto/user_cred`
+          export CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD="{{ .Values.peer.couchdb.password }}"
           version=$( echo ${PEER_IMAGE} | sed 's/.*://' | cut -d '.' -f -2 )
           if [ $version = "2.2" ] && [ ${IS_UPGRADE} = "true" ]
           then
@@ -308,9 +275,9 @@ spec:
           containerPort: 9443
         env:
         - name: PEER_IMAGE
-          value: "{{ $.Values.image.peer }}:{{ $.Values.global.network.version }}"
+          value: "{{ .Values.image.peer }}:{{ .Values.global.version }}"
         - name: IS_UPGRADE
-          value: "{{ $.Values.upgrade }}"
+          value: "{{ .Values.peer.upgrade }}"
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config
@@ -331,11 +298,11 @@ spec:
       {{ end }}
         resources:
           requests:
-            memory: {{ .Values.config.pod.resources.requests.memory }}
-            cpu: {{ .Values.config.pod.resources.requests.cpu }}
+            memory: {{ .Values.peer.resources.requests.memory }}
+            cpu: {{ .Values.peer.resources.requests.cpu }}
           limits:
-            memory: {{ .Values.config.pod.resources.limits.memory }}
-            cpu: {{ .Values.config.pod.resources.limits.cpu }}
+            memory: {{ .Values.peer.resources.limits.memory }}
+            cpu: {{ .Values.peer.resources.limits.cpu }}
       - name: grpc-web
         image: "ghcr.io/hyperledger-labs/grpc-web:latest"
         imagePullPolicy: IfNotPresent        
@@ -344,7 +311,7 @@ spec:
           containerPort: 7443        
         env:
         - name: BACKEND_ADDRESS
-          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ $.Values.service.ports.grpc.clusterIpPort }}"
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.peer.ports.grpc.clusterIpPort }}"
         - name: SERVER_TLS_CERT_FILE
           value: /certs/tls/server.crt
         - name: SERVER_TLS_KEY_FILE
@@ -372,7 +339,7 @@ spec:
       {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
@@ -402,21 +369,21 @@ spec:
   #Lables are not being taken by Kubernetes as it dynamically creates PVC
   - metadata:
       name: datadir
-      annotations:
-        {{- include "labels.pvc" . | nindent 6 }}
+      labels:
+        {{- include "labels.pvc" . | nindent 8 }}
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: storage-{{ .Release.Name }}
       resources:
         requests:
-          storage: {{ .Values.storage.peer.size }}
+          storage: {{ .Values.storage.peer }}
   - metadata:
       name: datadir-couchdb
-      annotations:
-        {{- include "labels.pvc" . | nindent 6 }}
+      labels:
+        {{- include "labels.pvc" . | nindent 8 }}
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: storage-{{ .Release.Name }}
       resources:
         requests:
-          storage: {{ .Values.storage.couchdb.size }}
+          storage: {{ .Values.storage.couchdb }}

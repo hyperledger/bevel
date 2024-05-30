@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install my-release bevel/besu-tlscert-gen
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -57,9 +57,9 @@ These parameters are refered to as same in each parent or chold chart
 | `global.vault.address`| URL of the Vault server.    | `""`            |
 | `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
 | `global.vault.network` | Network type which will determine the vault policy | `besu` |
-| `global.vault.secretEngine` | Provide the value for vault secret engine name   | `secretsv2`  |
-| `global.vault.secretPrefix` | Provide the value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
-| `global.proxy.externalUrlSuffix` | Provide the External URL suffix which will be used as CN to generate certificate | `test.blockchaincloudpoc.com`  |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.proxy.externalUrlSuffix` | External URL suffix which will be used as CN to generate certificate | `test.blockchaincloudpoc.com`  |
 
 ### Image
 
@@ -67,14 +67,14 @@ These parameters are refered to as same in each parent or chold chart
 |------------|-----------|---------|
 | `image.repository`    | Docker repository which will be used for this job | `ghcr.io/hyperledger/bevel-alpine`  |
 | `image.tag`    | Docker image tag which will be used for this job | `latest`  |
-| `image.pullSecret` | Provide the docker secret name  | `""`  |
+| `image.pullSecret` | Secret name in the namespace containing private image registry credentials   | `""`  |
 | `image.pullPolicy` | The pull policy for the image  | `IfNotPresent`  |
 
 ### Settings
 | Name | Description | Default Value   |
 | ------------| -------------- | --------------- |
 | `settings.tmTls`   | Set value to true when transaction manager like tessera uses tls. This enables TLS for the transaction manager and Besu node. | `True` |
-| `settings.certSubject`  | Provide the X.509 subject for root CA | `"CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"`            |
+| `settings.certSubject`  | The X.509 subject for root CA | `"CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"`            |
 
 ### Common parameters
 

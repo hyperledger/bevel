@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install cenm bevel/cenm
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -85,7 +85,7 @@ These parameters are refered to as same in each parent or child chart
 ### Image
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 | `image.pki.repository`   | CENM PKI image repository  | `corda/enterprise-pkitool`|
 | `image.pki.tag`   | CENM PKI image tag as per version | `1.5.9-zulu-openjdk8u382`|

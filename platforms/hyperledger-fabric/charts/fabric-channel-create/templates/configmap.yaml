@@ -9,45 +9,40 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-config
   namespace: {{ .Release.Namespace }}
-  annotations:
-    {{- include "labels.deployment" . | nindent 2 }}
   labels:
     app: {{ .Release.Name }}
-    app.kubernetes.io/name: createchannel-{{ .Release.Name }}
-    app.kubernetes.io/component: fabric-channel-create-job
+    app.kubernetes.io/name: {{ .Release.Name }}-config
+    app.kubernetes.io/component: configmap
     app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-    {{ include "labels.deployment" . | nindent 6 }} 
 data:
   CHANNEL_NAME: {{ .Release.Name }}
-  FABRIC_LOGGING_SPEC: {{ $.Values.peer.logLevel }}
-  CORE_PEER_ID: {{ $.Values.peer.name }}.{{ .Release.Namespace }}
-  CORE_PEER_ADDRESS: {{ $.Values.peer.address }}
-  CORE_PEER_LOCALMSPID: {{ $.Values.peer.localMspId }}
+  FABRIC_LOGGING_SPEC: {{ .Values.peer.logLevel }}
+  CORE_PEER_ID: {{ .Values.peer.name }}.{{ .Release.Namespace }}
+  CORE_PEER_ADDRESS: {{ .Values.peer.address }}
+  CORE_PEER_LOCALMSPID: {{ .Values.peer.localMspId }}
   CORE_PEER_TLS_ENABLED: "{{ $.Values.peer.tlsStatus }}"
   CORE_PEER_TLS_ROOTCERT_FILE: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
-  ORDERER_CA: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
-  ORDERER_URL: {{ $.Values.orderer.address }}
+  ORDERER_CA: /opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt
+  ORDERER_URL: {{ .Values.peer.ordererAddress }}
   CORE_PEER_MSPCONFIGPATH: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
-  NETWORK_VERSION: {{ $.Values.global.network.version }}
-  
+  NETWORK_VERSION: {{ .Values.global.version }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: channel-artifacts-{{ .Release.Name }}
+  name: {{ .Release.Name }}-channel-artifacts
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}
-    app.kubernetes.io/name: createchannel-{{ .Release.Name }}
-    app.kubernetes.io/component: fabric-channel-create-job
+    app.kubernetes.io/name: {{ .Release.Name }}-channel-artifacts
+    app.kubernetes.io/component: channel-artifacts
     app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-    {{ include "labels.deployment" . | nindent 6 }} 
 data:
-  channel.tx.json: |-
-    {{ .Files.Get "files/channel.tx.json" | nindent 8 }}
+  channeltx_base64: |-
+    {{ .Files.Get "files/channeltx.json" | nindent 8 }}

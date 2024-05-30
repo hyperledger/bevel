@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install validator-1 bevel/quorum-node
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -97,7 +97,7 @@ This is where you can override the values for the [quorum-tessera-node subchart]
 | `image.hooks.repository`  | Quorum/Besu hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
 | `image.hooks.tag`  | Quorum/Besu hooks image tag  | `qgt-0.2.12` |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 
 
 ### quorum node

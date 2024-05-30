@@ -23,6 +23,8 @@ global:
     #Provide the vaultrole for an organization
     #Eg. vaultrole: org1-vault-role
     role: vault-role
+    #Provide the network type
+    network: fabric
     #Provide the vault server address
     #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
     address:
@@ -33,31 +35,27 @@ global:
     secretEngine: secretsv2
     #Provide the vault path where the secrets will be stored
     secretPrefix: "data/supplychain"
-    #Enable or disable TLS for vault communication
+    #Enable or disable TLS for Vault communication
     #Eg. tls: true
-    tls: 
+    tls: false
 
-    proxy:
-      #This will be the proxy/ingress provider. Can have values "haproxy" or "none"
-      #Eg. provider: "haproxy"
-      provider: haproxy
-      #This field specifies the external url for the organization
-      #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
-      externalUrlSuffix: test.blockchaincloudpoc.com
-
-cacerts:
-  ca:
-    #Provide organization's name
-    orgName: supplychain
-    #Provide the subject of the services ca organization's
-    #Eg. subject: "/C=GB/ST=London/L=London/O=Carrier/CN=carrier-net"
-    subject: /C=GB/ST=London/L=London/O=Orderer
-    # Flag to ensure the certificates secrets are removed on helm uninstall
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "haproxy" or "none"
+    #Eg. provider: "haproxy"
+    provider: haproxy
+    #This field specifies the external url for the organization
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
 
 storage:
   #Provide the size for CA
   #Eg. size: 512Mi
   size: 512Mi
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false
 
 image:
   #Provide the valid image name and version to read certificates from vault server
@@ -71,30 +69,34 @@ image:
   pullSecret: 
 
 server:
-  #Provide the value for tlsStatus to be true or false for  deployment
-  #Eg. tlsStatus: true
-  tlsStatus: true
-  #Provide the admin name for CA server
-  #Eg. admin: admin
-  admin: admin
-  # Provide the path for Fabric CA Server Config
-  # Eg. configpath: conf/ca-config-default.yaml
-  
-service:
-  ports:
-    tcp:
-      #Provide tcp node port to be exposed for ca server
-      #Eg. nodePort: 30007
-      nodePort:
-      #Provide tcp cluster IP port to be exposed for ca server
-      #Eg. clusterIpPort: 7054
-      clusterIpPort: 7054
-
-settings:
   # Flag to ensure the certificates secrets are removed on helm uninstall
   removeCertsOnDelete: true
+  #Provide the value for tls setting for CA server
+  #Eg. tlsStatus: true
+  tlsStatus: true
+  #Provide the admin username for CA server
+  #Eg. adminUsername: admin
+  adminUsername: admin
+  #Provide the admin password for CA server
+  adminPassword: adminpw
+  #Provide the subject of the services ca organization's
+  #Eg. subject: "/C=GB/ST=London/L=London/O=Carrier/CN=carrier-net"
+  subject: "/C=GB/ST=London/L=London/O=Orderer"
+  # Provide the path for Fabric CA Server Config
+  # Eg. configPath: conf/ca-config-default.yaml
+  configPath: 
+  #Provide tcp node port to be exposed for ca server
+  #Eg. nodePort: 30007
+  nodePort:
+  #Provide tcp cluster IP port to be exposed for ca server
+  #Eg. clusterIpPort: 7054
+  clusterIpPort: 7054
 
+# Provide additional labels in array format
 labels:
+  #Eg. service:
+  # - label1: value1
+  # - label2: value2
   service: []
   pvc: []
   deployment: []

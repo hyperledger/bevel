@@ -1,0 +1,37 @@
+#helm install orderer1 -f values/noproxy-and-novault/orderer.yaml -n supplychain-net fabric-orderernode
+global:
+  version: 2.5.4
+  serviceAccountName: vault-auth
+  vault:
+    type: kubernetes
+
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+  
+  proxy:
+    provider: none
+    externalUrlSuffix: supplychain-net
+
+certs:
+  generateCertificates: true
+  orgData:
+    caAddress: ca.supplychain-net:7054
+    caAdminUser: supplychain-admin
+    caAdminPassword: supplychain-adminpw
+    orgName: supplychain
+    type: orderer
+    componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+  settings:
+    #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+    createConfigMaps: true
+    refreshCertValue: false
+    addPeerValue: false
+    removeCertsOnDelete: true
+    removeOrdererTlsOnDelete: true
+
+orderer:
+  consensus: raft
+  logLevel: info
+  localMspId: supplychainMSP
+  tlsstatus: true

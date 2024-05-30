@@ -70,7 +70,7 @@ These parameters are refered to as same in each parent or child chart
 ### Image
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 | `image.initContainer`   | Init-container image repository and tag  | `ghcr.io/hyperledger/bevel-alpine-ext:latest`|
 | `image.cli`   | Indy-cli indy-ledger-txn image repository and tag | `ghcr.io/hyperledger/bevel-indy-ledger-txn:latest`|
 | `image.indyNode.repository`  | Indy Node image repository  | `ghcr.io/hyperledger/bevel-indy-node` |

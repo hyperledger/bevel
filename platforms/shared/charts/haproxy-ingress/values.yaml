@@ -4,6 +4,8 @@ rbac:
   secret:
     write: false
   security:
+    # Configures PodSecurityPolicy. This resource was removed on Kubernetes v1.25,
+    # so it is ignored on clusters version v1.25 or newer.
     enable: false
 
 # Create ServiceAccount
@@ -13,14 +15,17 @@ serviceAccount:
   # The name of the ServiceAccount to use.
   # If not set and create is true, a name is generated using the fullname template
   name:
+  # Automount API credentials for the ServiceAccount.
+  automountServiceAccountToken: true
 
 nameOverride: ""
 fullnameOverride: "haproxy-ingress"
 
 controller:
   image:
-    repository: quay.io/jcmoraisjr/haproxy-ingress
-    tag: v0.13.9
+    registry: quay.io
+    repository: jcmoraisjr/haproxy-ingress
+    tag: v0.14.6
     pullPolicy: IfNotPresent
 
   imagePullSecrets: []
@@ -71,7 +76,7 @@ controller:
   ## Uses ingressClass as name for the IngressClass
   ##
   ingressClassResource:
-    enabled: false
+    enabled: true
     default: false
     controllerClass: ""
     parameters: {}
@@ -97,6 +102,10 @@ controller:
     periodSeconds: 10
     successThreshold: 1
     timeoutSeconds: 1
+
+  ## Annotations to be added to DaemonSet/Deployment definitions
+  ##
+  annotations: {}
 
   ## Annotations to be added to controller pods
   ##
@@ -142,6 +151,9 @@ controller:
   #  hello_again.lua: |
   #    core.Debug("Hello again HAProxy!\n")
 
+  # Automount API credentials to the controller's pod
+  automountServiceAccountToken: true
+
   # Required for use with CNI based kubernetes installations (such as ones set up by kubeadm),
   # since CNI and hostport don't mix yet. Can be deprecated once https://github.com/kubernetes/kubernetes/issues/23920
   # is merged
@@ -176,13 +188,18 @@ controller:
 
   ## DaemonSet or Deployment
   ##
-  kind: Deployment
+  kind: DaemonSet
 
   # TCP service key:value pairs
   # <port>: <namespace>/<servicename>:<portnumber>[:[<in-proxy>][:<out-proxy>]]
   # https://haproxy-ingress.github.io/docs/configuration/command-line/#tcp-services-configmap
   tcp: {}
   #  8080: "default/example-tcp-svc:9000"
+
+  # default values for http and https containerPorts
+  containerPorts:
+    http: 80
+    https: 443
 
   # optionally disable static ports, including the default 80 and 443
   enableStaticPorts: true
@@ -217,7 +234,8 @@ controller:
   # Deployment
   replicaCount: 1
 
-  # PodDisruptionBudget
+  # A PodDisruptionBudget is created only if minAvailable is
+  # greater than 0 (zero) and lesser than the replicaCount
   minAvailable: 1
 
   resources: {}
@@ -252,7 +270,7 @@ controller:
   ##
   nodeSelector: {}
 
-  ## The 'publishService' setting allows customization of the source of the IP address or FQDN to report 
+  ## The 'publishService' setting allows customization of the source of the IP address or FQDN to report
   ## in the ingress status field. If disabled (default), the field will not be set by the controller.
   ## If enabled, it reads the information provided by the service, unless pathOverride is specified.
   ## If a value for 'publish-service' is specified in controller.extraArgs, it overrides this setting.
@@ -284,6 +302,7 @@ controller:
     # ipFamilies: [IPv4]
     # ipFamilyPolicy: PreferDualStack
 
+    loadBalancerClass: ""
     loadBalancerIP: ""
     loadBalancerSourceRanges: []
 
@@ -319,8 +338,9 @@ controller:
     enabled: false
 
     image:
+      registry: docker.io
       repository: haproxy
-      tag: "2.3.21-alpine"
+      tag: "2.6.14-alpine"
       pullPolicy: IfNotPresent
 
     ## Additional command line arguments to pass to haproxy
@@ -333,6 +353,12 @@ controller:
     #  requests:
     #    cpu: 500m
     #    memory: 768Mi
+
+    # Configure container lifecycle. When scaling replicas down this can be
+    # used to prevent controller container from terminating quickly and drop in-flight requests.
+    # For example, when the controller runs behind Network Load Balancer this can be used
+    # to configure preStop hook to sleep along with deregistration_delay.
+    lifecycle: {}
 
     ## Container Security Context for the haproxy container
     ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -380,7 +406,8 @@ controller:
     # (scrapes the stats port and exports metrics to prometheus)
     # Only used if embedded == false
     image:
-      repository: quay.io/prometheus/haproxy-exporter
+      registry: quay.io
+      repository: prometheus/haproxy-exporter
       tag: "v0.11.0"
       pullPolicy: IfNotPresent
 
@@ -415,6 +442,7 @@ controller:
       ##
       externalIPs: []
 
+      loadBalancerClass: ""
       loadBalancerIP: ""
       loadBalancerSourceRanges: []
       servicePort: 9101
@@ -423,6 +451,7 @@ controller:
 
   ## If controller.stats.enabled = true and controller.metrics.enabled = true and controller.serviceMonitor.enabled = true, Prometheus ServiceMonitor will be created
   ## Ref: https://coreos.com/operators/prometheus/docs/latest/api.html#servicemonitor
+  ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md
   ##
   serviceMonitor:
     enabled: false
@@ -469,11 +498,13 @@ controller:
     enabled: false
 
     # syslog for haproxy
-    # https://github.com/whereisaaron/kube-syslog-sidecar
+    # https://github.com/crisu1710/kube-syslog-sidecar
     # (listens on UDP port 514 and outputs to stdout)
+    # registry needs to be in quotes
     image:
-      repository: whereisaaron/kube-syslog-sidecar
-      tag: latest
+      registry: "ghcr.io"
+      repository: crisu1710/kube-syslog-sidecar
+      tag: "0.2.0"
       pullPolicy: IfNotPresent
 
     ## Additional volume mounts
@@ -505,9 +536,13 @@ defaultBackend:
 
   name: default-backend
   image:
-    repository: k8s.gcr.io/defaultbackend-amd64
+    registry: k8s.gcr.io
+    repository: defaultbackend-amd64
     tag: "1.5"
     pullPolicy: IfNotPresent
+
+  imagePullSecrets: []
+  # - name: secret-name
 
   ## Node tolerations for server scheduling to nodes with taints
   ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -536,7 +571,8 @@ defaultBackend:
   # Deployment
   replicaCount: 1
 
-  # PodDisruptionBudget
+  # A PodDisruptionBudget is created only if minAvailable is
+  # greater than 0 (zero) and lesser than the replicaCount
   minAvailable: 1
 
   resources:
@@ -557,8 +593,10 @@ defaultBackend:
     ##
     externalIPs: []
 
+    loadBalancerClass: ""
     loadBalancerIP: ""
     loadBalancerSourceRanges: []
+
     servicePort: 8080
     type: ClusterIP
 
@@ -571,3 +609,7 @@ defaultBackend:
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   ##
   securityContext: {}
+
+  ## Priority Class for the default backend container
+  ##
+  priorityClassName: ""

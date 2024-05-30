@@ -19,17 +19,23 @@ metadata:
 data:
   CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
   CORE_PEER_ID: {{ .Release.Name }}.{{ .Release.Namespace }}
-  FABRIC_LOGGING_SPEC: "grpc=debug:{{ $.Values.peer.logLevel }}"
+  FABRIC_LOGGING_SPEC: "grpc=debug:{{ .Values.peer.logLevel }}"
   CORE_LEDGER_STATE_STATEDATABASE: CouchDB
   CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: localhost:5984
-  CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME: "{{ $.Values.peer.couchdb.username }}"
-  CORE_PEER_ADDRESS: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ $.Values.service.ports.grpc.clusterIpPort }}
-  CORE_PEER_GOSSIP_BOOTSTRAP: {{ .Release.Name }}.{{ $.Values.peer.gossipPeerAddress }}
-  {{ if $.Values.peer.gossipExternalEndpoint }}
-  CORE_PEER_GOSSIP_EXTERNALENDPOINT: {{ .Release.Name }}.{{ $.Values.peer.gossipExternalEndpoint }}
-  {{ end }}
-  CORE_PEER_LOCALMSPID: {{ $.Values.cli.peer.localMspId }}
-  CORE_PEER_TLS_ENABLED: "{{ $.Values.cli.peer.tlsStatus }}"
+  CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME: "{{ .Values.peer.couchdb.username }}"
+  CORE_PEER_ADDRESS: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.peer.ports.grpc.clusterIpPort }}
+  {{- if .Values.peer.gossipPeerAddress }}
+  CORE_PEER_GOSSIP_BOOTSTRAP: {{ .Values.peer.gossipPeerAddress }}
+  {{- else }}
+  CORE_PEER_GOSSIP_BOOTSTRAP: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.peer.ports.grpc.clusterIpPort }}
+  {{- end }}
+  {{- if eq .Values.global.proxy.provider "none" }}
+  CORE_PEER_GOSSIP_EXTERNALENDPOINT: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.peer.ports.grpc.clusterIpPort }}
+  {{- else }}
+  CORE_PEER_GOSSIP_EXTERNALENDPOINT: {{ .Release.Name }}.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}:{{ .Values.global.proxy.port }}
+  {{- end }}
+  CORE_PEER_LOCALMSPID: {{ .Values.peer.localMspId }}
+  CORE_PEER_TLS_ENABLED: "{{ .Values.peer.tlsStatus }}"
   CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/fabric/crypto/tls/server.crt
   CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/fabric/crypto/tls/server.key
   CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/fabric/crypto/msp/tlscacerts/tlsca.crt
@@ -41,7 +47,7 @@ data:
   CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/fabric/crypto/msp
   GODEBUG: "netdns=go"
   CORE_PEER_GOSSIP_SKIPHANDSHAKE: "true"
-  CORE_CHAINCODE_BUILDER: "{{ $.Values.peer.builder }}:{{ $.Values.global.network.version }}"
+  CORE_CHAINCODE_BUILDER: "{{ .Values.peer.builder }}:{{ .Values.global.version }}"
   CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9443
 ---
 apiVersion: v1
@@ -57,25 +63,29 @@ metadata:
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  mspConfig: |
-    {{if  ($.Values.peer.mspConfig.organizationalUnitIdentifiers) }}
-      OrganizationalUnitIdentifiers:{{ range $.Values.peer.mspConfig.organizationalUnitIdentifiers }}
+  mspConfig: |-
+
+    {{- if (.Values.peer.mspConfig.organizationalUnitIdentifiers) }}
+      OrganizationalUnitIdentifiers:
+      {{- range .Values.peer.mspConfig.organizationalUnitIdentifiers }}
         - Certificate: cacerts/ca.crt
-          OrganizationalUnitIdentifier: {{ . }}{{ end }}{{end}}
+          OrganizationalUnitIdentifier: {{ . }}
+      {{- end }}
+    {{- end }}
       NodeOUs:
         Enable: true
         ClientOUIdentifier:
           Certificate: cacerts/ca.crt
-          OrganizationalUnitIdentifier: {{ $.Values.peer.mspConfig.nodeOUs.clientOUIdentifier.organizationalUnitIdentifier }}
+          OrganizationalUnitIdentifier: {{ .Values.peer.mspConfig.nodeOUs.clientOUIdentifier }}
         PeerOUIdentifier:
           Certificate: cacerts/ca.crt
-          OrganizationalUnitIdentifier: {{ $.Values.peer.mspConfig.nodeOUs.peerOUIdentifier.organizationalUnitIdentifier }}
+          OrganizationalUnitIdentifier: {{ .Values.peer.mspConfig.nodeOUs.peerOUIdentifier }}
         AdminOUIdentifier:
           Certificate: cacerts/ca.crt
-          OrganizationalUnitIdentifier: {{ $.Values.peer.mspConfig.nodeOUs.adminOUIdentifier.organizationalUnitIdentifier }}
+          OrganizationalUnitIdentifier: {{ .Values.peer.mspConfig.nodeOUs.adminOUIdentifier }}
         OrdererOUIdentifier:
           Certificate: cacerts/ca.crt
-          OrganizationalUnitIdentifier: {{ $.Values.peer.mspConfig.nodeOUs.ordererOUIdentifier.organizationalUnitIdentifier }}
+          OrganizationalUnitIdentifier: {{ .Values.peer.mspConfig.nodeOUs.ordererOUIdentifier }}
 
 ---
 {{- $file := .Files.Get "files/core.yaml" }}
@@ -91,7 +101,26 @@ metadata:
     app.kubernetes.io/part-of: {{ include "fabric-peernode.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/managed-by: helm
 data:
   core.yaml: {{ .Files.Get "files/core.yaml" | nindent 8 | quote }}
 {{ end }}
+{{- $orderercrt := .Files.Get "files/orderer.crt" }}
+{{ if $orderercrt }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-orderer-tls-cacert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: orderer-tls-cacert
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "fabric-peernode.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:  
+  cacert: |-
+    {{ .Files.Get "files/orderer.crt" | nindent 8 }}
+{{- end }}

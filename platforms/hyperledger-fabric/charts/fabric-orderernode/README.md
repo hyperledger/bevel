@@ -3,224 +3,148 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "orderer-node-hyperledger-fabric-deployment"></a>
-# Orderer Node Hyperledger Fabric Deployment
+# fabric-orderernode
 
-- [Orderer Node Hyperledger Fabric Deployment Helm Chart](#orderer-node-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The fabric-orderernode chart deploys a Orderer Node for Hyperledger Fabric blockchain network. If enabled, the keys are stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "orderer-node-hyperledger-fabric-deployment-helm-chart"></a>
-## Orderer Node Hyperledger Fabric Deployment Helm Chart
----
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-orderernode) for orderer node.
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install orderer1 bevel/fabric-orderernode
+```
 
-
-<a name = "prerequisites"></a>
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- HAproxy is required as ingress controller.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+> **Important**: Also check the dependent charts.
 
-```
-fabric-orderernode/
-  |- templates/
-      |- _helpers.yaml
-      |- configmap.yaml
-      |- deployment.yaml
-      |- service.yaml
-      |- servicemonitor.yaml      
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+## Installing the Chart
+
+To install the chart with the release name `orderer1`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install orderer1 bevel/fabric-orderernode
 ```
 
-- `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
-- `helpers.tpl`: Contains custom label definitions used in other templates.
-- `configmap.yaml`: Defines two ConfigMaps, one for the orderer configuration and one for the genesis block.
-- `deployment.yaml`: The kafka-healthCheck checks the health of the Kafka brokers before the main container is started. The certificates-init fetches the TLS and MSP certificates from Vault and stores them in a local directory. The {{ $.Values.orderer.name }} runs the Hyperledger Fabric orderer. The grpc-web exposes the orderer's gRPC API over HTTP/WebSockets. These containers are responsible for ensuring that the orderer is up and running, that it has the necessary certificates, and that it can be accessed by clients.
-- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7050), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
-- `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the orderer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the orderer service.
-- `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
-- `README.md`: Provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the Helm chart.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
+> **Tip**: List all releases using `helm list`
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-orderernode/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+## Uninstalling the Chart
 
-### Metadata
+To uninstall/delete the `orderer1` deployment:
 
-| Name                   | Description                                                           | Default Value                                    |
-| ---------------------- | ----------------------------------------------------------------------| -------------------------------------------------|
-| namespace              | Namespace for orderer                                                 | org1-net                                      |
-| network.version        | HyperLedger Fabric network version                                    | 2.2.2                                             |
-| images.orderer         | Valid image name and version for fabric orderer                       | ghcr.io/hyperledger/bevel-fabric-orderer:2.2.2                 |
-| images.alpineutils     | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest          |
-| images.healthCheck     | Valid image name and version for health check of Kafka                | busybox                                          |
-| labels                 | Custom labels                                                         | ""                                               |
+```bash
+helm uninstall orderer1
+```
 
-### Orderer
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
-| Name                        | Description                                                             | Default Value   |
-| --------------------------- | ----------------------------------------------------------------------- | ----------------|
-| name                        | Name for the orderer node                                               | orderer         |
-| loglevel                    | Log level for orderer deployment                                        | info            |
-| localmspid                  | Local MSP ID for orderer deployment                                     | OrdererMSP      |
-| tlsstatus                   | Enable/disable TLS for orderer deployment                               | true            |
-| keepaliveserverinterval     | Interval in which the orderer signals the connection has kept alive     | 10s             |
-| address      | Provide the address for orderer    | orderer1.org1proxy.blockchaincloudpoc.com:443  |
+## Parameters
 
-### Consensus
+### Global
 
-| Name     | Description                 | Default Value   |
-| ---------| ----------------------------| ----------------|
-| name     | Name of the consensus       | raft            |
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.version` | Fabric Version. | `2.5.4` |
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws`, `azure` and `minikube` are tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.vault.tls` | Name of the Kubernetes secret which has certs to connect to TLS enabled Vault   | `""`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `haproxy` | `haproxy` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Fabric GRPC services will be available | `test.blockchaincloudpoc.com` |
 
 ### Storage
 
-| Name                  | Description                        | Default Value   |
-| ----------------------| -----------------------------------| ----------------|
-| storagesize           | Storage size for storage class     | 512Mi           |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.size` | Size of the PVC needed for Orderer Node | `512Mi` |
+| `storage.reclaimPolicy` | Reclaim policy for the PVC. Choose from: `Delete` or `Retain` | `Delete` |
+| `storage.volumeBindingMode` | Volume binding mode for the PVC. Choose from: `Immediate` or `WaitForFirstConsumer` | `Immediate` |
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
-### Service
+### Certs
 
-| Name                          | Description                               | Default Value   |
-| ------------------------------| ------------------------------------------| ----------------|
-| servicetype                   | Service type for orderer                  | ClusterIP       |
-| ports.grpc.nodeport           | Cluster IP port for grpc service          | ""              |
-| ports.grpc.clusteripport      | Cluster IP port for grpc service          | 7050            |
-| ports.metrics.enabled         | Enable/disable metrics service            | false           |
-| ports.metrics.clusteripport   | Cluster IP port for metrics service       | 9443            |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `certs.generateCertificates` | Flag to generate certificates for the Orderer Node | `true` |
+| `certs.orgData.caAddress` | Address of the CA Server without https | `ca.supplychain-net:7051` |
+| `certs.orgData.caAdminUser` | CA Admin Username  | `supplychain-admin` |
+| `certs.orgData.caAdminPassword` | CA Admin Password  | `supplychain-adminpw` |
+| `certs.orgData.orgName` | Organization Name  | `supplychain` |
+| `certs.orgData.type` | Type of certificate to generate, choosed from `orderer` or `peer` | `orderer` |
+| `certs.orgData.componentSubject` | X.509 subject for the organization  | `"O=Orderer,L=51.50/-0.13/London,C=GB"` |
+| `certs.settings.createConfigMaps` | Flag to create configmaps. Must be set to `false` for additional orderers/peers in the same organization. | `true` |
+| `certs.settings.refreshCertValue` | Flag to refresh User certificates  | `false` |
+| `certs.settings.addPeerValue` | Flag to be used when adding a new peer to the organization  | `false` |
+| `certs.settings.removeCertsOnDelete` | Flag to delete the user and peer certificates on uninstall  | `false` |
+| `certs.settings.removeOrdererTlsOnDelete` | Flag to delete the orderer TLS certificates on uninstall | `false` |
 
-### Annotations
+### Image
 
-| Name           | Description                             | Default Value |
-| ---------------| --------------------------------------- | --------------|
-| service        | Extra annotations for service           | ""            |
-| deployment     | Extra annotations for deployment        | ""            |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.orderer`  |Fabric Orderer image repository | `ghcr.io/hyperledger/bevel-fabric-orderer` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.healthCheck`  | Busybox image repository and tag  | `busybox` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
-### Vault
+### Orderer
 
-| Name                        | Description                                                         | Default Value                     |
-| --------------------------- | --------------------------------------------------------------------| --------------------------------- |
-| address                     | Vault server address                                                | ""                                |
-| role                        | Vault role for orderer deployment                                   | vault-role                        |
-| authpath                    | Kubernetes auth backend configured in vault for orderer deployment  | devorg1-net-auth   |
-| type                        | Provide the type of vault                                           | hashicorp    |
-| secretprefix                | Vault secretprefix                                                  | secretsv2/data/crypto/ordererOrganizations/org1-net/orderers/orderer.org1-net              |
-| imagesecretname             | Image secret name for vault                                         | ""                                |
-| serviceaccountname          | Service account name for vault                                      | vault-auth                        |
-| tls                         | Enable/disable TLS for vault communication                          | ""                                |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `orderer.consensus` | Consensus type for the Orderer Node | `raft` |
+| `orderer.logLevel` | Log level for the Orderer Node | `info` |
+| `orderer.localMspId` | Local MSP ID for the Orderer Organization  | `supplychainMSP` |
+| `orderer.tlsStatus` | TLS status of the Orderer Node  | `true` |
+| `orderer.keepAliveServerInterval` | Keep Alive Interval in Seconds  | `10s` |
+| `orderer.serviceType` | Service Type for the Ordering Service  | `ClusterIP` |
+| `orderer.ports.grpc.nodePort` | NodePort for the Orderer GRPC Service  | `""` |
+| `orderer.ports.grpc.clusterIpPort` | TCP Port for the Orderer GRPC Service  | `7050` |
+| `orderer.ports.metrics.enabled` | Flag to enable metrics port  | `false` |
+| `orderer.ports.metrics.clusterIpPort` | TCP Port for the Orderer metrics | `9443` |
+| `orderer.resources.limits.memory` | Memory limit for the Orderer Node  | `512M` |
+| `orderer.resources.limits.cpu` | CPU limit for the Orderer Node  | `1` |
+| `orderer.resources.requests.memory` | Memory request for the Orderer Node  | `512M` |
+| `orderer.resources.requests.cpu` | CPU request for the Orderer Node  | `0.25` |
 
-### Kafka
+### Settings
 
-| Name                        | Description                                                             | Default Value   |
-| --------------------------- | ------------------------------------------------------------------------| ----------------|
-| readinessCheckInterval      | Interval in seconds to check readiness of Kafka services                | 5               |
-| readinessThresHold          | Threshold for checking if specified Kafka brokers are up and running    | 4               |
-| brokers                     | List of Kafka broker addresses                                          | ""              |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `kafka.readinessCheckInterval` | Interval between readiness checks for the Brokers  | `5` |
+| `kafka.readinessThresHold` | Threshold for readiness checks for the Brokers  | `1` |
+| `kafka.brokers` | List of Kafka Broker Addresses  | `""` |
+| `healthCheck.retries` | Retry count to connect to Vault  | `20` |
+| `healthCheck.sleepTimeAfterError` | Wait seconds after unsuccessful connection attempt  | `15` |
 
-### Proxy
+### Labels
 
-| Name                        | Description                             | Default Value                  |
-| --------------------------- | --------------------------------------- | ------------------------------ |
-| provider                    | Proxy/ingress provider                  | none                           |
-| external_url_suffix         | External URL suffix of the organization | org1proxy.blockchaincloudpoc.com:443    |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `labels.service` | Array of Labels for service object  | `[]` |
+| `labels.pvc` | Array of Labels for PVC object  | `[]` |
+| `labels.deployment` | Array of Labels for deployment or statefulset object  | `[]` |
 
-### Config
-
-| Name                          | Description                             | Default Value                  |
-| ---------------------------   | --------------------------------------- | ------------------------------ |
-| pod.resources.limits.memory   | Limit memory for node                   | 512M                           |
-| pod.resources.limits.cpu      | Limit CPU for node                      | 1                              |
-| pod.resources.requests.memory | Requested memory for node               | 512M                           |
-| pod.resources.requests.cpu    | Requested CPU for node                  | 0.25                           |
-
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the fabric-orderernode Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-orderernode/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./fabric-orderernode
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the fabric-orderernode node to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
-```
-$ kubectl get statefulsets -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the StatefulSet was created. This command will display information about the StatefulSet, including the number of replicas and their current status.
-
-
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
-
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-orderernode/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./fabric-orderernode
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the fabric-orderernode node is up to date.
-
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Orderer Node Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-orderernode), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

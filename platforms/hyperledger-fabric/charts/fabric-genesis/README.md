@@ -5,7 +5,7 @@
 
 # fabric-genesis
 
-This chart is a component of Hyperledger Bevel. The fabric-genesis chart createsthe genesis file for fabric network. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
+This chart is a component of Hyperledger Bevel. The fabric-genesis chart creates the genesis file and other channel artifacts for a Hyperfabric network. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
 ## TL;DR
 
@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install genesis bevel/fabric-genesis
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -22,7 +22,20 @@ helm install genesis bevel/fabric-genesis
 If Hashicorp Vault is used, then
 - HashiCorp Vault Server 1.13.1+
 
-> **Important**: Also check the dependent charts.
+The [Orderers](../fabric-orderernode/README.md) and [Peers](../fabric-peernode/README.md) should already be installed and this chart should generally be installed from the Orderer namespace as it has most of the admin permissions.
+
+After the peers have been installed, get certificates and the configuration file of each peer organization, place in `fabric-genesis/files`
+```bash
+cd ./fabric-genesis/files
+kubectl --namespace carrier-net get secret admin-msp -o json > carrier.json
+kubectl --namespace carrier-net get configmap peer0-msp-config -o json > carrier-config-file.json
+```
+
+If additional orderer(s) from a different organization is needed in genesis, then get that TLS cert and place in `fabric-genesis/files`
+```bash
+cd ./fabric-genesis/files
+kubectl --namespace carrier-net get secret orderer5-tls -o json > orderer5-orderer-tls.json
+```
 
 ## Installing the Chart
 
@@ -54,7 +67,8 @@ The command removes all the Kubernetes components associated with the chart and 
 These parameters are refered to as same in each parent or child chart
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
-|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.version` | Fabric Version.| `2.5.4` |
+| `global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
 | `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
 | `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
 | `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
@@ -62,70 +76,59 @@ These parameters are refered to as same in each parent or child chart
 | `global.vault.network`  | Network type that is being deployed | `fabric`    |
 | `global.vault.address`| URL of the Vault server.    | `""`            |
 | `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
-| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
-| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
-| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
-| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
-| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `haproxy` | `ambassador` |
-| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Besu P2P and RPC service will be available | `test.blockchaincloudpoc.com` |
+| `global.vault.secretEngine` | Vault secret engine name | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`  | `data/supplychain`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `haproxy` | `haproxy` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Fabric services will be available | `test.blockchaincloudpoc.com` |
 
 ### Image
 
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `image.ca`    | Provide the image name for the generate-geneis container  | `ghcr.io/hyperledger/bevel-fabric-ca:latest`            |
-| `image.alpineUtils`    | Provide the docker secret name in the namespace  | `Provide the valid image name and version to read certificates from vault server`       |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.fabricTools`  | Fabric Tools image repository  | `ghcr.io/hyperledger/bevel-fabric-tools` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
-### Network
+### Organizations
 
-| Name   | Description    | Default Value   |
-| `network.version`       | HyperLedger Fabric network version               | 2.5.4            |
+List of Organizations participating in the Network with their Peer and Orderer Addresses.
+
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `organizations.name` | Organization Name | `supplychain` |
+| `organizations.orderers` | List of organization's orderer nodes and their addresses. This list presents two fields `orderer.name` and `orderer.ordererAddress`  | `- name: orderer1`<br/>`ordererAddress: orderer1.supplychain-net:7050` <br/>`- name: orderer2`<br/>`ordererAddress: orderer2.supplychain-net:7050` <br/> `- name: orderer3`<br/>`ordererAddress: orderer3.supplychain-net:7050`  |
+| `organizations.peers` | List of the organization's peer nodes and their addresses. This list presents two fields `peer.name` and `peer.peerAddress`  | `- name: peer0`<br/>`peerAddress: peer0.supplychain-net:7051`<br>`- name: peer1`<br/>`peerAddress: peer1.supplychain-net:7051`  |
 
 ### Consensus
 
 | Name     | Description                 | Default Value   |
 | ---------| ----------------------------| ----------------|
-| `consensus.name`        | Name of the consensus          | raft            |
+| `consensus` | Name of the consensus          | `raft`         |
+| `kafka.brokers` | Array of Kafka broker Addresses, only valid for `kafka` consensus    | `""`   |
 
-### Organizations
-
-| Name   | Description  | Default Value |
-|--------|---------|-------------|
-| `organization.name` | Provide the organization's name| `""` |
-| `organization.type`| Provide the organization's type (orderer or peer)   | `""` |
-| `organization.orderers` | Provide a list of the organization's orderer nodes. This list presents two fields `orderer.name` and `orderer.ordererAddress`  | `""`  |
-| `organization.peers` | Provide a list of the organization's peer nodes. This list presents two fields `peer.name` and `peer.peerAddress`  | `""`  |
 
 ### Channels
+List of Channels you want to create the artifacts for.
 
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
-| `channel.channel_name` | Provide the channel's name| `"Allchannel"` |
-| `channel.consortium`| Provide the channel's consortium   | `SupplyChainConsortium` |
-| `channel.orderers` | Provide a list of orderer type organizations on the network  | `""`  |
-| `channel.participants` | provides a list of participating channel organizations. This list presents one field `organization.name` | `""`  |
-| `channel.genesis` | Provide the profile name of the genesis file`  | `OrdererGenesis`  |
+| `channels.name` | Name of the channel | `allchannel` |
+| `channels.consortium`| Consortium Name  | `SupplyChainConsortium` |
+| `channels.orderers` | List of orderer type organizations (from the list above) on the network  | `- supplychain`  |
+| `channels.participants` | List of participating channel organizations (from the list above) on the network  | `- supplychain`<br/>`- carrier` |
 
-### Vars
-
-| Name   | Description  | Default Value |
-|--------|---------|-------------|
-| `vars.install_os`  | Provide the OS            | `"linux"` |
-| `vars.install_arch`| Provide the architecture  | `amd64` |
 
 ### Settings
 
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
-| `settings.removeGenesisOnDelete` |  Setting to delete the genesis secret when uninstalling the release | `true` |
-| `settings.removeGenesisConfigMapOnDelete` | Setting to delete the genesis configmaps when uninstalling the release  | `true` |
+| `settings.removeConfigMapOnDelete` |  Flag to delete the genesis ConfigMap when uninstalling the release | `true` |
 
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

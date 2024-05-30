@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install signer bevel/cenm-signer
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -83,7 +83,7 @@ These parameters are refered to as same in each parent or child chart
 ### Image
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 | `image.signer.repository`   | CENM idman image repository  | `corda/enterprise-singer`|
 | `image.signer.tag`   | CENM idman image tag as per version | `1.5.9-zulu-openjdk8u382`|
@@ -93,10 +93,10 @@ These parameters are refered to as same in each parent or child chart
 ### Signers
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `signers.CSR.schedule.interval`    | Provide the certificate sigining request interval  | `"1m"`            |
-| `signers.CRL.schedule.interval`    | Provide the certificate revocation interval   | `"1d"`            |
-| `signers.NetworkMap.schedule.interval`    | Provide the NetworkMap sigining interval  | `"1m"`            |
-| `signers.NetworkParameters.schedule.interval`    | Provide the Network Parameters sigining interval  | `"1m"`            |
+| `signers.CSR.schedule.interval`    | Certificate sigining request interval  | `"1m"`            |
+| `signers.CRL.schedule.interval`    | Certificate revocation interval   | `"1d"`            |
+| `signers.NetworkMap.schedule.interval`    | NetworkMap sigining interval  | `"1m"`            |
+| `signers.NetworkParameters.schedule.interval`    | Network Parameters sigining interval  | `"1m"`            |
 
 
 ## License

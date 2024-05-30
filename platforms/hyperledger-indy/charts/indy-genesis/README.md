@@ -90,7 +90,7 @@ These parameters are refered to as same in each parent or child chart
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
 | `image.alpineutils`  | Alpine utils image repository  | `ghcr.io/hyperledger/bevel-alpine-ext:latest` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 
 ### Settings
 

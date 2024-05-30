@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install my-tessera bevel/quorum-tessera-node
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -88,7 +88,7 @@ These parameters are refered to as same in each parent or child chart
 | `image.mysql.tag`  | MySQL image tag  | `5.7` |
 | `image.hooks.repository`  | Quorum/Besu hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
 | `image.hooks.tag`  | Quorum/Besu hooks image tag  | `qgt-0.2.12` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 
 

@@ -30,14 +30,14 @@ spec:
       restartPolicy: "Never"
       containers:
         - name: delete-secrets
-          image: "{{ $.Values.image.alpineUtils }}"
+          image: {{ .Values.image.alpineUtils }}
           securityContext:
             runAsUser: 0
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
             - |-
-{{- if .Values.settings.removeCertsOnDelete }}
+{{- if .Values.server.removeCertsOnDelete }}
 
               function deleteSecret {
                 key=$1
@@ -46,6 +46,5 @@ spec:
                   kubectl delete secret ${key} --namespace {{ .Release.Namespace }}
                 fi
               }
-              deleteSecret ca-certs
-              deleteSecret ca-credentials
+              deleteSecret {{ include "fabric-ca-server.name" . }}-certs
 {{- end}} 

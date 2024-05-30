@@ -7,45 +7,41 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fabric-channel-join.fullname" . }}
+  name: joinchannel-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
     "helm.sh/hook": post-install
     "helm.sh/hook-weight": "0"
   labels:
-    app: {{ .Release.Name }}
     app.kubernetes.io/name: channel-join-{{ .Release.Name }}
     app.kubernetes.io/component: fabric-channel-join-job
     app.kubernetes.io/part-of: {{ include "fabric-channel-join.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-    {{ include "labels.deployment" . | nindent 6 }} 
 spec:
   backoffLimit: 6
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}
         app.kubernetes.io/name: channel-join-{{ .Release.Name }}
         app.kubernetes.io/component: fabric-channel-join-job
         app.kubernetes.io/part-of: {{ include "fabric-channel-join.fullname" . }}
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
-        {{ include "labels.deployment" . | nindent 6 }} 
     spec:
       restartPolicy: "OnFailure"
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       volumes:
       {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
@@ -56,23 +52,30 @@ spec:
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: orderer-tls-cacert
+        configMap:
+          name: {{ include "fabric-channel-join.orderercrt" . }}
+          defaultMode: 0775
+          items:
+            - key: cacert
+              path: orderer.crt
       initContainers:
       - name: certificates-init
-        image: {{ $.Values.image.alpineUtils }}
+        image: {{ .Values.image.alpineUtils }}
         imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
-          value: {{ $.Values.global.vault.address }}
+          value: {{ .Values.global.vault.address }}
         - name: VAULT_APP_ROLE
-          value: {{ $.Values.global.vault.role }}
+          value: {{ .Values.global.vault.role }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.global.vault.authPath }}
+          value: {{ .Values.global.vault.authPath }}
         - name: VAULT_SECRET_ENGINE
           value: "{{ .Values.global.vault.secretEngine }}"
         - name: VAULT_SECRET_PREFIX
           value: "{{ .Values.global.vault.secretPrefix }}"
         - name: VAULT_TYPE
-          value: "{{ $.Values.global.vault.type }}"
+          value: "{{ .Values.global.vault.type }}"
         - name: MOUNT_PATH
           value: /secret
         command: ["sh", "-c"]
@@ -84,23 +87,11 @@ spec:
           . /scripts/bevel-vault.sh
           vaultBevelFunc "init"
 
-          function getOrdererTlsSecret {
-            KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
-       
-            echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
-
-            TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-            echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
-          }
-
           function getAdminMspSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
 
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/users/${KEY}"
 
             ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
             CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
@@ -116,14 +107,6 @@ spec:
           }
 
 {{- else }}
-
-          function getOrdererTlsSecret {
-            KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacrt}" | base64 -d > ${OUTPUT_PATH}/ca.crt
-            fi
-          }
 
           function getAdminMspSecret {
             KEY=$1
@@ -143,9 +126,6 @@ spec:
           }
 
 {{- end }}
-          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
-          mkdir -p ${OUTPUT_PATH}
-          getOrdererTlsSecret orderer-tls
 
           OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
           mkdir -p ${OUTPUT_PATH}/admincerts
@@ -167,7 +147,7 @@ spec:
           subPath: bevel-vault.sh       
       containers:
       - name: joinchannel
-        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }} 
+        image: {{ .Values.image.fabricTools }}:{{ .Values.global.version }} 
         imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
@@ -194,8 +174,11 @@ spec:
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
         envFrom:
         - configMapRef:
-            name: joinchannel-{{ $.Values.channel.name }}-{{ $.Values.peer.name }}-config
+            name: {{ .Release.Name }}-config
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
+        - name: orderer-tls-cacert
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt
+          subPath: orderer.crt
