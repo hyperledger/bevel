@@ -66,7 +66,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
 | `image.cli`  | Indy Cli image repository and tag  | `ghcr.io/hyperledger/bevel-indy-ledger-txn:latest` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 
 ### Settings
 

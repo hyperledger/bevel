@@ -10,22 +10,29 @@ metadata:
   name: {{ template "fabric-cli.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{ include "labels.deployment" . | nindent 2 }}
+    app: cli
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/component: fabric
+    {{ include "labels.deployment" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: cli
+      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/component: fabric
   template:
     metadata:
       labels:
         app: cli
-        {{ include "labels.deployment" . | nindent 6 }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/component: fabric
+        {{ include "labels.deployment" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       volumes:
       - name: {{ .Release.Name }}-cli-pv
@@ -34,7 +41,7 @@ spec:
       {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
@@ -48,27 +55,34 @@ spec:
       - name: package-manager
         configMap:
           name: package-manager
+      - name: orderer-tls-cacert
+        configMap:
+          name: {{ include "fabric-cli.orderercrt" . }}
+          defaultMode: 0775
+          items:
+            - key: cacert
+              path: orderer.crt
       initContainers:
       - name: certificates-init
-        image: {{ $.Values.image.alpineUtils }}
+        image: {{ .Values.image.alpineUtils }}
         imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
-          value: {{ $.Values.global.vault.address }}
+          value: {{ .Values.global.vault.address }}
         - name: VAULT_SECRET_ENGINE
-          value: "{{ $.Values.global.vault.secretEngine }}"
+          value: "{{ .Values.global.vault.secretEngine }}"
         - name: VAULT_SECRET_PREFIX
-          value: "{{ $.Values.global.vault.secretPrefix }}"
+          value: "{{ .Values.global.vault.secretPrefix }}"
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.global.vault.authPath }}
+          value: {{ .Values.global.vault.authPath }}
         - name: VAULT_APP_ROLE
-          value: {{ $.Values.global.vault.role }}
+          value: {{ .Values.global.vault.role }}
         - name: MOUNT_PATH
           value: "/secret"
         - name: VAULT_TYPE
-          value: "{{ $.Values.global.vault.type }}"
+          value: "{{ .Values.global.vault.type }}"
         - name: CORE_PEER_ADDRESS
-          value: "{{ .Release.Name }}.{{ $.Values.peer.address }}"
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.ports.grpc.clusterIpPort }}"
         command: ["sh", "-c"]
         args:
         - |-
@@ -79,31 +93,11 @@ spec:
 
           # Calling a function to retrieve the vault token.
           vaultBevelFunc "init"
-
-          function getOrdererTlsSecret {
-            KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
-       
-            echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
-            if [ "$SECRETS_AVAILABLE" == "yes" ]
-            then
-              TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-              echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
-              ORDERER_TLS_SECRET=true
-            else
-              ORDERER_TLS_SECRET=false
-            fi
-          }
-
-          ###############################################################################
-
           function getAdminMspSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
 
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/users/${KEY}"
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
               ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
@@ -124,17 +118,6 @@ spec:
           }
 
 {{- else }}
-
-          function getOrdererTlsSecret {
-            KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacrt}" | base64 -d > ${OUTPUT_PATH}/ca.crt
-              ORDERER_TLS_SECRET=true
-            else
-              ORDERER_TLS_SECRET=false
-            fi
-          }
 
           function getAdminMspSecret {
             KEY=$1
@@ -160,11 +143,8 @@ spec:
 {{- end }} 
 
           COUNTER=1
-          while [ "$COUNTER" -le {{ $.Values.healthCheck.retries }} ]
+          while [ "$COUNTER" -le {{ .Values.healthCheck.retries }} ]
           do
-            OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
-            mkdir -p ${OUTPUT_PATH}
-            getOrdererTlsSecret orderer-tls
 
             OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
             mkdir -p ${OUTPUT_PATH}/admincerts
@@ -174,18 +154,18 @@ spec:
             mkdir -p ${OUTPUT_PATH}/tlscacerts
             getAdminMspSecret admin-msp  
 
-            if [ "$ORDERER_TLS_SECRET" = "true" ] && [ "$ADMIN_MSP_SECRET" = "true" ]
+            if [ "$ADMIN_MSP_SECRET" = "true" ]
             then
               echo "Peer certificates have been obtained correctly"
               break
             else
-              echo "Peer certificates have not been obtained, sleeping for {{ $.Values.healthCheck.sleepTimeAfterError }}"
-              sleep {{ $.Values.healthCheck.sleepTimeAfterError }}
+              echo "Peer certificates have not been obtained, sleeping for {{ .Values.healthCheck.sleepTimeAfterError }}"
+              sleep {{ .Values.healthCheck.sleepTimeAfterError }}
               COUNTER=`expr "$COUNTER" + 1`
             fi
           done
 
-          if [ "$COUNTER" -gt {{ $.Values.healthCheck.retries }} ]
+          if [ "$COUNTER" -gt {{ .Values.healthCheck.retries }} ]
           then
             echo "Retry attempted `expr $COUNTER - 1` times, The peer certificates have not been obtained."
             exit 1
@@ -207,7 +187,7 @@ spec:
           subPath: package-manager.sh
       containers:
       - name: cli
-        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }}
+        image: {{ .Values.image.fabricTools }}:{{ .Values.global.version }}
         imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
@@ -221,17 +201,17 @@ spec:
         - name: CORE_PEER_ID
           value: "{{ .Release.Name }}.{{ .Release.Namespace }}"
         - name: CORE_PEER_ADDRESS
-          value: "{{ .Release.Name }}.{{ $.Values.peer.address }}"
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.ports.grpc.clusterIpPort }}"
         - name: CORE_PEER_LOCALMSPID
-          value: "{{ .Values.peer.localMspId }}"
+          value: "{{ .Values.localMspId }}"
         - name: CORE_PEER_TLS_ENABLED
-          value: "{{ $.Values.peer.tlsStatus }}"
+          value: "{{ .Values.tlsStatus }}"
         - name: CORE_PEER_TLS_ROOTCERT_FILE
           value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp/tlscacerts/tlsca.crt
         - name: ORDERER_CA
-          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt
+          value: /opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt
         - name: ORDERER_URL
-          value: "{{ $.Values.orderer.address }}"
+          value: "{{ .Values.ordererAddress }}"
         - name: CORE_PEER_MSPCONFIGPATH
           value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
         volumeMounts:
@@ -242,3 +222,6 @@ spec:
         - name: package-manager
           mountPath: /scripts/package-manager.sh
           subPath: package-manager.sh
+        - name: orderer-tls-cacert
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt
+          subPath: orderer.crt

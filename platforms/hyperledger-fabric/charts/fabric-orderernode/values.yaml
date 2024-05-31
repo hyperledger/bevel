@@ -5,8 +5,14 @@
 ##############################################################################################
 
 global:
+  # HLF Network Version
+  #Eg. version: 2.5.4
+  version: 2.5.4
   #Provide the service account name which will be created.
-  serviceAccountName: vault-auth  
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
   vault:
     #Provide the type of vault
     #Eg. type: hashicorp
@@ -24,17 +30,10 @@ global:
     secretEngine: secretsv2
     #Provide the vault path where the secrets will be stored
     secretPrefix: "data/supplychain"
-    #Provide the imagesecretname for vault
-    #Eg. imagesecretname: regcred
-    imageSecretName: ""
     #Kuberenetes secret for vault ca.cert
     #Enable or disable TLS for vault communication if value present or not
     #Eg. tls: vaultca
     tls: 
-
-  cluster:
-    provider: aws  # choose from: minikube | aws | azure | gcp
-    cloudNativeServices: false # only 'false' is implemented
 
   proxy:
     #This will be the proxy/ingress provider. Can have values "none" or "haproxy"
@@ -44,47 +43,44 @@ global:
     #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
     externalUrlSuffix: test.blockchaincloudpoc.com
 
-  # HLF Network Version
-  network:
-    version: 2.5.4
+storage:
+  #Provide storage size for Orderer Volume
+  #Eg. size: 512Mi
+  size: 512Mi
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false
 
-catools:
+certs:
+  # Flag indicating the creation of certificates.
+  generateCertificates: true
   orgData:
+    caAddress: ca.supplychain-net:7051
+    caAdminUser: supplychain-admin
+    caAdminPassword: supplychain-adminpw
     #Provide organization's name in lowercases
-    #Eg. orgName: supplychain 
+    #Eg. orgName: supplychain
     orgName: supplychain
     #Provide organization's type (orderer or peer)
-    #Eg. component_type: orderer
-    type:
+    #Eg. type: orderer
+    type: orderer
     #Provide organization's subject
-    #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-    componentSubject:
-    #Provide organization's subject
-    #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-    certSubject:
-    #Provide organization's country
-    #Eg. UK
-    componentCountry: UK
-    #Provide organization's state
-    #Eg. London
-    componentState: London
-    #Provide organization's location
-    #Eg. Lodon
-    componentLocation: Lodon
+    #Eg. componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+    componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
 
-  #Provide orderer's names
-  orderers:
-    - orderer1   
-    - orderer2 
-    - orderer3
-
-channel:
-  # Provide the channel's name
-  channel_name: Allchannel
+  settings:
+    #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+    createConfigMaps: true
+    refreshCertValue: false
+    addPeerValue: false
+    removeCertsOnDelete: false
+    removeOrdererTlsOnDelete: false
 
 image:
-  #Provide the valid image name and version for fabric orderer
-  #Eg.  orderer: hyperledger/fabric-orderer:1.4.0
+  #Provide the valid image repository for fabric orderer
+  #Eg. orderer: hyperledger/fabric-orderer
   orderer: ghcr.io/hyperledger/bevel-fabric-orderer
   #Provide the valid image name and version to read certificates from vault server
   #Eg.alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
@@ -92,8 +88,14 @@ image:
   #Provide the valid image name and version for healthCheck of kafka
   #Eg. healthCheck: busybox
   healthCheck: busybox
-  
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret: 
+
 orderer:
+  #Provide the name of the consensus. Currently support raft and kafka
+  #Eg. consensus: raft
+  consensus: raft
   #Provide the logLevel for orderer deployment
   #Eg. logLevel: info
   logLevel: info
@@ -106,20 +108,6 @@ orderer:
   #Provide the interval in which the orderer to signal the connection has kept alive  
   #Eg. keepAliveServerInterval: 10s
   keepAliveServerInterval: 10s
-  #Provide the address for orderer
-  #Eg. address: orderer1.test.blockchaincloudpoc.com
-
-consensus:
-  #Provide name of the consensus. Currently support raft and kafka
-  #Eg. name: raft
-  name: raft
-  
-storage:
-  #Provide the size for storage class
-  #Eg. size: 512Mi
-  size: 512Mi
-
-service:
   #Provide the serviceType a peer
   #Eg. serviceType: NodePort
   serviceType: ClusterIP
@@ -134,6 +122,21 @@ service:
     metrics:
       enabled: false
       clusterIpPort: 9443
+  resources:
+    limits:
+      # Provide the limit memory for node
+      # Eg. memory: 512M
+      memory: 512M
+      # Provide the limit cpu for node
+      # Eg. cpu: 1
+      cpu: 1
+    requests:
+      # Provide the requests memory for node
+      # Eg. memory: 512M
+      memory: 512M
+      # Provide the requests cpu for node
+      # Eg. cpu: 0.25
+      cpu: 0.25
 
 kafka:
   #Provide the interval in seconds you want to iterate till all  kafka services to be ready
@@ -143,39 +146,12 @@ kafka:
   #Eg. readinessThresHold: 4
   readinessThresHold: 4
   #Provide the kafka broker list
-  #Eg.  brokers:
-  #       - kafka-0.broker.org1-net.svc.cluster.local:9092
-  #       - kafka-1.broker.org1-net.svc.cluster.local:9092
-  #       - kafka-2.broker.org1-net.svc.cluster.local:9092
-  #       - kafka-3.broker.org1-net.svc.cluster.local:9092
+  #Eg. brokers:
+  #      - kafka-0.broker.org1-net.svc.cluster.local:9092
+  #      - kafka-1.broker.org1-net.svc.cluster.local:9092
+  #      - kafka-2.broker.org1-net.svc.cluster.local:9092
+  #      - kafka-3.broker.org1-net.svc.cluster.local:9092
   brokers:
-
-config:
-  # Set limits and requests of pod  
-  pod:  
-    resources:
-      limits:
-      # Provide the limit memory for node
-      # Eg. memory: 512M
-        memory: 512M
-      # Provide the limit cpu for node
-      # Eg. cpu: 1
-        cpu: 1
-      requests:
-      # Provide the requests memory for node
-      # Eg. memory: 512M
-        memory: 512M
-      # Provide the requests cpu for node
-      # Eg. cpu: 0.25
-        cpu: 0.25
-
-settings:
-  # Flag to ensure the certificates configmaps are removed on helm uninstall
-  removeConfigMapsOnDelete: true
-  # Flag to ensure the certificates secrets are removed on helm uninstall
-  removeCertsOnDelete: true
-  # Flag indicating the creation of certificates. This flag must be set to true when installing the first orderer and false in the others.
-  generateCertificates: false
 
 healthCheck: 
   # The amount of times to retry fetching from/writing to Vault before giving up.

@@ -26,9 +26,6 @@ global:
     secretEngine: secretsv2
     #Provide the vault path where the secrets will be stored
     secretPrefix: "data/supplychain"
-    #Provide the imagesecretname for vault
-    #Eg. imagesecretname: regcred
-    imageSecretName: ""
 
   proxy:
     #This will be the proxy/ingress provider. Can have values "haproxy" or "none"
@@ -38,91 +35,65 @@ global:
     #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
     externalUrlSuffix: test.blockchaincloudpoc.com
 
-# Provide the number of replica pods
-replicaCount: 1
-
 image:
   #Provide the image name for the server container
-  #Eg. image: hyperledger/fabric-ca-tools
+  #Eg. caTools: hyperledger/fabric-ca-tools:latest
   caTools: ghcr.io/hyperledger/bevel-fabric-ca:latest
-  # Provide image pull policy
-  pullPolicy: IfNotPresent
   #Provide the valid image name and version to read certificates from vault server
   #Eg.alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
   alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
-
-storage:
-  #Provide the size for CA
-  #Eg. size: 512Mi
-  size: 512Mi
-
-healthCheck: 
-  # The amount of times to retry fetching from/writing to Vault before giving up.
-  # Eg. retries: 10
-  retries: 10
-  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
-  # Eg. sleepTimeAfterError: 15  
-  sleepTimeAfterError: 15
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret: 
+  # Provide image pull policy
+  pullPolicy: IfNotPresent
 
 orgData:
+  #Provide the CA URL for the organization without https
+  #Eg. caAddress: ca.example.com
+  caAddress: 
+  #Provide the CA Admin User for the organization
+  #Eg. caAdminUser: admin
+  caAdminUser: supplychain-admin
+  #Provide the CA Admin Password for the organization
+  #Eg. caAdminPassword: adminpw
+  caAdminPassword: supplychain-adminpw
   #Provide organization's name in lowercases
   #Eg. orgName: supplychain 
   orgName: supplychain
   #Provide organization's type (orderer or peer)
-  #Eg. component_type: orderer
-  type:
+  #Eg. type: orderer
+  type: orderer
   #Provide organization's subject
-  #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-  componentSubject:
-  #Provide organization's subject
-  #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-  certSubject:
-  #Provide organization's country
-  #Eg. UK
-  componentCountry: UK
-  #Provide organization's state
-  #Eg. London
-  componentState: London
-  #Provide organization's location
-  #Eg. Lodon
-  componentLocation: Lodon
-
-#Provide orderer's names
-orderers:
-  - orderer1   
-  - orderer2 
-  - orderer3
-  
-#Provide peer's names
-peers:
-  - peer0-carrier
+  #Eg. componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+  componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
 
 users: 
   # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
   usersList:
-    - user:
-      identity: user1
+    - identity: user1
       attributes:
       - key: "hf.Revoker"
         value: "true"
-    - user:
-      identity: user2
-      attributes:
-      - key: "hf.Revoker"
-        value: "true"
+    # - identity: user2
+    #   attributes:
+    #   - key: "hf.Revoker"
+    #     value: "true"
   #Base64 encoded list of users
-  #Eg. IC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMQogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgIgICAgICAgIC0ga2V5OiBrZXkyCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMgogICAgICAgIC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMgogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgICAgICAgICB2YWx1ZTogdmFsdWUxCiAgICAgICAgICAgIC0ga2V5OiBrZXkzCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMw==
+  #Eg. usersListAnsible: IC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMQogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgIgICAgICAgIC0ga2V5OiBrZXkyCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMgogICAgICAgIC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMgogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgICAgICAgICB2YWx1ZTogdmFsdWUxCiAgICAgICAgICAgIC0ga2V5OiBrZXkzCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMw==
   usersListAnsible:
-  #Provides a list of user identities
-  usersIdentities:
-    - user1
-    - user2
 
-checks:
-  #Provides the need to refresh user certificates
+settings:
+  #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+  createConfigMaps: true
+  #Flag to refresh user certificates
   refreshCertValue: false
-  #Add a peer to an existing network
-  addPeerValue: False
+  #Flag to add a peer to an existing network
+  addPeerValue: false
+  #Flag to remove certificates on uninstall
+  removeCertsOnDelete: false
+  #Flag to remove orderer certificates on uninstall
+  removeOrdererTlsOnDelete: false
 
 labels:
   service: []

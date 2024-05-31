@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install propose-validator bevel/goquorum-propose-validator
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -55,7 +55,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | -------------| ---------- | --------- |
 | `image.genesisUtils.repository`  | Quorum hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
 | `image.genesisUtils.tag`  | Quorum hooks image tag  | `qgt-0.2.12` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""` |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent` |
 
 ### validators

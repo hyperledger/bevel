@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install network-service bevel/corda-network-service
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -84,7 +84,7 @@ This is where you can override the values for the [corda-certs-gen subchart](../
 ### Image
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 | `image.mongo.repository`   | MongoDB image repository  | `mongo`|
 | `image.mongo.tag`   | MongoDB image tag as per version of MongoDB  | `3.6.6`|

@@ -27,32 +27,20 @@ Create chart name and version as used by the chart label.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "labels.deployment" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.deployment }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{- define "labels.service" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.service }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{- define "labels.pvc" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.pvc }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{/*
+Create orderer tls configmap name depending on Configmap existance
+*/}}
+{{- define "fabric-channel-join.orderercrt" -}}
+{{- $secret := lookup "v1" "ConfigMap" .Release.Namespace "orderer-tls-cacert" -}}
+{{- if $secret -}}
+{{/*
+   Use this configmap
+*/}}
+{{- printf "orderer-tls-cacert" -}}
+{{- else -}}
+{{/*
+    Use the release configmap
+*/}}
+{{- printf "%s-orderer-tls-cacert" $.Values.peer.name -}}
+{{- end -}}
+{{- end -}}

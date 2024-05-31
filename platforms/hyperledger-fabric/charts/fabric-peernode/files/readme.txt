@@ -1,0 +1,1 @@
+This is a dummy file. Place the orderer.crt file in this directory..

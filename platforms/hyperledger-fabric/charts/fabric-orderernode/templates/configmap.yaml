@@ -18,18 +18,18 @@ metadata:
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  FABRIC_LOGGING_SPEC: {{ $.Values.orderer.logLevel }}
+  FABRIC_LOGGING_SPEC: {{ .Values.orderer.logLevel }}
   ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
-{{ if contains "2.5" $.Values.global.network.version }}
+{{ if contains "2.5" .Values.global.version }}
   ORDERER_GENERAL_BOOTSTRAPMETHOD: "none"
 {{ else }}
   ORDERER_GENERAL_GENESISMETHOD: file
   ORDERER_GENERAL_GENESISFILE: /var/hyperledger/orderer/orderer.genesis.block
 {{ end }}
-  ORDERER_GENERAL_LOCALMSPID: {{ $.Values.orderer.localMspId }}
-  ORDERER_GENERAL_KEEPALIVE_SERVERINTERVAL: {{ $.Values.orderer.keepAliveServerInterval }}
+  ORDERER_GENERAL_LOCALMSPID: {{ .Values.orderer.localMspId }}
+  ORDERER_GENERAL_KEEPALIVE_SERVERINTERVAL: {{ .Values.orderer.keepAliveServerInterval }}
   ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/crypto/msp
-  ORDERER_GENERAL_TLS_ENABLED: "{{ $.Values.orderer.tlsStatus }}"
+  ORDERER_GENERAL_TLS_ENABLED: "{{ .Values.orderer.tlsStatus }}"
   ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/crypto/tls/server.key
   ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/crypto/tls/server.crt
   ORDERER_GENERAL_TLS_ROOTCAS: '[/var/hyperledger/orderer/crypto/tls/ca.crt]'
@@ -41,8 +41,8 @@ data:
   ORDERER_KAFKA_RETRY_SHORTTOTAL: "30s"
   ORDERER_KAFKA_VERBOSE: "true"
   GODEBUG: "netdns=go"
-  ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:10443
-{{ if contains "2.5" $.Values.global.network.version }}
+  ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:9443
+{{ if contains "2.5" .Values.global.version }}
   ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:7055
   ORDERER_ADMIN_TLS_ENABLED: "true"
   ORDERER_ADMIN_TLS_PRIVATEKEY: /var/hyperledger/orderer/crypto/tls/server.key

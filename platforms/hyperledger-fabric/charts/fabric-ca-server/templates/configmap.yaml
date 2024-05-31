@@ -4,20 +4,45 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-{{- if (not (empty .Values.server.configpath)) }}
+{{- if (not (empty .Values.server.configPath)) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-config
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-    app.kubernetes.io/component: fabric
+    app.kubernetes.io/name: {{ .Release.Name }}-config
+    app.kubernetes.io/component: fabric-ca-config
     app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/managed-by: helm
 data:
   fabric-ca-server-config.yaml: |
-    {{ (tpl (.Files.Get ( printf "%s" $.Values.server.configpath )) . ) | nindent 6 }}
+    {{ (tpl (.Files.Get ( printf "%s" $.Values.server.configPath )) . ) | nindent 6 }}
 {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openssl-config-file
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: openssl-config-file
+    app.kubernetes.io/component: openssl-config
+    app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:
+   openssl.conf: |-
+    [req]
+    req_extensions = v3_req
+    distinguished_name = dn
+
+    [dn]
+
+    [v3_req]
+    basicConstraints = critical, CA:TRUE
+    keyUsage = critical,digitalSignature, keyEncipherment, keyCertSign, cRLSign
+    subjectKeyIdentifier = hash

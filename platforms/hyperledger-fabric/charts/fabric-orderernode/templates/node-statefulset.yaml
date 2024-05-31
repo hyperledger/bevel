@@ -17,8 +17,7 @@ metadata:
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-  annotations:
-    {{- include "labels.deployment" . | nindent 2 }}
+    {{- include "labels.deployment" . | nindent 4 }}
 spec:
   updateStrategy:
     type: RollingUpdate
@@ -45,12 +44,12 @@ spec:
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
-        {{- include "labels.deployment" . | nindent 2 }}
+        {{- include "labels.deployment" . | nindent 8 }}
     spec:    
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       volumes:
       - name: certificates
@@ -59,17 +58,17 @@ spec:
       {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt  # curl expects certs to be in /etc/ssl/certs/ca-certificates.crt
       {{ end  }}
-      {{- if ne $.Values.global.network.version "2.5.4" }}
+      {{- if ne ($.Values.global.version | trunc 3) "2.5" }}
       - name: {{ .Release.Name }}-genesis-volume
         configMap:
-          name: {{ $.Values.channel.name | lower }}-genesis-file
+          name: syschannel-genesis
           items:
-            - key: genesis.block.base64
+            - key: syschannel-genesis_base64
               path: genesis.block.base64
       {{ end  }}
       - name: scripts-volume
@@ -77,24 +76,24 @@ spec:
           name: bevel-vault-script
       initContainers:
       - name: kafka-healthcheck
-        image: {{ $.Values.image.healthCheck }}
+        image: {{ .Values.image.healthCheck }}
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
         - |-
           #!/usr/bin/env sh
-          if [ {{ $.Values.consensus.name }} == kafka ]
+          if [ {{ .Values.orderer.consensus }} == kafka ]
           then
             COUNTER=1
             FLAG=true
             KAFKACOUNT=0
             COUNT=0
-            {{ range $.Values.kafka.brokers}}
+            {{ range .Values.kafka.brokers}}
             COUNT=`expr "$COUNT" + 1`
             {{ end }}
-            while [ "$COUNTER" -le {{ $.Values.kafka.readinessThresHold }} ]
+            while [ "$COUNTER" -le {{ .Values.kafka.readinessThresHold }} ]
             do
-              {{ range $.Values.kafka.brokers}}
+              {{ range .Values.kafka.brokers}}
               KAFKA_BROKERS={{ .  }}
               STATUS=$(nc -vz $KAFKA_BROKERS 2>&1 | grep -c open )
               if [ "$STATUS" == 0 ]
@@ -109,9 +108,9 @@ spec:
               if [ "$FLAG" == false ]
               then
                 echo "$KAFKACOUNT kafka brokers out of $COUNT are up and running!"
-                echo "Retry attempted $COUNTER times, retrying after {{ $.Values.kafka.readinessCheckInterval }} seconds"
+                echo "Retry attempted $COUNTER times, retrying after {{ .Values.kafka.readinessCheckInterval }} seconds"
                 COUNTER=`expr "$COUNTER" + 1`
-                sleep {{ $.Values.kafka.readinessCheckInterval }}
+                sleep {{ .Values.kafka.readinessCheckInterval }}
               else
                 echo "SUCCESS!"
                 echo "All $KAFKACOUNT kafka broker are up and running!"
@@ -119,7 +118,7 @@ spec:
                 break
               fi
             done
-            if [ "$COUNTER" -gt {{ $.Values.kafka.readinessThresHold }} ] || [ "$FLAG" == false ]
+            if [ "$COUNTER" -gt {{ .Values.kafka.readinessThresHold }} ] || [ "$FLAG" == false ]
             then
               echo "Retry attempted $COUNTER times, no kafka brokers are up and running. Giving up!"
               exit 1
@@ -127,23 +126,23 @@ spec:
             fi
           fi
       - name: certificates-init
-        image: {{ $.Values.image.alpineUtils }}
+        image: {{ .Values.image.alpineUtils }}
         imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
-          value: {{ $.Values.global.vault.address }}
+          value: {{ .Values.global.vault.address }}
         - name: VAULT_SECRET_ENGINE
-          value: "{{ $.Values.global.vault.secretEngine }}"
+          value: "{{ .Values.global.vault.secretEngine }}"
         - name: VAULT_SECRET_PREFIX
-          value: "{{ $.Values.global.vault.secretPrefix }}"
+          value: "{{ .Values.global.vault.secretPrefix }}"
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.global.vault.authPath }}
+          value: {{ .Values.global.vault.authPath }}
         - name: VAULT_APP_ROLE
-          value: {{ $.Values.global.vault.role }}
+          value: {{ .Values.global.vault.role }}
         - name: MOUNT_PATH
           value: /secret
         - name: VAULT_TYPE
-          value: "{{ $.Values.global.vault.type }}"
+          value: "{{ .Values.global.vault.type }}"
         - name: ORDERER_NAME
           value: {{ .Release.Name }}
         command: ["sh", "-c"]
@@ -159,15 +158,14 @@ spec:
 
           function getOrdererTlsSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
        
             echo "Getting TLS certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/orderers/${KEY}"
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
-              TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-              TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
-              TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
+              TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca_crt"]')
+              TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server_crt"]')
+              TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server_key"]')
               
               echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
               echo "${TLS_SERVER_CERT}" > ${OUTPUT_PATH}/server.crt
@@ -180,10 +178,9 @@ spec:
 
           function getOrdererMspSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
 
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/orderers/${KEY}"
             if [ "$SECRETS_AVAILABLE" == "yes" ]
             then
               ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
@@ -244,7 +241,7 @@ spec:
 
 {{- end }} 
           COUNTER=1
-          while [ "$COUNTER" -le {{ $.Values.healthCheck.retries }} ]
+          while [ "$COUNTER" -le {{ .Values.healthCheck.retries }} ]
           do
             OUTPUT_PATH="${MOUNT_PATH}/tls"
             mkdir -p ${OUTPUT_PATH}
@@ -263,13 +260,13 @@ spec:
               echo "Orderer certificates have been obtained correctly"
               break
             else
-              echo "Orderer certificates have not been obtained, sleeping for {{ $.Values.healthCheck.sleepTimeAfterError }}"
-              sleep {{ $.Values.healthCheck.sleepTimeAfterError }}
+              echo "Orderer certificates have not been obtained, sleeping for {{ .Values.healthCheck.sleepTimeAfterError }}"
+              sleep {{ .Values.healthCheck.sleepTimeAfterError }}
               COUNTER=`expr "$COUNTER" + 1`
             fi
           done
 
-          if [ "$COUNTER" -gt {{ $.Values.healthCheck.retries }} ]
+          if [ "$COUNTER" -gt {{ .Values.healthCheck.retries }} ]
           then
             echo "Retry attempted `expr $COUNTER - 1` times, Orderer certificates have not been obtained."
             exit 1
@@ -286,22 +283,24 @@ spec:
           mountPath: /scripts/bevel-vault.sh
           subPath: bevel-vault.sh
       containers:
-      - name: {{ .Release.Name }}
-        image: {{ $.Values.image.orderer }}:{{ $.Values.global.network.version }}
+      - name: fabric-orderer
+        image: {{ .Values.image.orderer }}:{{ .Values.global.version }}
         imagePullPolicy: IfNotPresent 
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric
         command: ["sh", "-c", "cat /var/hyperledger/orderer/genesis/genesis.block.base64 | base64 -d > /var/hyperledger/orderer/orderer.genesis.block && orderer"]
         ports:
         - containerPort: 7050
         - name: operations
-          containerPort: 10443
+          containerPort: 9443
+        - name: onsadmin
+          containerPort: 7055
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config
         volumeMounts:
         - name: datadir
           mountPath: /var/hyperledger/production/orderer
-        {{- if ne $.Values.global.network.version "2.5.4" }}
+        {{- if ne ($.Values.global.version | trunc 3) "2.5" }}
         - name: {{ .Release.Name }}-genesis-volume
           mountPath: /var/hyperledger/orderer/genesis
           readOnly: true
@@ -311,11 +310,11 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: {{ .Values.config.pod.resources.requests.memory }}
-            cpu: {{ .Values.config.pod.resources.requests.cpu }}
+            memory: {{ .Values.orderer.resources.requests.memory }}
+            cpu: {{ .Values.orderer.resources.requests.cpu }}
           limits:
-            memory: {{ .Values.config.pod.resources.limits.memory }}
-            cpu: {{ .Values.config.pod.resources.limits.cpu }}
+            memory: {{ .Values.orderer.resources.limits.memory }}
+            cpu: {{ .Values.orderer.resources.limits.cpu }}
       - name: grpc-web
         image: "ghcr.io/hyperledger-labs/grpc-web:latest"
         imagePullPolicy: IfNotPresent        
@@ -324,7 +323,7 @@ spec:
           containerPort: 7443        
         env:
         - name: BACKEND_ADDRESS
-          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ $.Values.service.ports.grpc.clusterIpPort }}"
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.orderer.ports.grpc.clusterIpPort }}"
         - name: SERVER_TLS_CERT_FILE
           value: "/certs/tls/server.crt"
         - name: SERVER_TLS_KEY_FILE
@@ -353,10 +352,10 @@ spec:
   - metadata:
       name: datadir
       labels:
-        {{- include "labels.pvc" . | nindent 6 }}    
+        {{- include "labels.pvc" . | nindent 8 }}    
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: storage-{{ .Release.Name }}
       resources:
         requests:
-          storage: {{ $.Values.storage.size }}
+          storage: {{ .Values.storage.size }}

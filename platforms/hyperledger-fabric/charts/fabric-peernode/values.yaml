@@ -5,8 +5,14 @@
 ##############################################################################################
 
 global:
+  # HLF Network Version
+  #Eg. version: 2.5.4
+  version: 2.5.4
   #Provide the service account name which will be created.
   serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
   vault:
     #Provide the type of vault
     #Eg. type: hashicorp
@@ -17,26 +23,22 @@ global:
     #Provide the vault server address
     #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
     address:
+    #Provide the kubernetes auth backed configured in vault for an organization
+    #Eg. authpath: supplychain
+    authPath: supplychain
     #Provide the secret engine.
     secretEngine: secretsv2
     #Provide the vault path where the secrets will be stored
     secretPrefix: "data/supplychain"
-    #Provide the imagesecretname for vault
-    #Eg. imagesecretname: regcred
-    imageSecretName: ""
     #Kuberenetes secret for vault ca.cert
     #Enable or disable TLS for vault communication if value present or not
     #Eg. tls: vaultca
     tls: 
 
-  cluster:
-    provider: aws  # choose from: minikube | aws | azure | gcp
-    cloudNativeServices: false # only 'false' is implemented
-
   proxy:
     #This will be the proxy/ingress provider. Can have values "none" or "haproxy"
     #Eg. provider: "haproxy"
-    provider: "none"
+    provider: "haproxy"
     #This field contains the external URL of the organization
     #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
     externalUrlSuffix: test.blockchaincloudpoc.com
@@ -44,57 +46,38 @@ global:
     #Eg. port: 443
     port: 443
 
-  # HLF Network Version
-  network:
-    version: 2.5.4
-
-cli:
-  #Creates a peer cli pod depending upon the (enabled/disabled) tag.  
+storage:
+  #Flag to create new storage class for organization. Set to false for existing storage class.
+  #Eg. enabled: true
   enabled: true
-  #Provide the address for orderer
-  #Eg. address: orderer1.test.blockchaincloudpoc.com:443
-  address: orderer1.test.blockchaincloudpoc.com:443
-  peer:
-    #Provide the localMspId for organization
-    #Eg. localMspId: supplychainMSP
-    localMspId: supplychainMSP
-    #Provide the value for tlsStatus to be true or false for organization's peer
-    #Eg. tlsStatus: true
-    tlsStatus: true
-    #Provide the address for the peer
-    #Eg: address: peer0.org1-net:7051
-    address: test.blockchaincloudpoc.com:443
-  healthCheck: 
-    retries: 20
-    sleepTimeAfterError: 15
+  #Provide storage size for Peer Volume
+  #Eg. peer: 512Mi
+  peer: 512Mi
+  #Provide storage size for CouchDB Volume
+  #Eg. couchdb: 512Mi
+  couchdb: 512Mi
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false
 
-catools:
+certs:
+  # Flag indicating the creation of certificates.
+  generateCertificates: true
   orgData:
+    caAddress: ca.supplychain-net:7051
+    caAdminUser: supplychain-admin
+    caAdminPassword: supplychain-adminpw
     #Provide organization's name in lowercases
     #Eg. orgName: supplychain 
     orgName: supplychain
     #Provide organization's type (orderer or peer)
     #Eg. component_type: orderer
-    type:
+    type: peer
     #Provide organization's subject
     #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-    componentSubject:
-    #Provide organization's subject
-    #Eg. "O=Orderer,L=51.50/-0.13/London,C=GB"
-    certSubject:
-    #Provide organization's country
-    #Eg. UK
-    componentCountry: UK
-    #Provide organization's state
-    #Eg. London
-    componentState: London
-    #Provide organization's location
-    #Eg. Lodon
-    componentLocation: Lodon
-  
-  #Provide peer's names
-  peers:
-    - peer0-carrier
+    componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
 
   users: 
     # Generating User Certificates with custom attributes using Fabric CA in Bevel for Peer Organizations
@@ -104,52 +87,60 @@ catools:
         attributes:
         - key: "hf.Revoker"
           value: "true"
-      - user:
-        identity: user2
-        attributes:
-        - key: "hf.Revoker"
-          value: "true"
     #Base64 encoded list of users
     #Eg. IC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMQogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgIgICAgICAgIC0ga2V5OiBrZXkyCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMgogICAgICAgIC0gdXNlcjoKICAgICAgICAgIGlkZW50aXR5OiB1c2VyMgogICAgICAgICAgYXR0cmlidXRlczoKICAgICAgICAgICAgLSBrZXk6IGtleTEKICAgICAgICAgICAgICB2YWx1ZTogdmFsdWUxCiAgICAgICAgICAgIC0ga2V5OiBrZXkzCiAgICAgICAgICAgICAgdmFsdWU6IHZhbHVlMw==
     usersListAnsible:
-    #Provides a list of user identities
-    usersIdentities:
-      - user1
-      - user2
+  settings:
+    #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+    createConfigMaps: false
+    refreshCertValue: false
+    addPeerValue: false
+    removeCertsOnDelete: false
+    removeOrdererTlsOnDelete: false
 
 image:
-  #Provide the valid image name and version for fabric couchdb
-  #Eg. couchdb: hyperledger/fabric-couchdb:0.4.14
+  #Provide the valid image repository for fabric couchdb
+  #Eg. couchdb: hyperledger/fabric-couchdb
   couchdb: ghcr.io/hyperledger/bevel-fabric-couchdb
-  #Provide the valid image name and version for fabric peer
-  #Eg. hyperledger/fabric-peer:2.2.2
+  #Provide the valid repository for fabric peer
+  #Eg. peer: hyperledger/fabric-peer
   peer: ghcr.io/hyperledger/bevel-fabric-peer
   #Provide the valid image name and version to read certificates from vault server 
   #Eg. alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
   alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
-  #Provide the valid image name and version for fabric tools
-  #Eg. fabrictools: hyperledger/fabric-tools:1.4.0
-  fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret:
 
 peer:
-  #Provide the url of gossipping peer and port to be mentioned is grpc cluster IP port
-  #Eg. gossipPeerAddress: supplychain.svc.cluster.local:443
-  gossipPeerAddress: supplychain.svc.cluster.local:443
-  #Provide the url of gossip external endpoint and  port to be mentioned is haproxy https service port
-  #Eg. gossipExternalEndpoint: supplychain:443
-  gossipExternalEndpoint: supplychain.test.blockchaincloudpoc.com:443
+  #Provide the url of the gossipping peer. If empty, this peer's own address will be used
+  #Eg. gossipPeerAddress: peer1.supplychain-net:7051
+  gossipPeerAddress: peer1.supplychain-net:7051
   #Provide the logLevel for organization's peer
   #Eg. logLevel: info
   logLevel: info
+  #Provide the localMspId for organization
+  #Eg. localMspId: supplychainMSP
+  localMspId: supplychainMSP
+  #Provide the value for tlsStatus to be true or false for organization's peer
+  #Eg. tlsStatus: true
+  tlsStatus: true
+  #Flag to enable CLI for this peer
+  #Eg. cliEnabled: true
+  cliEnabled: false
+  #Provide the address for orderer; optional is cliEnabled: false
+  #Eg. ordererAddress: orderer1.test.blockchaincloudpoc.com:443
+  ordererAddress: orderer1.supplychain-net:7050
   #Provide a valid chaincode builder image for Fabric
-  #Eg. builder: hyperledger/fabric-ccenv:1.4.8
+  #Eg. builder: hyperledger/fabric-ccenv
   builder: hyperledger/fabric-ccenv
   couchdb:
     #Provide the username for couchdb login
-    #If couchdb username is provided, it is mandatory to provide password for the same
     #Eg. username: supplychain-user
     username: supplychain-user
-
+    #Provide the password for couchdb login
+    #Eg. password: supplychain-userpw
+    password: supplychain-userpw
   mspConfig:
     #Provide the members of the MSP in organizational unit identifiers
     #Eg.organizationalUnitIdentifiers:
@@ -160,31 +151,19 @@ peer:
     #     - orderer
     organizationalUnitIdentifiers:
     nodeOUs:
-      clientOUIdentifier:
-        #Provide OU which will be used to identify node as client
-        #Eg.organizationalUnitIdentifier: client
-        organizationalUnitIdentifier: client
-      peerOUIdentifier:
-        #Provide OU which will be used to identify node as peer
-        #Eg.organizationalUnitIdentifier: peer
-        organizationalUnitIdentifier: peer
+      #Provide OU which will be used to identify node as client
+      #Eg.clientOUIdentifier: client
+      clientOUIdentifier: client
+      #Provide OU which will be used to identify node as peer
+      #Eg.peerOUIdentifier: peer
+      peerOUIdentifier: peer
       # following for 2.2.x
-      adminOUIdentifier:
-        organizationalUnitIdentifier: admin
-      ordererOUIdentifier:
-        organizationalUnitIdentifier: orderer
-
-storage:
-  peer:
-    #Provide the size for storage class
-    #Eg. size: 512Mi
-    size: 512Mi
-  couchdb:
-    #Provide the size for storage class
-    #Eg. size: 512Mi
-    size: 512Mi
-
-service:
+      #Provide OU which will be used to identify node as admin
+      #Eg.adminOUIdentifier: admin 
+      adminOUIdentifier: admin
+      #Provide OU which will be used to identify node as orderer
+      #Eg.ordererOUIdentifier: orderer
+      ordererOUIdentifier: orderer
   #Provide the serviceType for a peer
   #Eg. serviceType: NodePort
   serviceType: ClusterIP 
@@ -213,34 +192,27 @@ service:
       clusterIpPort: 5984
     metrics:
       enabled: false
-      clusterIpPort: 9443
-
-config:
-  # Set limits and requests of pod  
-  pod:  
-    resources:
-      limits:
+      clusterIpPort: 9443 
+  resources:
+    limits:
       # Provide the limit memory for node
-      # Eg. memory: 512M
-        memory: 512M
+      # Eg. memory: 1Gi
+      memory: 1Gi
       # Provide the limit cpu for node
       # Eg. cpu: 1
-        cpu: 1
-      requests:
+      cpu: 1
+    requests:
       # Provide the requests memory for node
       # Eg. memory: 512M
-        memory: 512M
+      memory: 512M
       # Provide the requests cpu for node
       # Eg. cpu: 0.25
-        cpu: 0.25
-
-settings:
-  # Flag to ensure the certificates configmaps are removed on helm uninstall
-  removeConfigMapsOnDelete: true
-  # Flag to ensure the certificates secrets are removed on helm uninstall
-  removeCertsOnDelete: true
-  # Flag indicating the creation of certificates. This flag must be set to true when installing the first peer and false in the others.
-  generateCertificates: false
+      cpu: 0.25
+  #Flag to be set to true when network is upgraded
+  upgrade: false
+  healthCheck: 
+    retries: 20
+    sleepTimeAfterError: 15
 
 labels:
   service: []

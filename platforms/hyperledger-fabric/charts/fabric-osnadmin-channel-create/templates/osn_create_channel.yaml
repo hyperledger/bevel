@@ -7,54 +7,48 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fabric-osnadmin-channel-create.fullname" . }}
+  name: channel-create-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  annotations:
-      {{- include "labels.deployment" . | nindent 2 }}
   labels:
-    app: {{ .Release.Name }}
     app.kubernetes.io/name:  osn-createchannel-{{ .Release.Name }}
     app.kubernetes.io/component: fabric-osnadmin-channel-create-job
     app.kubernetes.io/part-of: {{ include "fabric-osnadmin-channel-create.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-    {{ include "labels.deployment" . | nindent 6 }} 
 spec:
   backoffLimit: 6
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}
         app.kubernetes.io/name:  osn-createchannel-{{ .Release.Name }}
         app.kubernetes.io/component: fabric-osnadmin-channel-create-job
         app.kubernetes.io/part-of: {{ include "fabric-osnadmin-channel-create.fullname" . }}
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
-        {{ include "labels.deployment" . | nindent 6 }} 
     spec:
       restartPolicy: "OnFailure"
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       volumes:
-      {{ if .Values.global.vault.tls  }}
+      {{ if .Values.global.vault.tls }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
       {{ end  }}
-      {{- if not $.Values.addOrderer }}
+      {{- if not $.Values.orderer.addOrderer }}
       - name: genesis
         configMap:
-          name: {{ .Release.Name }}-genesis-file
+          name: {{ .Release.Name }}-genesis
           items:
-            - key: genesis.block.base64
+            - key: {{ .Release.Name }}-genesis_base64
               path: genesis.block.base64
       {{ end  }}
       - name: certificates
@@ -80,10 +74,6 @@ spec:
           value: "{{ .Values.global.vault.secretPrefix }}"
         - name: VAULT_TYPE
           value: "{{ $.Values.global.vault.type }}"
-        - name: ORDERERS_NAMES
-          value: "{{ $.Values.orderers | join " " -}}"
-        - name: COMPONENT_NAME
-          value: {{ .Release.Namespace }}
         - name: MOUNT_PATH
           value: /secret
         command: ["sh", "-c"]
@@ -98,14 +88,13 @@ spec:
 
           function getOrdererTlsSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
        
             echo "Getting TLS certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/orderers/${KEY}"
 
-            TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-            TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server.crt"]')
-            TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server.key"]')
+            TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca_crt"]')
+            TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server_crt"]')
+            TLS_SERVER_KEY=$(echo ${VAULT_SECRET} | jq -r '.["server_key"]')
             
             echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
             echo "${TLS_SERVER_CERT}" > ${OUTPUT_PATH}/server.crt
@@ -113,11 +102,10 @@ spec:
           }
 
           function getOrdererMspSecret {
-            KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
-
+            type=$1
+            KEY=$2
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${type}/${KEY}"
 
             ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
             CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
@@ -146,7 +134,8 @@ spec:
           }
 
           function getOrdererMspSecret {
-            KEY=$1                       
+            type=$1
+            KEY=$2
             KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
 
             ADMINCERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.admincerts'  | base64 -d)
@@ -170,22 +159,22 @@ spec:
           mkdir -p ${OUTPUT_PATH}/keystore
           mkdir -p ${OUTPUT_PATH}/signcerts
           mkdir -p ${OUTPUT_PATH}/tlscacerts
-          getOrdererMspSecret admin-msp
+          getOrdererMspSecret users admin-msp
 
-          for ORDERER_NAME in $ORDERERS_NAMES
-          do
+      {{- range $orderer := .Values.orderers }}
+            ORDERER_NAME={{ .name }}
             OUTPUT_PATH="${MOUNT_PATH}/${ORDERER_NAME}/msp"
             mkdir -p ${OUTPUT_PATH}/admincerts
             mkdir -p ${OUTPUT_PATH}/cacerts
             mkdir -p ${OUTPUT_PATH}/keystore
             mkdir -p ${OUTPUT_PATH}/signcerts
             mkdir -p ${OUTPUT_PATH}/tlscacerts
-            getOrdererMspSecret ${ORDERER_NAME}-msp
+            getOrdererMspSecret orderers ${ORDERER_NAME}-msp
 
             OUTPUT_PATH="${MOUNT_PATH}/${ORDERER_NAME}/tls"
             mkdir -p ${OUTPUT_PATH}
             getOrdererTlsSecret ${ORDERER_NAME}-tls
-          done
+      {{- end }}
 
         volumeMounts:
         {{ if .Values.global.vault.tls  }}
@@ -200,22 +189,22 @@ spec:
           subPath: bevel-vault.sh
       containers:
       - name: createchannel
-        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }} 
+        image: {{ .Values.image.fabricTools }}:{{ .Values.global.version }} 
         imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
+        envFrom:
+        - configMapRef:
+            name: {{ .Release.Name }}-osnadmin-config
         env:
-        - name: ORDERERS_NAMES
-          value: "{{ $.Values.orderers | join " " -}}"
-        - name: NAMESPACE
-          value: "{{ .Release.Namespace }}"
         - name: ADD_ORDERER
-          value: "{{ $.Values.addOrderer }}"
+          value: "{{ .Values.orderer.addOrderer }}"
         command: ["sh", "-c"]
         args:
         - |-
+
           #!/usr/bin/env sh
-          echo "Fetch genesis file..."
+          echo "Format or fetch genesis file..."
           if [ $ADD_ORDERER = false ]
           then
             cat ./genesis/genesis.block.base64 | base64 -d > orderer.genesis.block
@@ -223,12 +212,13 @@ spec:
             peer channel fetch config ${CHANNEL_NAME}_config_block.pb -o ${CORE_PEER_ADDRESS} -c ${CHANNEL_NAME} --tls --cafile ${ORDERER_CA}
           fi 
 
-          for ORDERER_NAME in $ORDERERS_NAMES
-          do
+          {{- range $orderer := .Values.orderers }}
+            ORDERER_NAME={{ .name }}
             ADMIN_TLS_PRIVATE_KEY="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/server.key"
             ADMIN_TLS_SIGN_CERT="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/server.crt"
             OSN_TLS_CA_ROOT_CERT="${ADMIN_TLS_CERTS}/${ORDERER_NAME}/tls/ca.crt"
-            ORDERER_URL="${ORDERER_NAME}.${NAMESPACE}:7055"
+            # The ORDERER_URL is hardcoded to use local orderer URL as of now
+            ORDERER_URL="{{ .adminAddress }}"
 
             CHANNEL_LIST_QUERY_RESPONSE=$(osnadmin channel list --channelID ${CHANNEL_NAME} -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}")
             if echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '404'; then
@@ -242,20 +232,17 @@ spec:
               osnadmin channel list -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
             elif echo "$CHANNEL_LIST_QUERY_RESPONSE" | grep '200\|201'; then
               echo "Channel ${CHANNEL_NAME}, is already created for url: ${ORDERER_URL}"
-              osnadmin channel list --channelID ${CHANNEL_NAME} -o "${ORDERER_URL}" --ca-file "${OSN_TLS_CA_ROOT_CERT}" --client-cert "${ADMIN_TLS_SIGN_CERT}" --client-key "${ADMIN_TLS_PRIVATE_KEY}"
+              echo "$CHANNEL_LIST_QUERY_RESPONSE"
             else
               echo $CHANNEL_LIST_QUERY_RESPONSE
             fi
-          done
+          {{- end }}
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
-        envFrom:
-        - configMapRef:
-            name: {{ .Release.Name }}-config
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
-        {{- if not $.Values.addOrderer }}
+        {{- if not $.Values.orderer.addOrderer }}
         - name: genesis
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/genesis
           readOnly: true

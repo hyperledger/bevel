@@ -8,6 +8,9 @@
 ---
 # The following are for overriding global values
 global:
+  # HLF Network Version
+  #Eg. version: 2.5.4
+  version: 2.5.4
   #Provide the service account name which will be created.
   serviceAccountName: vault-auth  
   cluster:
@@ -32,34 +35,32 @@ global:
     secretEngine: secretsv2
     #Provide the vault path where the secrets will be stored
     secretPrefix: "data/supplychain"
-    #Provide the imageSecretName for vault
-    #Eg. imageSecretName: regcred
-    imageSecretName: ""
     #Enable or disable TLS for vault communication
     #Eg. tls: true
     tls: 
 
-  # HLF Network Version
-  network:
-    version: 2.5.4
-
 image:
   #Provide the valid image name and version for fabric tools
-  #Eg. fabricTools: hyperledger/fabric-tools:2.2.2
+  #Eg. fabricTools: hyperledger/fabric-tools
   fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
   #Provide the valid image name and version to read certificates from vault server
   #Eg. alpineUtils: hyperledgerlabs/alpine-utils:1.0
   alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret: 
 
-#Provide orderer's names
+#Provide orderer details
 orderers:
-  - orderer1   
-  - orderer2 
-  - orderer3
+  - name: orderer1
+    adminAddress: orderer1.supplychain-net:7055 # Internal URI of the orderer ONS Admin service
+  - name: orderer2
+    adminAddress: orderer2.supplychain-net:7055
+  - name: orderer3
+    adminAddress: orderer3.supplychain-net:7055
 
-addOrderer: false
-
-labels:
-  service: []
-  pvc: []
-  deployment: []
+orderer:
+  addOrderer: false
+  name: neworderer
+  localMspId: newordererMSP
+  ordererAddress: neworderer.neworg-net:7050

@@ -28,31 +28,27 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{- define "labels.deployment" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.deployment }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
-{{- end }}
-{{- end }}
+{{- range $value := .Values.labels.deployment }}
+{{ toYaml $value }}
 {{- end }}
 {{- end }}
 
 {{- define "labels.service" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.service }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
-{{- end }}
-{{- end }}
+{{- range $value := .Values.labels.service }}
+{{ toYaml $value }}
 {{- end }}
 {{- end }}
 
 {{- define "labels.pvc" -}}
-{{- if $.Values.labels }}
-{{- range $key, $value := $.Values.labels.pvc }}
-{{- range $k, $v := $value }}
-  {{ $k }}: {{ $v | quote }}
+{{- range $value := .Values.labels.pvc }}
+{{ toYaml $value }}
 {{- end }}
 {{- end }}
-{{- end }}
-{{- end }}
+
+{{/*
+Create server name depending on proxy
+*/}}
+{{- define "fabric-catools.caFileName" -}}
+{{- $serverAddress := .Values.orgData.caAddress | replace "." "-" | replace ":" "-" -}}
+{{- printf "%s.pem" $serverAddress -}}
+{{- end -}}

@@ -9,10 +9,8 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  {{- if or $.Values.global.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
-  annotations:
-    {{- include "labels.pvc" . | nindent 2 }}
-  {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
+  {{- if or .Values.global.proxy (and .Values.peer.loadBalancerType (eq .Values.peer.loadBalancerType "Internal")) }}
+  {{- if and .Values.peer.loadBalancerType (eq .Values.peer.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
   {{- end }}
   {{- end }}
@@ -24,32 +22,32 @@ metadata:
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    {{- include "labels.pvc" . | nindent 2 }}
+    {{- include "labels.service" . | nindent 4 }}
 spec:
-  type: {{ $.Values.service.serviceType }}
+  type: {{ .Values.peer.serviceType }}
   selector:
     app: {{ .Release.Name }}
   ports:
   - name: grpc
     protocol: TCP
     targetPort: 7051
-    port: {{ $.Values.service.ports.grpc.clusterIpPort }}
-    {{- if $.Values.service.ports.grpc.nodePort }}
-    nodePort: {{ $.Values.service.ports.grpc.nodePort }}
+    port: {{ .Values.peer.ports.grpc.clusterIpPort }}
+    {{- if .Values.peer.ports.grpc.nodePort }}
+    nodePort: {{ .Values.peer.ports.grpc.nodePort }}
     {{- end }}
   - name: events
     protocol: TCP
     targetPort: 7053
-    port: {{ $.Values.service.ports.events.clusterIpPort }}
-    {{- if $.Values.service.ports.events.nodePort }}
-    nodePort: {{ $.Values.service.ports.events.nodePort }}
+    port: {{ .Values.peer.ports.events.clusterIpPort }}
+    {{- if .Values.peer.ports.events.nodePort }}
+    nodePort: {{ .Values.peer.ports.events.nodePort }}
     {{- end }}
   - protocol: TCP
     name: couchdb
     targetPort: 5984
-    port: {{ $.Values.service.ports.couchdb.clusterIpPort }}
-    {{- if $.Values.service.ports.couchdb.nodePort }}
-    nodePort: {{ $.Values.service.ports.couchdb.nodePort }}
+    port: {{ .Values.peer.ports.couchdb.clusterIpPort }}
+    {{- if .Values.peer.ports.couchdb.nodePort }}
+    nodePort: {{ .Values.peer.ports.couchdb.nodePort }}
     {{- end }}
   - name: grpc-web
     protocol: TCP
@@ -58,15 +56,15 @@ spec:
   - name: operations
     protocol: TCP
     targetPort: 9443
-    port: {{ $.Values.service.ports.metrics.clusterIpPort }}
-  {{- if (eq $.Values.service.serviceType "ClusterIP") }}
+    port: {{ .Values.peer.ports.metrics.clusterIpPort }}
+  {{- if (eq .Values.peer.serviceType "ClusterIP") }}
   clusterIP: None
   {{- end }}
-  {{- if $.Values.service.loadBalancerIP }}
-  loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
+  {{- if .Values.peer.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.peer.loadBalancerIP }}
   {{- end }}
 
-{{- if eq $.Values.global.proxy.provider "haproxy" }}
+{{- if eq .Values.global.proxy.provider "haproxy" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -74,11 +72,11 @@ metadata:
   name: {{ .Release.Name }}
   namespace:  {{ .Release.Namespace }}
   annotations:
-    kubernetes.io/ingress.class: "haproxy"
     ingress.kubernetes.io/ssl-passthrough: "true"  
 spec:
+  ingressClassName: "haproxy"
   rules:
-  - host: {{ .Release.Name }}.{{ .Release.Namespace }}.{{ $.Values.global.proxy.externalUrlSuffix }}
+  - host: {{ .Release.Name }}.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
@@ -87,8 +85,8 @@ spec:
           service:
             name: {{ .Release.Name }}
             port:
-              number: {{ $.Values.service.ports.grpc.clusterIpPort }}
-  - host: {{ .Release.Name }}-proxy.{{ .Release.Namespace }}.{{ $.Values.global.proxy.externalUrlSuffix }}
+              number: {{ .Values.peer.ports.grpc.clusterIpPort }}
+  - host: {{ .Release.Name }}-proxy.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
@@ -104,11 +102,10 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}-ops
   namespace:  {{ .Release.Namespace }}
-  annotations:
-    kubernetes.io/ingress.class: "haproxy"
 spec:
+  ingressClassName: "haproxy"
   rules:
-  - host: {{ .Release.Name }}-ops.{{ .Release.Namespace }}.{{ $.Values.global.proxy.externalUrlSuffix }}
+  - host: {{ .Release.Name }}-ops.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /

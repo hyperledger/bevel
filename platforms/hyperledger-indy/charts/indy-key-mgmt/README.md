@@ -70,7 +70,7 @@ These parameters are refered to as same in each parent or child chart
 | Name   | Description    | Default Value   |
 | -------------| ---------- | --------- |
 | `image.keyUtils`  | Indy Key Gen image repository for the Indy version  | `ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 
 ### Settings
 

@@ -3,240 +3,160 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "peer-node-hyperledger-fabric-deployment"></a>
-# Peer Node Hyperledger Fabric Deployment
+# fabric-peernode
 
-- [Peer Node Hyperledger Fabric Deployment](#peer-node-hyperledger-fabric-deployment)
-  - [Peer Node Hyperledger Fabric Deployment Helm Chart](#peer-node-hyperledger-fabric-deployment-helm-chart)
-  - [Prerequisites](#prerequisites)
-  - [Chart Structure](#chart-structure)
-  - [Configuration](#configuration)
-    - [Metadata](#metadata)
-    - [Labels](#labels)
-    - [Peer](#peer)
-    - [Storage](#storage)
-    - [Vault](#vault)
-    - [Service](#service)
-    - [Proxy](#proxy)
-    - [Config](#config)
-  - [Deployment](#deployment)
-  - [Verification](#verification)
-  - [Updating the Deployment](#updating-the-deployment)
-  - [Deletion](#deletion)
-  - [Contributing](#contributing)
-  - [License](#license)
-    - [Attribution](#attribution)
+This chart is a component of Hyperledger Bevel. The fabric-peernode chart deploys a Peer Node for Hyperledger Fabric blockchain network. If enabled, the keys are stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "peer-node-hyperledger-fabric-deployment-helm-chart"></a>
-## Peer Node Hyperledger Fabric Deployment Helm Chart
----
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-peernode) for peer node.
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install peer0 bevel/fabric-peernode
+```
 
-
-<a name = "prerequisites"></a>
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- HAproxy is required as ingress controller.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+> **Important**: Also check the dependent charts.
 
-```
-fabric-peernode/
-  |- conf/
-      |- default_core.yaml
-  |- templates/
-      |- _helpers.yaml
-      |- configmap.yaml
-      |- deployment.yaml
-      |- service.yaml
-      |- servicemonitor.yaml      
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+## Installing the Chart
+
+To install the chart with the release name `peer0`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install peer0 bevel/fabric-peernode
 ```
 
-- `default_core.yaml`: Default configuration file for the peer node.
-- `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
-- `helpers.tpl`: Contains custom label definitions used in other templates.
-- `configmap.yaml`: Provides a way to configure the Hyperledger Fabric peer and enable it to join the network, interact with other nodes. The environment variables that are defined in the peer-config ConfigMap are used to configure the peer's runtime behavior. The configuration for the MSP is defined in the msp-config ConfigMap. The core.yaml file is used to configure the chaincode builder
-- `deployment.yaml`: The certificates-init container fetches TLS certificates and other secrets from Vault. The couchdb container runs a CouchDB database that is used to store the ledger state. The {{ $.Values.global.peer.name }} container runs a Hyperledger Fabric peer that manages the ledger and provides access to the blockchain network. The grpc-web container runs a gRPC-Web proxy that allows gRPC services to be accessed via a web browser.
-- `service.yaml`: Ensures internal and external access with exposed ports for gRPC (7051), events (7053), CouchDB (5984), gRPC-Web (7443), and operations (9443), and optionally uses HAProxy for external exposure and secure communication.
-- `servicemonitor.yaml`: Define a ServiceMonitor resource that allows Prometheus to collect metrics from the peer node's "operations" port. The configuration is conditionally applied based on the availability of the Prometheus Operator's API version and whether metrics are enabled for the peer service.
-- `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
-- `README.md`: Provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the Helm chart.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
+> **Tip**: List all releases using `helm list`
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-peernode/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+## Uninstalling the Chart
 
-### Metadata
+To uninstall/delete the `peer0` deployment:
 
-| Name                  | Description                                                           | Default Value                                     |
-| ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
-| images.couchdb        | valid image name and version for fabric couchdb                       | ghcr.io/hyperledger/bevel-fabric-couchdb:2.2.2                                       |
-| images.peer           | valid image name and version for fabric peer                          | ghcr.io/hyperledger/bevel-fabric-peer:2.2.2                     |
-| images.alpineutils    | valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
-| labels                | Provide custom labels                                                 | ""                                                |
+```bash
+helm uninstall peer0
+```
 
-### Annotations
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
-| Name           | Description                             | Default Value |
-| ---------------| --------------------------------------- | --------------|
-| service        | Extra labels for service           | ""            |
-| pvc            | Extra labels for pvc               | ""            |
-| deployment     | Extra labels for deployment        | ""            |
+## Parameters
 
-### Peer
+### Global
 
-| Name                                      | Description                                                           | Default Value                                 |
-| ------------------------------------------| ----------------------------------------------------------------------| ----------------------------------------------|
-| name                                      | Name of the peer as per deployment yaml                               | peer0                                         |
-| gossipPeerAddress                         | URL of gossipping peer and port for grpc                              | peer1.org1-net.svc.cluster.local:7051 |
-| gossipExternalEndpoint                    | URL of gossip external endpoint and port for haproxy https service | peer0.org1-net.org1proxy.blockchaincloudpoc.com:443               |
-| localMspId                                | Local MSP ID for the organization                                     | Org1MSP                                       |
-| logLevel                                  | Log level for organization's peer                                     | info                                          |
-| tlsstatus                                 | Set to true or false for organization's peer                          | true                                          |
-| builder                                   | Valid chaincode builder image for Fabric                              | hyperledger/fabric-ccenv:2.2.2                |
-| couchdb.username                          | CouchDB username (mandatory if provided)                              | org1-user                                     |
-| configPath                                | Provide the configuration path                                        | ""                                            |
-| core                                      | Provide core configuration                                            | ""                                            |
-| mspConfig.organizationalUnitIdentifiers   | Provide the members of the MSP in organizational unit identifiers     | ""                                            |
-| mspConfig.nodeOUs.clientOUIdentifier.organizationalUnitIdentifier  | Organizational unit identifier for client nodes          | client                            |
-| mspConfig.nodeOUs.peerOUIdentifier.organizationalUnitIdentifier    | Organizational unit identifier for peer nodes            | peer                              |
-| mspConfig.nodeOUs.adminOUIdentifier.organizationalUnitIdentifier   | Organizational unit identifier for admin nodes (2.2.x)   | admin                             |
-| mspConfig.nodeOUs.ordererOUIdentifier.organizationalUnitIdentifier | Organizational unit identifier for orderer nodes (2.2.x) | orderer                           |
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.version` | Fabric Version. | `2.5.4` |
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws`, `azure` and `minikube` are tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.vault.tls` | Name of the Kubernetes secret which has certs to connect to TLS enabled Vault   | `""`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `haproxy` | `haproxy` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Fabric GRPC services will be available | `test.blockchaincloudpoc.com` |
+| `global.proxy.port` | The External Port on the proxy | `443` |
 
 ### Storage
 
-| Name                      | Description                      | Default Value       |
-| --------------------------| -------------------------------- | ------------------- |
-| peer.size          | Storage size for peer            | 512Mi               |
-| couchdb.size       | Storage size for CouchDB         | 512Mi               |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.enabled` | Flag to enable Storage Class creation for the Peer, set to `false` when using same peer name in different organizations | `true` |
+| `storage.peer` | Size of the PVC needed for Peer Node | `512Mi` |
+| `storage.couchdb` | Size of the PVC needed for CouchDB Database | `512Mi` |
+| `storage.reclaimPolicy` | Reclaim policy for the PVC. Choose from: `Delete` or `Retain` | `Delete` |
+| `storage.volumeBindingMode` | Volume binding mode for the PVC. Choose from: `Immediate` or `WaitForFirstConsumer` | `Immediate` |
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
-### Vault
+### Certs
 
-| Name                  | Description                                                           | Default Value                                     |
-| ----------------------| ----------------------------------------------------------------------| --------------------------------------------------|
-| role                  | Vault role for the organization                                       | vault-role                                        |
-| address               | Vault server address                                                  | ""                                                |
-| authpath              | Kubernetes auth backend configured in vault for the organization      | devorg1-net-auth                      |
-| secretprefix          | Vault secret prefix                                                   | ssecretsv2/data/crypto/peerOrganizations/org1-net/peers/peer0.org1-net                              |
-| serviceaccountname    | Service account name for vault                                        | vault-auth                                        |
-| type                  | Provide the type of vault                                             | hashicorp    |
-| imagesecretname       | Image secret name for vault                                           | ""                                                |
-| secretcouchdbpass     | Vault path for secret CouchDB password                                | secretsv2/data/credentials/org1-net/couchdb/org1?user  |
-| tls                   | Enable or disable TLS for vault communication                         | ""                                                |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `certs.generateCertificates` | Flag to generate certificates for the Peer Node | `true` |
+| `certs.orgData.caAddress` | Address of the CA Server without https | `ca.supplychain-net:7051` |
+| `certs.orgData.caAdminUser` | CA Admin Username  | `supplychain-admin` |
+| `certs.orgData.caAdminPassword` | CA Admin Password  | `supplychain-adminpw` |
+| `certs.orgData.orgName` | Organization Name  | `supplychain` |
+| `certs.orgData.type` | Type of certificate to generate, choosed from `orderer` or `peer` | `peer` |
+| `certs.orgData.componentSubject` | X.509 subject for the organization  | `"O=Peer,L=51.50/-0.13/London,C=GB"` |
+| `certs.users.usersList` | Array of Users with their attributes  | `- identity: user1`<br/>`attributes:`<br/>`- key: "hf.Revoker"`<br/>`value: "true"` |
+| `certs.users.usersListAnsible` | Base64 encoded list of Users generally passed from Ansible  | `""` |
+| `certs.settings.createConfigMaps` | Flag to create configmaps. Must be set to `false` for additional orderers/peers in the same organization. | `false` |
+| `certs.settings.refreshCertValue` | Flag to refresh User certificates  | `false` |
+| `certs.settings.addPeerValue` | Flag to be used when adding a new peer to the organization  | `false` |
+| `certs.settings.removeCertsOnDelete` | Flag to delete the user and peer certificates on uninstall  | `false` |
+| `certs.settings.removePeerTlsOnDelete` | Flag to delete the orderer TLS certificates on uninstall | `false` |
 
-### Service
+### Image
 
-| Name                          | Description                               | Default Value       |
-| ----------------------------- | ------------------------------------------| ------------------- |
-| serviceType                   | Service type for the peer                 | ClusterIP           |
-| loadBalancerType              | Load balancer type for the peer           | ""                  |
-| ports.grpc.nodePort           | Cluster IP port for grpc service          | ""                  |
-| ports.grpc.clusterIpPort      | Cluster IP port for grpc service          | 7051                |
-| ports.events.nodePort         | Cluster IP port for event service         | ""                  |
-| ports.events.clusterIpPort    | Cluster IP port for event service         | 7053                |
-| ports.couchdb.nodePort        | Cluster IP port for CouchDB service       | ""                  |
-| ports.couchdb.clusterIpPort   | Cluster IP port for CouchDB service       | 5984                |
-| ports.metrics.enabled         | Enable/disable metrics service            | false               |
-| ports.metrics.clusterIpPort   | Cluster IP port for metrics service       | 9443                |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.couchdb`  | CouchDB image repository | `ghcr.io/hyperledger/bevel-fabric-couchdb` |
+| `image.peer`  | Fabric Peer image repository | `ghcr.io/hyperledger/bevel-fabric-peer` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
-### Proxy
+### Peer
 
-| Name                  | Description                                               | Default Value       |
-| ----------------------| ----------------------------------------------------------| ------------------- |
-| provider              | Proxy/ingress provider ( haproxy or none)     | none                |
-| externalUrlSuffix   | External URL of the organization                          | org1proxy.blockchaincloudpoc.com                  |
-| port                  | External port on proxy service                               | 443                 |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `peer.gossipPeerAddress` | Internal or External Address of the Gossip Peer Node, leave empty to use Peer's own address | `peer1.supplychain-net:7051` |
+| `peer.logLevel` | Log level for the Peer Node | `info` |
+| `peer.localMspId` | Local MSP ID for the Peer Organization  | `supplychainMSP` |
+| `peer.tlsStatus` | TLS status of the Peer Node  | `true` |
+| `peer.cliEnabled` | Flag to deploy the Peer CLI. Check [fabric-cli](../fabric-cli/README.md) for details  | `false` |
+| `peer.ordererAddress` | Orderer Internal or External Address with port for CLI to connect  | `orderer1.supplychain-net:7050` |
+| `peer.builder` | Chaincode Builder Image repository  | `hyperledger/fabric-ccenv` |
+| `peer.couchdb.username` | CouchDB User Name | `supplychain-user` |
+| `peer.couchdb.password` | CouchDB User Password | ` supplychain-userpw` |
+| `peer.mspConfig.organizationalUnitIdentifiers` | List of Organizational Unit Identifiers for Peer MSP Config | `""` |
+| `peer.mspConfig.nodeOUs.clientOUIdentifier` | Organizational Unit Identifier to identify node as client | `client` |
+| `peer.mspConfig.nodeOUs.peerOUIdentifier` | Organizational Unit Identifier to identify node as peer | `peer` |
+| `peer.mspConfig.nodeOUs.adminOUIdentifier` | Organizational Unit Identifier to identify node as admin | `admin` |
+| `peer.mspConfig.nodeOUs.ordererOUIdentifier` | Organizational Unit Identifier to identify node as orderer | `orderer` |
+| `peer.serviceType` | Service Type for the GRPC Service  | `ClusterIP` |
+| `peer.loadBalancerType` | Load Balancer Type for the GRPC Service  | `""` |
+| `peer.ports.grpc.nodePort` | NodePort for the Peer GRPC Service  | `""` |
+| `peer.ports.grpc.clusterIpPort` | TCP Port for the Peer GRPC Service  | `7051` |
+| `peer.ports.events.nodePort` | NodePort for the Peer Events Service  | `""` |
+| `peer.ports.events.clusterIpPort` | TCP Port for the Peer Events Service  | `7053` |
+| `peer.ports.couchdb.nodePort` | NodePort for the CouchDB Service  | `""` |
+| `peer.ports.couchdb.clusterIpPort` | TCP Port for the CouchDB Service  | `5984` |
+| `peer.ports.metrics.enabled` | Flag to enable metrics port  | `false` |
+| `peer.ports.metrics.clusterIpPort` | TCP Port for the Peer metrics | `9443` |
+| `peer.resources.limits.memory` | Memory limit for the Peer Node  | `1Gi` |
+| `peer.resources.limits.cpu` | CPU limit for the Peer Node  | `1` |
+| `peer.resources.requests.memory` | Memory request for the Peer Node  | `512M` |
+| `peer.resources.requests.cpu` | CPU request for the Peer Node  | `0.25` |
+| `peer.upgrade` | Flag to denote that Peer is being upgraded | `false` |
+| `peer.healthCheck.retries` | Retry count to connect to Vault  | `20` |
+| `peer.healthCheck.sleepTimeAfterError` | Wait seconds after unsuccessful connection attempt  | `15` |
 
-### Config
+### Labels
 
-| Name                          | Description                 | Default Value       |
-| ----------------------------- | --------------------------- | ------------------- |
-| pod.resources.limits.memory   | Limit memory for node       | 512M                |
-| pod.resources.limits.cpu      | Limit CPU for node          | 1                   |
-| pod.resources.requests.memory | Requested memory for node   | 512M                |
-| pod.resources.requests.cpu    | Requested CPU for node      | 0.25                |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `labels.service` | Array of Labels for service object  | `[]` |
+| `labels.pvc` | Array of Labels for PVC object  | `[]` |
+| `labels.deployment` | Array of Labels for deployment or statefulset object  | `[]` |
 
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the fabric-peernode Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-peernode/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./fabric-peernode
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the fabric-peernode node to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
-```
-$ kubectl get statefulsets -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the StatefulSet was created. This command will display information about the StatefulSet, including the number of replicas and their current status.
-
-
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
-
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-peernode/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./fabric-peernode
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the fabric-peernode node is up to date.
-
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Peer Node Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-peernode), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

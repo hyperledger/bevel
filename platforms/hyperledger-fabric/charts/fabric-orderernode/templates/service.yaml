@@ -9,14 +9,6 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  annotations:
-    {{- if $.Values.labels }}
-    {{- range $key, $value := $.Values.labels.service }}
-    {{- range $k, $v := $value }}
-    {{ $k }}: {{ $v | quote }}
-    {{- end }}
-    {{- end }}
-    {{- end }}
   labels:
     run: {{ .Release.Name }}
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -26,16 +18,17 @@ metadata:
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "labels.service" . | nindent 4 }}
 spec:
-  type: {{ $.Values.service.serviceType }}
+  type: {{ .Values.orderer.serviceType }}
   selector:
     app: {{ .Release.Name }}
   ports:
   - protocol: TCP
     targetPort: 7050
-    port: {{ $.Values.service.ports.grpc.clusterIpPort }}
-    {{- if  (ne $.Values.service.serviceType "ClusterIP") }}
-    nodePort: {{ $.Values.service.ports.grpc.nodeport }}
+    port: {{ .Values.orderer.ports.grpc.clusterIpPort }}
+    {{- if  (ne .Values.orderer.serviceType "ClusterIP") }}
+    nodePort: {{ .Values.orderer.ports.grpc.nodeport }}
     {{- end }}
     name: grpc
   - name: grpc-web
@@ -45,12 +38,18 @@ spec:
   - name: operations
     protocol: TCP
     targetPort: 9443
-    port: {{ $.Values.service.ports.metrics.clusterIpPort }}
-  {{- if (eq $.Values.service.serviceType "ClusterIP") }}
+    port: {{ .Values.orderer.ports.metrics.clusterIpPort }}
+{{ if contains "2.5" .Values.global.version }}
+  - name: onsadmin
+    protocol: TCP
+    targetPort: 7055
+    port: 7055
+{{- end }}
+  {{- if (eq .Values.orderer.serviceType "ClusterIP") }}
   clusterIP: None
   {{- end }}
   
-{{ if eq $.Values.global.proxy.provider "haproxy" }}
+{{ if eq .Values.global.proxy.provider "haproxy" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -58,11 +57,11 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    kubernetes.io/ingress.class: "haproxy"
     ingress.kubernetes.io/ssl-passthrough: "true"  
 spec:
+  ingressClassName: "haproxy"
   rules:
-  - host: {{ .Release.Name }}.{{ $.Values.global.proxy.externalUrlSuffix }}
+  - host: {{ .Release.Name }}.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
@@ -71,8 +70,8 @@ spec:
           service:
             name: {{ .Release.Name }}
             port:
-              number: {{ $.Values.service.ports.grpc.clusterIpPort }}
-  - host: {{ .Release.Name }}-proxy.{{ $.Values.global.proxy.externalUrlSuffix }}
+              number: {{ .Values.orderer.ports.grpc.clusterIpPort }}
+  - host: {{ .Release.Name }}-proxy.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
@@ -88,11 +87,10 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}-ops
   namespace: {{ .Release.Namespace }}
-  annotations:
-    kubernetes.io/ingress.class: "haproxy"    
 spec:
+  ingressClassName: "haproxy"
   rules:  
-  - host: {{ .Release.Name }}-ops.{{ $.Values.global.proxy.externalUrlSuffix }}
+  - host: {{ .Release.Name }}-ops.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
@@ -101,5 +99,5 @@ spec:
           service:
             name: {{ .Release.Name }}
             port:
-              number: 10443
+              number: 9443
 {{ end }}

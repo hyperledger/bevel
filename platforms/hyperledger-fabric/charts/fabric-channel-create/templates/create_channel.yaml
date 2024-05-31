@@ -7,74 +7,75 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fabric-channel-create.fullname" . }}
+  name: createchannel-{{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  annotations:
-    {{- include "labels.deployment" . | nindent 2 }}
   labels:
-    app: {{ .Release.Name }}
     app.kubernetes.io/name: createchannel-{{ .Release.Name }}
     app.kubernetes.io/component: fabric-channel-create-job
     app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: helm
-    {{ include "labels.deployment" . | nindent 6 }} 
 spec:
   backoffLimit: 6
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}
         app.kubernetes.io/name: createchannel-{{ .Release.Name }}
         app.kubernetes.io/component: fabric-channel-create-job
         app.kubernetes.io/part-of: {{ include "fabric-channel-create.fullname" . }}
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
         app.kubernetes.io/managed-by: helm
-        {{ include "labels.deployment" . | nindent 6 }} 
     spec:
       restartPolicy: "OnFailure"
-      serviceAccountName: {{ $.Values.global.serviceAccountName }}
-      {{- if .Values.global.vault.imageSecretName }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
       imagePullSecrets:
-        - name: {{ $.Values.global.vault.imageSecretName }}
+        - name: {{ .Values.image.pullSecret }}
       {{- end }}
       volumes:
       {{ if .Values.global.vault.tls  }}
       - name: vaultca
         secret:
-          secretName: {{ $.Values.global.vault.tls }}
+          secretName: {{ .Values.global.vault.tls }}
           items:
           - key: ca.crt.pem
             path: ca-certificates.crt
       {{ end  }}
-      - name: channel-artifacts-{{ .Release.Name }}
+      - name: {{ .Release.Name }}-channel-artifacts
         configMap:
-          name: channel-artifacts-{{ .Release.Name }}
+          name: {{ .Release.Name }}-channel-artifacts
       - name: certificates
         emptyDir:
           medium: Memory
       - name: scripts-volume
         configMap:
           name: bevel-vault-script
+      - name: orderer-tls-cacert
+        configMap:
+          name: {{ include "fabric-channel-create.orderercrt" . }}
+          defaultMode: 0775
+          items:
+            - key: cacert
+              path: orderer.crt
       initContainers:
       - name: certificates-init
-        image: {{ $.Values.image.alpineUtils }}
+        image: {{ .Values.image.alpineUtils }}
         imagePullPolicy: IfNotPresent
         env:
         - name: VAULT_ADDR
-          value: {{ $.Values.global.vault.address }}
+          value: {{ .Values.global.vault.address }}
         - name: VAULT_APP_ROLE
-          value: {{ $.Values.global.vault.role }}
+          value: {{ .Values.global.vault.role }}
         - name: KUBERNETES_AUTH_PATH
-          value: {{ $.Values.global.vault.authPath }}
+          value: {{ .Values.global.vault.authPath }}
         - name: VAULT_SECRET_ENGINE
           value: "{{ .Values.global.vault.secretEngine }}"
         - name: VAULT_SECRET_PREFIX
           value: "{{ .Values.global.vault.secretPrefix }}"
         - name: VAULT_TYPE
-          value: "{{ $.Values.global.vault.type }}"
+          value: "{{ .Values.global.vault.type }}"
         - name: MOUNT_PATH
           value: /secret
         command: ["sh", "-c"]
@@ -86,23 +87,11 @@ spec:
           . /scripts/bevel-vault.sh
           vaultBevelFunc "init"
 
-          function getOrdererTlsSecret {
-            KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
-       
-            echo "Getting Orderer TLS certificates from Vault using key $vault_secret_key"
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
-
-            TLS_CA_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca.crt"]')
-            echo "${TLS_CA_CERT}" > ${OUTPUT_PATH}/ca.crt
-          }
-
           function getAdminMspSecret {
             KEY=$1
-            KEY_FORMATTED=$(echo $KEY | tr - /)
 
             echo "Getting MSP certificates from Vault."
-            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${KEY_FORMATTED}"
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/users/${KEY}"
 
             ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
             CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
@@ -118,15 +107,6 @@ spec:
           }
 
 {{- else }}
-
-          function getOrdererTlsSecret {
-            KEY=$1
-            kubectl get secret ${KEY} --namespace {{ .Release.Namespace }}  -o json > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-              kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} --output="jsonpath={.data.cacrt}" | base64 -d > ${OUTPUT_PATH}/ca.crt
-            fi
-          }
-
           function getAdminMspSecret {
             KEY=$1
             KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
@@ -144,9 +124,6 @@ spec:
             echo "${TLSCACERTS}" > ${OUTPUT_PATH}/tlscacerts/tlsca.crt      
           }
 {{- end }}
-          OUTPUT_PATH="${MOUNT_PATH}/orderer/tls"
-          mkdir -p ${OUTPUT_PATH}
-          getOrdererTlsSecret orderer-tls
 
           OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
           mkdir -p ${OUTPUT_PATH}/admincerts
@@ -168,7 +145,7 @@ spec:
           subPath: bevel-vault.sh
       containers:
       - name: createchannel
-        image: {{ $.Values.image.fabricTools }}:{{ $.Values.global.network.version }}  
+        image: {{ .Values.image.fabricTools }}:{{ .Values.global.version }}  
         imagePullPolicy: IfNotPresent
         stdin: true
         tty: true
@@ -176,8 +153,7 @@ spec:
         args:
         - |-
           #!/usr/bin/env sh
-          CHANNEL_TX=$(jq -r '.data."channel.tx.base64"' ./channel-artifacts/channel.tx.json)
-          echo $CHANNEL_TX | base64 -d > channel.tx
+          cat ./channel-artifacts/channeltx_base64 | base64 -d > channel.tx
 
           echo "Fetch block to see if channel has already been created..."
           tls_status=${CORE_PEER_TLS_ENABLED}
@@ -192,22 +168,11 @@ spec:
             echo "Channel ${CHANNEL_NAME} is already created."
           else
             echo "Creating Channel ${CHANNEL_NAME}"
-            version1_4=`echo $NETWORK_VERSION | grep -c 1.4`
             if [ "$tls_status" = "true" ]
             then
-              if [ $version1_4 = 1 ]
-              then
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA}
-              else
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --outputBlock /tmp/${CHANNEL_NAME}.block
-              fi
+              peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --tls ${CORE_PEER_TLS_ENABLED} --cafile ${ORDERER_CA} --outputBlock /tmp/${CHANNEL_NAME}.block
             else
-              if [ $version1_4 = 1 ]
-              then 
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx
-              else
-                peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --outputBlock /tmp/${CHANNEL_NAME}.block
-              fi
+              peer channel create -o ${ORDERER_URL} -c ${CHANNEL_NAME} -f channel.tx --outputBlock /tmp/${CHANNEL_NAME}.block
             fi
           fi
         workingDir: /opt/gopath/src/github.com/hyperledger/fabric/peer
@@ -218,6 +183,9 @@ spec:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto
           readOnly: true
-        - name: channel-artifacts-{{ .Release.Name }}
+        - name: {{ .Release.Name }}-channel-artifacts
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
           readOnly: true
+        - name: orderer-tls-cacert
+          mountPath: /opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt
+          subPath: orderer.crt
