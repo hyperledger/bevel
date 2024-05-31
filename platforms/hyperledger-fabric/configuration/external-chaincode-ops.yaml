@@ -1,5 +1,5 @@
-# This playbook executes required tasks to install and instantiate external chaincode 
-# on existing Kubernetes clusters. The Kubernetes clusters should already be created and the infomation 
+# This playbook executes required tasks to install and instantiate external chaincode
+# on existing Kubernetes clusters. The Kubernetes clusters should already be created and the infomation
 # to connect to the clusters be updated in the network.yaml file that is used as an input to this playbook
 ###########################################################################################
 # To Run this playbook from this directory, use the following command (network.yaml also in this directory)
@@ -77,7 +77,7 @@
         - item.type == 'peer'
 
     ############################################################################################
-    # This task generates the crypto material by executing the generate-crypto-peer-chaincode.sh script 
+    # This task generates the crypto material by executing the generate-crypto-peer-chaincode.sh script
     - name: Generate crypto material for peer to interact with external chaincode servers
       include_role:
         name: "create/chaincode/peer_certs"
@@ -94,7 +94,7 @@
         ca_server_url: "{{ item.ca_data.url }}"
         setup_user_env: true
       loop: "{{ network['organizations'] }}"
-      when: 
+      when:
         - item.type == 'peer'
 
     ############################################################################################
@@ -115,7 +115,7 @@
         ca_server_url: "{{ item.ca_data.url }}"
         setup_user_env: true
       loop: "{{ network['organizations'] }}"
-      when: 
+      when:
         - item.type == 'peer'
 
     ############################################################################################
@@ -140,7 +140,7 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: 
+      when:
         - item.type == 'peer'
         - item.org_status == 'new'
 
@@ -165,8 +165,8 @@
         charts_dir: "{{ item.gitops.chart_source }}"
         values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: 
-        - item.type == 'peer' 
+      when:
+        - item.type == 'peer'
         - item.org_status == 'new'
 
     ############################################################################################
@@ -202,11 +202,11 @@
         docker_url: "{{ network.docker.url }}"
         approvers: "{{ item.endorsers | default('', true) }}"
       loop: "{{ network['channels'] }}"
-      when: add_new_org == 'true' or '2.' in network.version    
+      when: add_new_org == 'true' or '2.' in network.version
 
   vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
-    add_new_org: 'false'                # Default to false as this is for main network creation
+    privilege_escalate: false #Default to NOT escalate to root privledges
+    install_os: "linux" #Default to linux OS
+    install_arch: "amd64" #Default to amd64 architecture
+    bin_install_dir: "~/bin" #Default to /bin install directory for binaries
+    add_new_org: "false" # Default to false as this is for main network creation
