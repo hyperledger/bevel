@@ -3,53 +3,70 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "adding-cli-to-existing-network-in-fabric"></a>
-# Adding cli to Hyperledger Fabric
+# Adding a CLI to Hyperledger Fabric
 
-- [Prerequisites](#prerequisites)
-- [Modifying Configuration File](#modifying-configuration-file)
-- [Run playbook](#run-playbook)
+This guide explains how to add a CLI to an existing Hyperledger Fabric network using two methods:
 
-<a name = "prerequisites"></a>
+1. Using the `add-cli.yaml` playbook: This method involves running an Ansible playbook that automates the process of adding a CLI to the network.
+
+1. Using `helm install`: This method involves using the helm install command to directly install the CLI chart.
+
 ## Prerequisites
-To add  cli  a fully configured Fabric network must be present already, i.e. a Fabric network which has Orderers, Peers, Channels (with all Peers already in the channels). The corresponding crypto materials should also be present in their respective Hashicorp Vault.
 
----
-**NOTE**: Addition of cli has been tested on an existing network which is created by Bevel. Networks created using other methods may be suitable but this has not been tested by Bevel team.
+- A fully configured Fabric network with Orderers and Peers. 
+- Corresponding crypto materials present in Hashicorp Vault or Kubernetes secrets.
+- Hyperledger Bevel configured.
 
----
+## Method 1: Using the `add-cli.yaml` playbook
 
-<a name = "create_config_file"></a>
-## Modifying Configuration File
+1. **Update Configuration File**
 
-Refer [this guide](../networkyaml-fabric.md) for details on editing the configuration file.
+    - Edit the `network.yaml` file to include the new organization with the following details:
+		- `org_status: new`
+		- Organization details (name, MSP ID, etc.)
+		- Orderer information
+	- Exisiting organizations should have `org_status: existing`
+    - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
 
-While modifying the configuration file(`network.yaml`) for adding cli, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
+1. **Run Playbook**
+	
+	Execute the following command to run the `add-cli.yaml` playbook:
 
+	```
+	ansible-playbook platforms/hyperledger-fabric/configuration/add-cli.yaml --extra-vars "@path-to-network.yaml"
+	```
+	Replace `path-to-network.yaml` with the actual path to your updated `network.yaml` file.
 
-```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:65:139"
-```
+	This will add the CLI to the specified organization in the existing Fabric network.
 
-and under `network.organizations` as
+## Method 2: Using `helm install`
 
-```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:143:155"
-      ..
-      ..
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:406:414"
-      ..
-      ..
-```
+1. **Update the values.yaml file**
+	
+	The `values.yaml` file allows you to configure various aspects of the CLI, including:
 
-The `network.yaml` file should contain the specific `network.organization` details along with the orderer information.
+	- The peer to which the CLI should connect.
+	- The storage class and size for the CLI's persistent volume claim.
+	- The local MSP ID of the organization.
+	- The TLS status of the peer.
+	- The GRPC Port of the peer.
+	- The Orderer Address to which the CLI should connect.
 
+	Refer to the [fabric-cli chart documentation](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/charts/fabric-cli) for a complete list of available configuration options.
 
-<a name = "run_network"></a>
-## Run playbook
+1. **Install the CLI Chart**
 
-The [add-cli.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/add-cli.yaml) playbook is used to add cli to the existing network. This can be done using the following command
+	Execute the following command to install the CLI chart:
+	```bash
+	helm repo add bevel https://hyperledger.github.io/bevel
+	helm install <release-name> bevel/fabric-cli --namespace <namespace> --values <values-file.yaml>
+	```
+	Replace the following placeholders:
 
-```
-ansible-playbook platforms/shared/configuration/add-cli.yaml --extra-vars "@path-to-network.yaml"
-```
+	- `<release-name>`: The desired name for the CLI release.
+	- `<namespace>`: The Kubernetes namespace where the CLI should be deployed.
+	- `<values-file.yaml>`: The path to a YAML file containing the CLI configuration values.
+
+## Additional Notes
+- The `add-cli.yaml playbook` and `helm install` method has been tested on networks created by Bevel. Networks created using other methods may be suitable, but this has not been tested by the Bevel team.
+- Ensure that the network.yaml file contains the specific network.organization details along with the orderer information.

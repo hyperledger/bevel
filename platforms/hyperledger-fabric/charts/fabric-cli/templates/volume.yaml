@@ -13,9 +13,13 @@ metadata:
   labels:
     {{ include "labels.pvc" . | nindent 4 }}
 spec:
+  {{- if .Values.storageClass }}
+  storageClassName: {{ .Values.storageClass }}
+  {{- else }}
   storageClassName: storage-{{ .Release.Name }}
+  {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ .Values.storageSize }}

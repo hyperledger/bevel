@@ -71,16 +71,13 @@ These parameters are refered to as same in each parent or child chart
 | `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
 | `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
-### Storage
-
-| Name   | Description  | Default Value |
-|--------|---------|-------------|
-| `storage.size` | PVC Storage Size for the cli, Storage Class should be created by `fabric-peernode` chart | `256Mi` |
-
 ### Configuration
 
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
+| `peerName` | Name of the Peer that this CLI will connect. Leave empty when created using `fabric-peernode` chart | `""` |
+| `storageClass` | Storage Class for the cli, Storage Class should be already created by `fabric-peernode` chart. Pass existing storage class for independent CLI creation | `""` |
+| `storageSize` | PVC Storage Size for the cli | `256Mi` |
 | `localMspId` | Local MSP ID of the organization| `supplychainMSP` |
 | `tlsStatus` | TLS status of the peer  | `true` |
 | `ports.grpc.clusterIpPort` | GRPC Internal Port for Peer | `7051` |
