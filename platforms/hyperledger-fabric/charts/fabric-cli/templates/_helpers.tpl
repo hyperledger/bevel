@@ -45,6 +45,17 @@ Create orderer tls configmap name depending on Configmap existance
 {{- end -}}
 {{- end -}}
 
+{{/*
+Peer name can be passed by Values or by Parent chart release name
+*/}}
+{{- define "fabric-cli.peername" -}}
+{{- if .Values.peerName -}}
+{{- printf .Values.peerName -}}
+{{- else -}}
+{{- printf .Release.Name -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "labels.deployment" -}}
 {{- range $value := .Values.labels.deployment }}
 {{ toYaml $value }}
