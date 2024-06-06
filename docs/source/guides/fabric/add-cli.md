@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Add a CLI to a Hyperledger Fabric Peer
+# Add a CLI to Hyperledger Fabric Peer
 
 This guide explains how to add a CLI to an existing Hyperledger Fabric network using two methods:
 
@@ -60,7 +60,7 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 1. **Update the values.yaml file**
 	
 	The `values.yaml` file allows you to configure various aspects of the CLI, including:
-
+	
 	- The peer to which the CLI should connect.
 	- The storage class and size for the CLI's persistent volume claim.
 	- The local MSP ID of the organization.
