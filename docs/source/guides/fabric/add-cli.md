@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Adding a CLI to Hyperledger Fabric
+# Add a CLI to Hyperledger Fabric Peer
 
 This guide explains how to add a CLI to an existing Hyperledger Fabric network using two methods:
 
@@ -25,8 +25,24 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 		- `org_status: new`
 		- Organization details (name, MSP ID, etc.)
 		- Orderer information
-	- Exisiting organizations should have `org_status: existing`
+	- Existing organizations should have `org_status: existing`
     - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
+
+	Snippet from `network.channels` section below:
+	```yaml
+	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:65:139"
+	```
+
+	and from `network.organizations` section below:
+
+	```yaml
+	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:143:155"
+		..
+		..
+	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:406:414"
+		..
+		..
+	```
 
 1. **Run Playbook**
 	
@@ -44,7 +60,7 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 1. **Update the values.yaml file**
 	
 	The `values.yaml` file allows you to configure various aspects of the CLI, including:
-
+	
 	- The peer to which the CLI should connect.
 	- The storage class and size for the CLI's persistent volume claim.
 	- The local MSP ID of the organization.
