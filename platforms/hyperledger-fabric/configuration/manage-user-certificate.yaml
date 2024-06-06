@@ -54,22 +54,30 @@
       loop: "{{ network['organizations'] }}"
 
     ############################################################################################
-    # This task generates the crypto material by executing the generate-user-crypto.sh script file
-    # present in the Organization's CA Tools CLI
+    # This task generates the crypto material by running the ca_tools/peer playbook
     - name: Generate crypto material for user
       include_role:
-        name: "create/users"
+        name: "create/ca_tools/peer"
       vars:
         component_name: "{{ item.name | lower}}-net"
+        component: "{{ item.name | lower}}"
         component_type: "{{ item.type | lower}}"
-        org_name: "{{ item.name }}"
-        services: "{{ item.services }}"
-        subject: "{{ item.subject }}"
-        cert_subject: "{{ item.subject | regex_replace('/', ';') | regex_replace(',', '/') | regex_replace(';', ',') }}" # replace , to / and / to , for certpath
+        component_services: "{{ item.services }}"
+        orderer_org: "{{ item.orderer_org | lower }}"
+        sc_name: "{{ component }}-bevel-storageclass"
         kubernetes: "{{ item.k8s }}"
         vault: "{{ item.vault }}"
-        users: "{{ item.users }}"
-        proxy: "{{ network.env.proxy }}"
-        ca_url: "{{ item.ca_data.url }}"
+        ca: "{{ item.services.ca }}"
+        docker_url: "{{ network.docker.url }}"
+        gitops: "{{ item.gitops }}"
+        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and item.users is defined
+      when: item.type == 'peer'
+
+  vars: #These variables can be overriden from the command line
+    privilege_escalate: false           #Default to NOT escalate to root privledges
+    install_os: "linux"                 #Default to linux OS
+    install_arch:  "amd64"              #Default to amd64 architecture
+    refresh_user_cert: 'true'                #Default for this playbook is true
+    bin_install_dir:  "~/bin"            #Default to ~/bin install directory for binaries
+    add_new_org: "false"

@@ -114,5 +114,6 @@ spec:
 {% endif %}
     checks:
       refresh_cert_value: {{ refresh_cert_value }}
+      refresh_user_cert_value: {{ refresh_user_cert_value }}
       add_peer_value: {{ add_peer_value }}
 {% endif %}
