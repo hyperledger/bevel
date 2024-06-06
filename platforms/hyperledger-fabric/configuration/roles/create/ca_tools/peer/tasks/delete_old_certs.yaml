@@ -19,10 +19,28 @@
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
     {% endfor %}
+    {% for user in users %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{user.identity}}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{user.identity}}/msp
+    {% endfor %}
     vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
   vars:
     peers: "{{ item.services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer'
+  when: component_type == 'peer' and refresh_cert is defined and refresh_cert == 'true'
+
+# Delete crypto materials from vault only for users
+- name: Delete Crypto for peers
+  shell: |
+    {% for user in users %}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{user.identity}}/tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{user.identity}}/msp
+    {% endfor %}
+  vars:
+    peers: "{{ item.services.peers }}"
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  when: component_type == 'peer' and refresh_user_cert is defined and refresh_user_cert == 'true'

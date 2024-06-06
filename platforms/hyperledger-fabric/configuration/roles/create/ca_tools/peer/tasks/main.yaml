@@ -31,14 +31,15 @@
     component_ns: "{{ component_name }}"
     kubernetes: "{{ item.k8s }}"
     hr_name: "{{ component_name }}-ca-tools"
-  when: (add_peer is defined and add_peer == 'true') or (refresh_cert is defined and refresh_cert == 'true')
+  when: (add_peer is defined and add_peer == 'true') or (refresh_cert is defined and refresh_cert == 'true')  or (refresh_user_cert is defined and refresh_user_cert == 'true')
 
 # Delete old certificates
 - name: "Delete old certificates"
   include_tasks: delete_old_certs.yaml
   vars:
     org_name: "{{ item.name | lower }}"
-  when: refresh_cert is defined and refresh_cert == 'true'
+    users: "{{ item.users }}"
+  when: (refresh_cert is defined and refresh_cert == 'true') or (refresh_user_cert is defined and refresh_user_cert == 'true')
 
 # Get Orderer certificates
 - name: "Get Orderer certificates"
@@ -105,6 +106,7 @@
     component_location: "{{ item.location }}"
     ca_url: "{{ item.ca_data.url }}"
     refresh_cert_value: "{{ refresh_cert | default(false) | quote }}"
+    refresh_user_cert_value: "{{ refresh_user_cert | default(false) | quote }}"
     proxy: "{{ network.env.proxy }}"
     git_protocol: "{{ item.gitops.git_protocol }}"
     git_url: "{{ gitops.git_url }}"
