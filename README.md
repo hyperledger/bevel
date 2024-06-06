@@ -15,33 +15,34 @@
   - [Hyperledger Indy](#hyperledger-indy)
   - [Quorum](#quorum)
   - [Hyperledger Besu](#hyperledger-besu)
+  - [Substrate](#substrate)
 - [Contact](#contact)
 - [Contributing](#contributing)
 - [Initial Committers](#initial-committers)
 - [Sponsor](#sponsor)
 
 ## Short Description
-An automation framework for rapidly and consistently deploying production-ready Distributed Ledger Technology (DLT) platforms.
+An automation framework and helm charts for rapidly and consistently deploying production-ready Distributed Ledger Technology (DLT) platforms.
 
 ## Scope of Project
-Hyperledger Bevel delivers an automation framework for rapidly and consistently deploying production-ready DLT platforms to cloud infrastructure.
+Hyperledger Bevel is an automation framework for rapidly and consistently deploying production-ready DLT platforms to cloud infrastructure.
 
 ![What is Hyperledger Bevel?](./docs/images/hyperledger-bevel-overview.png "What is Hyperledger Bevel?")
 
 Hyperledger Bevel is an accelerator/tool that helps developers rapidly set up and deploy secure, scalable and production-ready DLT network(s) that also allows new organizations to be easily on-boarded on the network. Bevel facilitates a safe and secure way of deploying and operating different DLT platforms.
 
 It includes: 
-- Helm charts to deploy different DLT nodes and to generate the related crypto/identities. 
-- Helm charts for various operational features like adding new nodes, and deploying smart contracts.
-- Helm charts to deploy Hyperledger Cacti connectors for Fabric, Quorum and Besu networks. 
-- Ansible playbooks and modular role definitions to automate the deployment of Helm charts.
-- Ansible playbooks and roles to automate deployment of Hyperledger fabric using  bevel-operator-fabric(Kubernetes operator for managing Hyperledger Fabric networks).
-- Integrated CD using GitOps so that once the network is set up, all changes can be done via git PRs/merges.
-- Configuration for Ambassador Edge Stack, HAProxy (for Hyperledger Fabric) and Isto Ingress (for Substrate) to act as Ingress Controller. 
+- Helm charts to **deploy** different DLT nodes and to generate the related crypto/identities. 
+- Helm charts for various **operational features** like adding new nodes, and deploying smart contracts.
+- Helm charts to deploy Hyperledger **Cacti connectors** for Fabric, Quorum and Besu networks. 
+- **Ansible playbooks** and modular role definitions to automate the deployment of Helm charts.
+- Ansible playbooks and roles to automate deployment of Hyperledger fabric using  **bevel-operator-fabric** (Kubernetes operator for managing Hyperledger Fabric networks).
+- Integrated CD using **GitOps** so that once the network is set up, all changes can be done via git PRs/merges.
+- Configuration for Ambassador Edge Stack, HAProxy (for Hyperledger Fabric) and Istio Ingress (for Substrate) to act as Ingress Controller. 
 
 Hyperledger Bevel currently supports R3 Corda OS and Enterprise, Hyperledger Fabric, Hyperledger Indy, Hyperledger Besu, Quorum and Substrate. Other DLT platforms can easily be added.
 
-### Getting Started
+## Getting Started
 
 To get started with the framework quickly, follow our [Getting Started guidelines](https://hyperledger-bevel.readthedocs.io/en/latest/gettingstarted.html).
 
@@ -49,40 +50,62 @@ Detailed operator and developer documentation is available on [our ReadTheDocs s
 
 The documentation can also be built locally be following instructions in the `docs` folder.
 
-### Hyperledger Fabric
-For Hyperledger Fabric, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+## Hyperledger Fabric
+For Hyperledger Fabric, there are two ways to deploy the network.
 
-![Hyperledger Bevel - Fabric](./docs/images/hyperledger-bevel-fabric.png "Hyperledger Bevel for Hyperledger Fabric")
+- Using `helm install`: Follow the [Fabric Charts readme](./platforms/hyperledger-fabric/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
-### Corda Enterprise
-For Corda Enterprise, we build Docker containers from the Corda source with licensed jars. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+  ![Hyperledger Bevel - Fabric](./docs/images/hyperledger-bevel-fabric.png "Hyperledger Bevel for Hyperledger Fabric")
 
-![Hyperledger Bevel - Corda Enterprise](./docs/images/hyperledger-bevel-corda-ent.png "Hyperledger Bevel for Corda Enterprise")
+## Corda Enterprise
+For Corda Enterprise, there are two ways to deploy the network.
 
-### Corda Opensource
-For Corda Opensource, we build Docker containers from the Corda source. A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+- Using `helm install`: Follow the [Corda Enterprise Charts readme](./platforms/r3-corda-ent/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
 
-![Hyperledger Bevel - Corda](./docs/images/hyperledger-bevel-corda.png "Hyperledger Bevel for Corda")
+  ![Hyperledger Bevel - Corda Enterprise](./docs/images/hyperledger-bevel-corda-ent.png "Hyperledger Bevel for Corda Enterprise")
 
-### Hyperledger Indy
-For Hyperledger Indy, we build Docker containers from our source code. A number of different Ansible scripts will allow you to create a new network (across clouds).
+## Corda Opensource
+For Corda Opensource, there are two ways to deploy the network.
+
+-  Using `helm install`: Follow the [Corda Charts readme](./platforms/r3-corda/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to either create a new network (across clouds) or join an existing network.
+
+  ![Hyperledger Bevel - Corda](./docs/images/hyperledger-bevel-corda.png "Hyperledger Bevel for Corda")
+
+## Hyperledger Indy
+For Hyperledger Indy, there are two ways to deploy the network.
+
+- Using `helm install`: Follow the [Indy Charts readme](./platforms/hyperledger-indy/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to create a new network (across clouds).
 
 ![Hyperledger Bevel - Indy](./docs/images/hyperledger-bevel-indy.png "Hyperledger Bevel for Hyperledger Indy")
 
-### Quorum
-For Quorum, we use the official Docker containers provided by Quorum. A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus (between IBFT and RAFT) and a transaction Manager.
+## Quorum
+For Quorum, there are two ways to deploy the network.
 
-![Hyperledger Bevel - Quorum](./docs/images/hyperledger-bevel-quorum.png "Hyperledger Bevel for Quorum")
+- Using `helm install`: Follow the [Quorum Charts readme](./platforms/quorum/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to either create a new network (across clouds) with choice of Consensus and a transaction Manager.
 
-### Hyperledger Besu
-For Hyperledger Besu, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to create a new network (across clouds).
+  ![Hyperledger Bevel - Quorum](./docs/images/hyperledger-bevel-quorum.png "Hyperledger Bevel for Quorum")
 
-![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
+## Hyperledger Besu
+For Hyperledger Besu, there are two ways to deploy the network.
 
-### Substrate
-For Substrate, we use the official Docker containers provided by that project. A number of different Ansible scripts will allow you to create a new network (across clouds).
+- Using `helm install`: Follow the [Besu Charts readme](./platforms/hyperledger-besu/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to create a new network (across clouds).
 
-![Hyperledger Bevel - Substrate](./docs/images/hyperledger-bevel-substrate.png "Hyperledger Bevel for Substrate")
+  ![Hyperledger Bevel - Besu](./docs/images/hyperledger-bevel-besu.png "Hyperledger Bevel for Hyperledger Besu")
+
+## Substrate
+For Substrate, there are two ways to deploy the network.
+
+- Using `helm install`: Follow the [Substrate Charts readme](./platforms/substrate/charts/README.md).
+- Using Ansible: A number of different Ansible scripts will allow you to create a new network (across clouds).
+
+  ![Hyperledger Bevel - Substrate](./docs/images/hyperledger-bevel-substrate.png "Hyperledger Bevel for Substrate")
+
 ## Contact
 We welcome your questions & feedback on our [Discord channel](https://discord.com/channels/905194001349627914/941739691336679454). [Please join our Discord first](https://discord.gg/hyperledger).
 
@@ -91,8 +114,8 @@ We welcome contributions to Hyperledger Bevel in many forms, and there’s alway
 
 Please review [contributing](./CONTRIBUTING.md) guidelines to get started.
 
-# Build
-If you are not using the provided Jenkins automation scripts, you can run the provisioning scripts within a docker runtime independent from your target Kubernetes cluster.
+## Build
+If you are not using the provided Jenkins automation scripts, you can run the provisioning scripts within a docker runtime independent of your target Kubernetes cluster.
 ```
 # Build provisioning image
 docker build . -t ghcr.io/hyperledger/bevel-build

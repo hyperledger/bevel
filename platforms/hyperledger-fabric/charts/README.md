@@ -45,7 +45,7 @@ global:
 
 ### _Without Proxy or Vault_
 
-### To setup Orderers and Peers in an organization
+#### Setup Orderers and Peers in an organization
 ```bash
 # Install the CA Server
 helm upgrade --install supplychain-ca ./fabric-ca-server --namespace supplychain-net --create-namespace --values ./values/noproxy-and-novault/ca-orderer.yaml
@@ -66,7 +66,7 @@ helm upgrade --install peer0 ./fabric-peernode --namespace supplychain-net --val
 helm upgrade --install peer1 ./fabric-peernode --namespace supplychain-net --values ./values/noproxy-and-novault/peer.yaml --set peer.gossipPeerAddress=peer0.supplychain-net:7051 --set peer.cliEnabled=true
 ```
 
-### To setup Peers in another organization
+#### Setup Peers in another organization
 
 ```bash
 # Install the CA Server
@@ -81,7 +81,7 @@ cd ../..
 helm upgrade --install peer0 ./fabric-peernode --namespace carrier-net --values ./values/noproxy-and-novault/carrier.yaml
 ```
 
-### Create Genesis file and other channel artifacts
+#### Create Genesis file and other channel artifacts
 ```bash
 # Obtain certificates and the configuration file of each peer organization, place in fabric-genesis/files
 cd ./fabric-genesis/files
@@ -96,7 +96,7 @@ cd ../..
 helm install genesis ./fabric-genesis --namespace supplychain-net --values ./values/noproxy-and-novault/genesis.yaml
 ```
 
-### Create channel for Hyperledger Fabric 2.5.x
+#### Create channel for Hyperledger Fabric 2.5.x
 ```bash
 # Create channel
 helm install allchannel ./fabric-osnadmin-channel-create --namespace supplychain-net --set global.vault.type=kubernetes
@@ -110,9 +110,9 @@ helm install peer0-allchannel ./fabric-channel-join --namespace carrier-net --va
 ```
 **Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
 
-### Create channel for Hyperledger Fabric 2.2.x
-```bash
+#### Create channel for Hyperledger Fabric 2.2.x
 
+```bash
 # Obtain the file channel.tx and place it in fabric-channel-create/files
 cd ./fabric-channel-create/files
 kubectl --namespace supplychain-net get configmap allchannel-channeltx -o jsonpath='{.data.allchannel-channeltx_base64}' > channeltx.json
@@ -141,7 +141,7 @@ helm install peer0-allchannel ./fabric-channel-join --namespace carrier-net --va
 
 ### _With Haproxy Proxy and Vault_
 
-### To setup Orderers and Peers in an organization
+#### Setup Orderers and Peers in an organization
 
 Replace the `"http://vault.url:8200"`, `"https://yourkubernetes.com"` and `"test.yourdomain.com"` in all the files in `./values/proxy-and-vault/` folder and this file.
 
@@ -168,7 +168,7 @@ helm upgrade --install peer0 ./fabric-peernode --namespace supplychain-net --val
 helm upgrade --install peer1 ./fabric-peernode --namespace supplychain-net --values ./values/proxy-and-vault/peer.yaml --set peer.gossipPeerAddress=peer0.supplychain-net.test.yourdomain.com:443 --set peer.cliEnabled=true
 ```
 
-### To setup Peers in another organization
+#### Setup Peers in another organization
 
 ```bash
 kubectl create namespace carrier-net 
@@ -185,7 +185,7 @@ cd ../..
 helm upgrade --install peer0 ./fabric-peernode --namespace carrier-net --values ./values/proxy-and-vault/carrier.yaml
 ```
 
-### Create Genesis file and other channel artifacts
+#### Create Genesis file and other channel artifacts
 ```bash
 # Obtain certificates and the configuration file of each peer organization, place in fabric-genesis/files
 cd ./fabric-genesis/files
@@ -200,7 +200,7 @@ cd ../..
 helm install genesis ./fabric-genesis --namespace supplychain-net --values ./values/proxy-and-vault/genesis.yaml
 ```
 
-### Create channel for Hyperledger Fabric 2.5.x
+#### Create channel for Hyperledger Fabric 2.5.x
 ```bash
 # Create channel
 helm install allchannel ./fabric-osnadmin-channel-create --namespace supplychain-net --values ./values/proxy-and-vault/osn-create-channel.yaml
@@ -214,9 +214,8 @@ helm install peer0-allchannel ./fabric-channel-join --namespace carrier-net --va
 ```
 **Note** Anchorpeer job is only executed if `peer.type` is set to `anchor`
 
-### Create channel for Hyperledger Fabric 2.2.x
+#### Create channel for Hyperledger Fabric 2.2.x
 ```bash
-
 # Obtain the file channel.tx and place it in fabric-channel-create/files
 cd ./fabric-channel-create/files
 kubectl --namespace supplychain-net get configmap allchannel-channeltx -o jsonpath='{.data.allchannel-channeltx_base64}' > channeltx.json
