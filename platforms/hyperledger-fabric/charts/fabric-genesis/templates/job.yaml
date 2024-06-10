@@ -2,14 +2,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fabric-genesis.name" . }}-job
+  name: {{ .Release.Name }}-job
   namespace: {{ .Release.Namespace }}
   annotations:
     helm.sh/hook-delete-policy: "before-hook-creation"
   labels:
     app: {{ .Release.Name }}
-    app.kubernetes.io/name: {{ include "fabric-genesis.name" . }}-job
-    app.kubernetes.io/component: fabric-genesis
+    app.kubernetes.io/name: {{ .Release.Name }}-job
+    app.kubernetes.io/component: fabric-genesis-job
     app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
     app.kubernetes.io/namespace: {{ .Release.Namespace }}
     app.kubernetes.io/release: {{ .Release.Name }}
@@ -20,8 +20,8 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
-        app.kubernetes.io/name: {{ include "fabric-genesis.name" . }}-job
-        app.kubernetes.io/component: fabric-genesis
+        app.kubernetes.io/name: {{ .Release.Name }}-job
+        app.kubernetes.io/component: fabric-genesis-job
         app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
         app.kubernetes.io/namespace: {{ .Release.Namespace }}
         app.kubernetes.io/release: {{ .Release.Name }}
@@ -284,16 +284,23 @@ spec:
             {{- end }}
             {{- end }}
               cd /templates
+              version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+              {{- if .Values.settings.generateGenesis }}
+              if [ $version2_5 = 1 ]; then
+                echo "version 2.5.x does not need syschannel genesis"
+              else
+                echo "version 2.2.x syschannel genesis"
+                configtxgen -configPath "/templates" -profile OrdererGenesis -channelID syschannel -outputBlock genesis.block
+                writeSafeSecret syschannel-genesis genesis.block
+              fi
+              {{- end }}
               {{- range $channel := $.Values.channels }}
-                version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
                 if [ $version2_5 = 1 ]; then
                   echo "version 2.5.x"
                   configtxgen -configPath "/templates" -profile {{ $channel.name }} -channelID {{ $channel.name }} -outputBlock {{ $channel.name }}.genesis.block
                   writeSafeSecret {{ $channel.name }}-genesis {{ $channel.name }}.genesis.block
                 else
                   echo "version 2.2.x"
-                  configtxgen -configPath "/templates" -profile OrdererGenesis -channelID syschannel -outputBlock genesis.block
-                  writeSafeSecret syschannel-genesis genesis.block
                   configtxgen -configPath "/templates" -profile {{ $channel.name }} -channelID {{ $channel.name }} -outputCreateChannelTx {{ $channel.name }}.tx
                   writeSafeSecret {{ $channel.name }}-channeltx {{ $channel.name }}.tx
                   {{- range $participant := $channel.participants }}

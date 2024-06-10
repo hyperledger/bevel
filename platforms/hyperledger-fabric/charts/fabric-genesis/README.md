@@ -122,6 +122,7 @@ List of Channels you want to create the artifacts for.
 
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
+| `settings.generateGenesis` |  Flag to generate the syschannel genesis for Fabric 2.2.x | `true` |
 | `settings.removeConfigMapOnDelete` |  Flag to delete the genesis ConfigMap when uninstalling the release | `true` |
 
 ## License
