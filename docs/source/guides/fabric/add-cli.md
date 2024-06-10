@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Add a CLI to Hyperledger Fabric Peer
+# Add CLI to a Peer
 
 This guide explains how to add a CLI to an existing Hyperledger Fabric network using two methods:
 
@@ -57,7 +57,7 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 
 ## Method 2: Using `helm install`
 
-1. **Update the values.yaml file**
+1. **Update the fabric-cli values.yaml file**
 	
 	The `values.yaml` file allows you to configure various aspects of the CLI, including:
 	
@@ -74,8 +74,8 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 
 	Execute the following command to install the CLI chart:
 	```bash
-	helm repo add bevel https://hyperledger.github.io/bevel
-	helm install <release-name> bevel/fabric-cli --namespace <namespace> --values <values-file.yaml>
+	# From platforms/hyperledger-fabric/charts directory
+	helm install <release-name> ./fabric-cli --namespace <namespace> --values <values-file.yaml>
 	```
 	Replace the following placeholders:
 
