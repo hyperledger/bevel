@@ -1,0 +1,19 @@
+# Delete keys from HashiCorp Vault
+- name: "Delete keys for {{ node_name }} in {{ org_name }} organization from Vault"
+  shell: |
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/client/private/private_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/client/private/sig_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/client/public/public_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/client/public/verif_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/identity/private
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/identity/public
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/private/bls_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/private/private_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/private/sig_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/public/bls_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/public/public_keys
+    vault kv delete {{ vault.secret_path | default('secretsv2') }}/{{ org_name }}/{{ node_type }}/{{ node_name }}/node/public/verif_keys
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+  ignore_errors: true

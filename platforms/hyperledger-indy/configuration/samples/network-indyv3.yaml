@@ -5,33 +5,48 @@
 ##############################################################################################
 
 ---
-# yaml-language-server: $schema=../../../../platforms/network-schema.json
-# This is a sample configuration file for hyperledger indy which can reused for a sample indy network of 9 nodes.
-# It has 3 organizations:
-# 1. organization "authority" with 1 trustee
-# 2. organization "provider" with 1 trustee, 2 stewards and 1 endorser
-# 3. organization "partner" with 1 trustee, 2 stewards and 1 endorser
+##############################################################################################
+# Network Configuration File for HyperLedger-Indy Distributed Ledger Technology (DLT) Platform
+
+## Overview
+# This configuration file is intended for deploying a HyperLedger-Indy platform. 
+# The deployment must adhere to the following network rules:
+# - Exactly 1 trustee is required per organization.
+# - Up to 1 endorser is allowed per organization.
+# - At least 4 stewards are required collectively across the entire Indy network.
+
+## Sample Configuration
+# This sample configuration file demonstrates a HyperLedger-Indy network with four organizations:
+# - Organization 1: Contains only the Trustee.
+# - Organization 2: Contains one Trustee, two Stewards, and one Endorser.
+# - Organization 3: Contains one Trustee, two Stewards, and one Endorser.
+# - Organization 4: Contains one Trustee and one Endorser.
+
+## Customization
+# We can customize this configuration to include any number of organizations. 
+# However, it is imperative to comply with the network rules mentioned in the Overview section.
+##############################################################################################
 
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: indy
-  version: 1.12.1                         # Supported versions 1.11.0 and 1.12.1
+  version: 1.12.1  # Supported versions 1.11.0 and 1.12.1
 
   #Environment section for Kubernetes setup
   env:
-    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    proxy_namespace: "ambassador"
+    type: "dev"                    # Environment tag, useful for running multiple instances on a single cluster
+    proxy: ambassador              # Must be 'ambassador' as 'haproxy' is not implemented for Indy
+    proxy_namespace: "ambassador"  # Namespace for the proxy
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
-    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports
+    ambassadorPorts:          # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # Range of ports for Ambassador
         from: 15010
         to: 15052
-    loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
-    retry_count: 20                 # Retry count for the checks
-    external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
+    loadBalancerSourceRanges:   # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
+    retry_count: 20             # Retry count for the checks
+    external_dns: enabled       # Should be enabled if using external-dns for automatic route configuration
 
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry.
@@ -41,15 +56,6 @@ network:
     username: "docker_username"
     password: "docker_password"
 
-  # It's used as the Indy network name (has impact e.g. on paths where the Indy nodes look for crypto files on their local filesystem)
-  name: bevel 
-
-  # Information about pool transaction genesis and domain transactions genesis
-  genesis:
-    state: absent     # must be absent when network is created from scratch
-    pool: /path/to/pool_transactions_genesis            # path where pool_transactions_genesis will be stored locally
-    domain: /path/to/domain_transactions_genesis        # path where domain_transactions_genesis will be stored locally 
-
   # Allows specification of one or many organizations that will be connecting to a network.
   organizations:
     # Specification for the 1st organization. Each organization maps to a VPC and a separate k8s cluster
@@ -57,7 +63,7 @@ network:
       name: authority
       type: peer
       external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
-      cloud_provider: aws-baremetal             # Values can be 'aws-baremetal', 'aws' or 'minikube'
+      cloud_provider: aws                               # Supported values: 'aws-baremetal' | 'aws' | 'azure' | 'gcp' | 'minikube' | 
 
       aws:
         access_key: "aws_access_key"            # AWS Access key
@@ -69,6 +75,7 @@ network:
       publicIps: ["1.1.1.1", "2.2.2.2"]        # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
       azure:
         node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
+
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -98,8 +105,7 @@ network:
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee
       services:
-        trustees:
-        - trustee:
+        trustee:
           name: authority-trustee
           genesis: true
           server:
@@ -108,9 +114,9 @@ network:
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
-      name: provider
+      name: university
       type: peer
-      cloud_provider: aws
+      cloud_provider: aws                               # Supported values: 'aws-baremetal' | 'aws' | 'azure' | 'gcp' | 'minikube' | 
       external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
 
       aws:
@@ -123,6 +129,7 @@ network:
       publicIps: ["3.221.78.194"]               # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
       azure:
         node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
+
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -152,13 +159,15 @@ network:
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee, 2 stewards and endoorser
       services:
-        trustees:
-        - trustee:
-          name: provider-trustee
+        trustee:
+          name: university-trustee
           genesis: true
+          server:
+            port: 8001
+            ambassador: 15011
         stewards:
         - steward:
-          name: provider-steward-1
+          name: university-steward-1
           type: VALIDATOR
           genesis: true
           publicIp: 3.221.78.194    # IP address of current organization in current availability zone
@@ -171,48 +180,48 @@ network:
             targetPort: 9712
             ambassador: 9712        # Port for ambassador service
         - steward:
-          name: provider-steward-2
+          name: university-steward-2
           type: VALIDATOR
           genesis: true
-          publicIp: 3.221.78.194    # IP address of current organization in current availability zone
+          publicIp: 108.142.59.4 # 3.221.78.194    # IP address of current organization in current availability zone
           node:
             port: 9721
             targetPort: 9721
-            ambassador: 9721        # Port for ambassador service
+            ambassador:  9721        # Port for ambassador service
           client:
             port: 9722
             targetPort: 9722
-            ambassador: 9722        # Port for ambassador service
-        endorsers:
-        - endorser:
-          name: provider-endorser
-          full_name: Some Decentralized Identity Mobile Services Provider
-          avatar: http://provider.com/avatar.png
+            ambassador:  9722        # Port for ambassador service
+        endorser:
+          name: university-endorser
+          full_name: Some Decentralized Identity Mobile Services Partner
+          avatar: http://partner.com/avatar.png
           # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
-          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15023/
-          # For minikube: http://<minikubeip>>:15023
+          # Eg. In this sample http://partner-endorser.indy.blockchaincloudpoc.com:15012/
+          # For minikube: http://<minikubeip>>:15012
           server:
-            httpPort: 15023
-            apiPort: 15024
-            webhookPort: 15025
-
-    # Specification for the 3rd organization. Each organization maps to a VPC and a separate k8s cluster
+            httpPort: 15012
+            apiPort: 15013
+            webhookPort: 15014
+    
+    # Specification for the 3nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
-      name: partner
+      name: provider
       type: peer
-      cloud_provider: aws
+      cloud_provider: aws                               # Supported values: 'aws-baremetal' | 'aws' | 'azure' | 'gcp' | 'minikube' | 
       external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
-      
+
       aws:
         access_key: "aws_access_key"            # AWS Access key
         secret_key: "aws_secret_key"            # AWS Secret key
         encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
         zone: "availability_zone"               # AWS availability zone
         region: "region"                        # AWS region
-      
-      publicIps: ["3.221.78.194"]             # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+
+      publicIps: ["3.221.78.194"]               # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
       azure:
         node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
+
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
       k8s:
@@ -229,59 +238,125 @@ network:
       # Do not check-in git_access_token
       gitops:
         git_protocol: "https" # Option for git over https or ssh
-        git_url: "https://github.com/<username>/bevel.git"                 # Gitops https or ssh url for flux value files 
-        branch: "develop"                   # Git branch where release is being made
-        release_dir: "platforms/hyperledger-indy/releases/dev"         # Relative Path in the Git repo for flux sync per environment. 
-        chart_source: "platforms/hyperledger-indy/charts"             # Relative Path where the Helm charts are stored in Git repo
-        git_repo: "github.com/<username>/bevel.git"           # Gitops git repository URL for git push 
-        username: "git_username"                  # Git Service user who has rights to check-in in all branches
-        password: "git_access_token"                  # Git Server user password
-        email: "git@email.com"                        # Email to use in git config
-        private_key: "path_to_private_key"        # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+        git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files 
+        branch: "develop"                     # Git branch where release is being made
+        release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push 
+        username: "git_username"                    # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"                    # Git Server user password
+        email: "git@email.com"                          # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
 
       # Services maps to the pods that will be deployed on the k8s cluster
       # This sample has trustee, 2 stewards and endoorser
       services:
-        trustees:
-        - trustee:
-          name: partner-trustee
+        trustee:
+          name: provider-trustee
           genesis: true
+          server:
+            port: 8002
+            ambassador: 15021
         stewards:
         - steward:
-          name: partner-steward-1
+          name: provider-steward-1
           type: VALIDATOR
           genesis: true
-          publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+          publicIp: 3.221.78.194    # IP address of the ambassador proxy
           node:
             port: 9731
             targetPort: 9731
-            ambassador: 9731            # Port for ambassador service
+            ambassador: 9721        # Port for ambassador service
           client:
             port: 9732
             targetPort: 9732
-            ambassador: 9732            # Port for ambassador service
+            ambassador: 9722        # Port for ambassador service
         - steward:
-          name: partner-steward-2
+          name: provider-steward-2
           type: VALIDATOR
           genesis: true
-          publicIp: 3.221.78.194        # IP address of current organization in current availability zone
+          publicIp: 3.221.78.194    # IP address of the ambassador proxy
           node:
             port: 9741
             targetPort: 9741
-            ambassador: 9741            # Port for ambassador service
+            ambassador: 9721        # Port for ambassador service
           client:
             port: 9742
             targetPort: 9742
-            ambassador: 9742            # Port for ambassador service
-        endorsers:
-        - endorser:
+            ambassador: 9722        # Port for ambassador service
+        endorser:
+          name: provider-endorser
+          full_name: Some Decentralized Identity Mobile Services Provider
+          avatar: http://provider.com/avatar.png
+          # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
+          # Eg. In this sample http://provider-endorser.indy.blockchaincloudpoc.com:15022/
+          # For minikube: http://<minikubeip>>:15022
+          server:
+            httpPort: 15022
+            apiPort: 15023
+            webhookPort: 15024
+    
+    # Specification for the 4th organization. Each organization maps to a VPC and a separate k8s cluster
+    - organization:
+      name: partner
+      type: peer
+      cloud_provider: aws                               # Supported values: 'aws-baremetal' | 'aws' | 'azure' | 'gcp' | 'minikube' | 
+      external_url_suffix: indy.blockchaincloudpoc.com  # Provide the external dns suffix. Only used when Indy webserver/Clients are deployed.
+
+      aws:
+        access_key: "aws_access_key"            # AWS Access key
+        secret_key: "aws_secret_key"            # AWS Secret key
+        encryption_key: "encryption_key_id"     # AWS encryption key. If present, it's used as the KMS key id for K8S storage class encryption.
+        zone: "availability_zone"               # AWS availability zone
+        region: "region"                        # AWS region
+
+      publicIps: ["3.221.78.194"]               # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      azure:
+        node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
+
+      # Kubernetes cluster deployment variables. The config file path has to be provided in case
+      # the cluster has already been created.
+      k8s:
+        config_file: "/path/to/cluster_config"
+        context: "kubernetes-admin@kubernetes"
+
+      # Hashicorp Vault server address and root-token. Vault should be unsealed.
+      # Do not check-in root_token
+      vault:
+        url: "vault_addr"
+        root_token: "vault_root_token"
+        
+      # Git Repo details which will be used by GitOps/Flux.
+      # Do not check-in git_access_token
+      gitops:
+        git_protocol: "https" # Option for git over https or ssh
+        git_url: "https://github.com/<username>/bevel.git"                   # Gitops https or ssh url for flux value files 
+        branch: "develop"                     # Git branch where release is being made
+        release_dir: "platforms/hyperledger-indy/releases/dev"           # Relative Path in the Git repo for flux sync per environment. 
+        chart_source: "platforms/hyperledger-indy/charts"               # Relative Path where the Helm charts are stored in Git repo
+        git_repo: "github.com/<username>/bevel.git"             # Gitops git repository URL for git push 
+        username: "git_username"                    # Git Service user who has rights to check-in in all branches
+        password: "git_access_token"                    # Git Server user password
+        email: "git@email.com"                          # Email to use in git config
+        private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
+
+      # Services maps to the pods that will be deployed on the k8s cluster
+      # This sample has trustee, 2 stewards and endoorser
+      services:
+        trustee:
+          name: partner-trustee
+          genesis: true
+          server:
+            port: 8004
+            ambassador: 15031
+        endorser:
           name: partner-endorser
           full_name: Some Decentralized Identity Mobile Services Partner
           avatar: http://partner.com/avatar.png
           # public endpoint will be {{ endorser.name}}.{{ external_url_suffix}}:{{endorser.server.httpPort}}
-          # Eg. In this sample http://partner-endorser.indy.blockchaincloudpoc.com:15033/
-          # For minikube: http://<minikubeip>>:15033
+          # Eg. In this sample http://partner-endorser.indy.blockchaincloudpoc.com:15032/
+          # For minikube: http://<minikubeip>>:15032
           server:
-            httpPort: 15033
-            apiPort: 15034
-            webhookPort: 15035
+            httpPort: 15032
+            apiPort: 15033
+            webhookPort: 15034

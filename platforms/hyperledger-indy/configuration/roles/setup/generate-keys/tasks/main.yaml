@@ -1,0 +1,56 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Initialize variables for trustee, endorser, and stewards
+- name: "Initialize trustee, endorser and stewards variables"
+  set_fact:
+    trustee_name: "{{ org.services.trustee.name | default('') }}"
+    endorser_name: "{{ org.services.endorser.name | default('') }}"
+    steward_list: []
+
+# Add stewards to the steward list
+- name: "Add stewards to the steward list"
+  set_fact:
+    steward_list: "{{ steward_list + [stewards_item.name] }}"
+  loop: "{{ stewards }}"
+  loop_control:
+    loop_var: stewards_item
+  ignore_errors: true
+
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
+
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server_url: "{{ cluster_info.connection.host }}"
+
+# Generate the HR file for the specified organization
+- name: "Generate HR file for {{ org_name }} organization"
+  include_role:
+    name: create/helm_component/peer
+  vars: 
+    kubernetes_server: "{{ kubernetes_server_url }}"
+
+# Push the created deployment files to repository
+- name: "Push the created deployment files to repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing key management job files for {{ component_ns }}"
+    gitops: "{{ org.gitops }}"
+
+# Check if the job is completed
+- name: "Check if {{ component_name }} job is completed in the {{ org_name }} organization"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component_ns }}"

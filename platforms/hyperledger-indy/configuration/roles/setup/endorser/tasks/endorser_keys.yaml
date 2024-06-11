@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get endorser public identity secret
+- name: "Get endorser public identity secret"
+  k8s_info:
+    kind: Secret
+    name: "{{ endorser }}-identity-public"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: endorser_identity_public
+
+# Extract and save the endorser's DID to a JSON file
+- name: "Extract and save endorser DID  to a JSON file"
+  copy:
+    content: "{{ endorser_identity_public.resources[0].data.value | b64decode | from_json | json_query('did') }}"
+    dest: "{{ files_dir }}/{{ endorser }}-did.json"
+  vars:
+    files_dir: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-register-identity/files"
+  when: endorser_identity_public is defined and endorser_identity_public.resources[0].data.value is defined
+
+# Get endorser node public verification keys secret
+- name: "Get endorser node public verification keys secret"
+  k8s_info:
+    kind: Secret
+    name: "{{ endorser }}-node-public-verif-keys"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: endorser_node_public_verif_keys
+
+# Extract and save the endorser's verification key to a JSON file
+- name: "Extract and save the endorser's verification key  to a JSON file"
+  copy:
+    content: "{{ endorser_node_public_verif_keys.resources[0].data.value | b64decode | from_json | json_query('\"verification-key\"') }}"
+    dest: "{{ files_dir }}/{{ endorser }}-verkey.json"
+  vars:
+    files_dir: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-register-identity/files"
+  when: endorser_node_public_verif_keys is defined and endorser_node_public_verif_keys.resources[0].data.value is defined

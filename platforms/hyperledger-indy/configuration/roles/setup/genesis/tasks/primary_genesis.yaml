@@ -1,0 +1,66 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Initialize variable and list
+- name: "Initialize variable and list"
+  set_fact:
+    trustee_list: []
+    steward_list: []
+
+# Store Trustee, Endorser and Stewards info
+- name: "Store Trustee, Endorser and Stewards info"
+  include_tasks: primary_genesis_peers.yaml
+  vars:
+    org_name: "{{ org.name | lower }}"
+    stewards: "{{ org.services.stewards }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org
+
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ network['organizations'][0].k8s.config_file }}"
+  register: cluster_info
+
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server_url: "{{ cluster_info.connection.host }}"
+
+# Install primary genesis
+- name: "Install primary genesis"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars: 
+    type: "indy_genesis"
+    org: "{{ network['organizations'] | first }}"
+    org_name: "{{ org.name | lower }}"
+    stewards: "{{ org.services.stewards }}"
+    cloud_provider: "{{ org.cloud_provider | lower }}"
+    vault: "{{ org.vault }}"
+    kubernetes_server: "{{ kubernetes_server_url }}"
+    kubernetes: "{{ org.k8s }}"
+    component_type: "generate-genesis"
+    component_ns: "{{ org_name }}-ns"
+    component_name: "{{ org_name }}-genesis"
+    secondaryGenesis: false
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}/build"
+    charts_dir: "{{ org.gitops.chart_source }}"
+
+# Check if primary genesis job is completed
+- name: "Check if primary genesis job is completed"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    org: "{{ network['organizations'] | first }}"
+    org_name: "{{ org.name | lower }}"
+    component_name: "{{ org_name }}-genesis"
+    component_type: Job
+    org: "{{ network['organizations'] | first }}"
+    component_ns: "{{ org.name | lower }}-ns"
+    namespace: "{{ component_ns }}"
+    kubernetes: "{{ org.k8s }}"

@@ -1,0 +1,24 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get Endorser keys
+- name: "Get Endorser keys"
+  include_tasks: endorser_keys.yaml
+
+# Deploy endorser node
+- name: "Deploy endorser node"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars:
+    type: "indy_endorser"
+
+# Check if endorser job is completed
+- name: "Check if endorser job is completed"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component_ns }}"

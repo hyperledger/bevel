@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Get trustee public identity secret
+- name: "Get trustee public identity secret"
+  k8s_info:
+    kind: Secret
+    name: "{{ org.services.trustee.name }}-identity-public"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: trustee_identity_public_secret
+
+# Extract and save trustee DID  to a JSON file
+- name: "Extract and save trustee DID to a JSON file"
+  copy:
+    content: "{{ trustee_identity_public_secret.resources[0].data.value | b64decode | from_json | json_query('did') }}"
+    dest: "{{ files_dir }}/{{ org.services.trustee.name }}-did.json"
+  vars:
+    files_dir: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-genesis/files"
+  when: trustee_identity_public_secret is defined and trustee_identity_public_secret.resources[0].data.value is defined
+
+# Get trustee node public verif keys
+- name: "Get trustee node public verif keys"
+  k8s_info:
+    kind: Secret
+    name: "{{ org.services.trustee.name }}-node-public-verif-keys"
+    namespace: "{{ component_ns }}"
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: trustee_node_public_verif_keys
+
+# Extract and save the trustee's verification key to a JSON file
+- name: "Extract and save the trustee's verification key to a JSON file"
+  copy:
+    content: "{{ trustee_node_public_verif_keys.resources[0].data.value | b64decode | from_json | json_query('\"verification-key\"') }}"
+    dest: "{{ files_dir }}/{{ org.services.trustee.name }}-verkey.json"
+  vars:
+    files_dir: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-genesis/files"
+  when: trustee_node_public_verif_keys is defined and trustee_node_public_verif_keys.resources[0].data.value is defined
