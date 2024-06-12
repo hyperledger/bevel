@@ -79,7 +79,8 @@ helm install university-steward-3 ./indy-node --namespace university-ns --values
 cd ./indy-register-identity/files
 kubectl --namespace university-ns get secret university-endorser-identity-public -o jsonpath='{.data.value}' | base64 -d | jq '.["did"]'> university-endorser-did.json
 kubectl --namespace university-ns get secret university-endorser-node-public-verif-keys -o jsonpath='{.data.value}' | base64 -d | jq '.["verification-key"]' > university-endorser-verkey.json
-# Register endorser identity from admin
+# Register the endorser identity using the trustee's credentials
+# Deploy the endorser identity registration Helm chart in the authority namespace, where the trustee resides
 cd ../..
 helm install university-endorser-id ./indy-register-identity --namespace authority-ns
 ```
@@ -130,24 +131,26 @@ helm install university-steward-4 ./indy-node --namespace university-ns --values
 cd ./indy-register-identity/files
 kubectl --namespace university-ns get secret university-endorser-identity-public -o jsonpath='{.data.value}' | base64 -d | jq '.["did"]'> university-endorser-did.json
 kubectl --namespace university-ns get secret university-endorser-node-public-verif-keys -o jsonpath='{.data.value}' | base64 -d | jq '.["verification-key"]' > university-endorser-verkey.json
-# Register endorser identity from admin
+# Register the endorser identity using the trustee's credentials
+# Deploy the endorser identity registration Helm chart in the authority namespace, where the trustee resides
 cd ../..
 helm install university-endorser-id ./indy-register-identity --namespace authority-ns
 ```
 
 ### Clean-up
 
-To clean up, simply uninstall the Helm releases. It's important to uninstall the genesis Helm chart at the end to prevent any cleanup failure.
+To clean up, simply uninstall the Helm charts. 
+> **NOTE**: It's important to uninstall the genesis Helm chart at the end to prevent any cleanup failure.
 
 ```bash
 helm uninstall --namespace university-ns university-steward-1
 helm uninstall --namespace university-ns university-steward-2
 helm uninstall --namespace university-ns university-steward-3
 helm uninstall --namespace university-ns university-steward-4
-helm uninstall --namespace university-ns genesis
 helm uninstall --namespace university-ns university-keys
+helm uninstall --namespace university-ns genesis
 
 helm uninstall --namespace authority-ns university-endorser-id
-helm uninstall --namespace authority-ns genesis
 helm uninstall --namespace authority-ns authority-keys
+helm uninstall --namespace authority-ns genesis
 ```

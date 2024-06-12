@@ -1,0 +1,35 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Gather Kubernetes cluster information
+- name: Gather cluster info
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
+
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server_url: "{{ cluster_info.connection.host }}"
+
+# Install the secondary genesis component for the specified organization
+- name: "Install secondary genesis for the {{ org_name }} organization"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars:
+    type: "indy_genesis"
+    kubernetes_server: "{{ kubernetes_server_url }}"
+    secondaryGenesis: true
+    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}/build"
+    charts_dir: "{{ org.gitops.chart_source }}"
+
+# Check if the secondary genesis job for the specified organization is completed
+- name: "Check if secondary genesis job {{ org_name }} for is completed"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component_ns }}"

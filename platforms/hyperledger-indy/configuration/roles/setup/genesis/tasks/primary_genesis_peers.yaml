@@ -1,0 +1,20 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Store trustee's name if it is not already set
+- name: "Store trustee's name"
+  set_fact:
+    trustee_list: "{{ trustee_list + [org.services.trustee.name] }}"
+  when: (org.services.trustee is defined) and (org.services.trustee.name | length > 0)
+
+# Add each steward's details (name, public IP, node port, client port) to the steward_list
+- name: "Maintain each steward's node info"
+  set_fact:
+    steward_list: "{{ steward_list + [{'name': stewards_item.name, 'publicIp': stewards_item.publicIp, 'nodePort': stewards_item.node.ambassador, 'clientPort': stewards_item.client.ambassador}] }}"
+  loop: "{{ stewards }}"
+  loop_control:
+    loop_var: stewards_item
+  ignore_errors: true

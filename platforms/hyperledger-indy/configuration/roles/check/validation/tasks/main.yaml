@@ -6,36 +6,43 @@
 
 ##############################################################################################
 # This role checks for validation of network.yaml
-# Conditions to be checked
-# At least 4 genesis stewards
-# Max 1 trustee per org
-# Max 1 endorser per org
-# At least one trustee per network.yaml
+# Conditions to be checked:
+# - Exactly 1 trustee is required per organization.
+# - Up to 1 endorser is allowed per organization.
+# - At least 4 stewards are required collectively across the entire Indy network.
 ##############################################################################################
 
 # Set variables
 - name: Set counters
   set_fact:
     total_stewards=0
-    total_trustees=0
+    total_trustee=0
+    total_endorser=0
+    organization_count="{{ network['organizations'] | length }}"
 
-# Check Validation
-- name: "Check Validation"
+# Loop through each organization to count nodes
+- name: Count nodes
   include_tasks: check_count.yaml
   vars:
-    trustees: "{{ organizationItem.services.trustees|default([]) }}"
-    endorsers: "{{ organizationItem.services.endorsers|default([]) }}"
-    stewards:  "{{ organizationItem.services.stewards|default([]) }}"
+    peers: "{{ item.services.peers }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
-    loop_var: organizationItem
+    loop_var: org
 
-# Print error and end playbook if genesis steward count limit fails
-- name: Print error and end playbook if genesis steward count limit fails
-  debug: msg="The total genesis steward count is {{ total_stewards }}. There should be at least 4 genesis stewards (in case of a fully Hyperledger Bevel-managed cluster)."
-  failed_when: not add_new_org and total_stewards|int < 4
+# Stop execution if total trustee is not equal to 1
+- name: "Stop execution if total trustee is not equal to 1"
+  fail:
+    msg: "Exactly 1 trustee is required per indy network."
+  when: (total_trustee | int) != (organization_count | int)
 
-# Print error and end playbook if total trustee count limit fails
-- name: Print error and end playbook if total trustee count limit fails
-  debug: msg="The total trustee count is {{ total_trustees }}. There should be at least 1 trustee per network (in case of a fully Hyperledger Bevel-managed cluster)."
-  failed_when: not add_new_org and total_trustees|int < 1
+# Stop execution if total endorser is not equal to 1
+- name: "Stop execution if total endorser is not equal to 1"
+  fail:
+    msg: "Up to 1 endorser is allowed per organization."
+  when: (total_endorser | int) > (organization_count | int)
+
+# Stop execution if total stewards are less than 4
+- name: Stop execution if total stewards are less than 4
+  fail:
+    msg: "At least 4 stewards are required collectively across the entire Indy network."
+  when: (total_stewards | int) < 4
