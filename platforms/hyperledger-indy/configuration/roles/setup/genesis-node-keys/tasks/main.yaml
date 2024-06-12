@@ -1,0 +1,22 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Retrieve Trustee's keys if Trustee service is defined
+- name: "Retrieve Trustee's keys"
+  include_tasks: trustee_keys.yaml
+  when: 
+    - org.services.trustee is defined
+    - org.services.trustee.name | length > 0
+
+# Retrieve Steward's keys for each steward in the list of stewards if stewards are defined
+- name: "Retrieve Steward's keys"
+  include_tasks: steward_keys.yaml
+  loop: "{{ org.services.stewards }}"
+  loop_control:
+    loop_var: steward
+  when: 
+    - steward is defined
+    - steward | length > 0

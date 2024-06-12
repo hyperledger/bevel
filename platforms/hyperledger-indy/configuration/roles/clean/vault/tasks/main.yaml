@@ -9,166 +9,34 @@
 ##############################################################################################
 
 ---
-# Remove Indy Crypto
-- name: Remove Indy Crypto of {{ organization }}
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 200 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    # Check if vault URL is valid
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" {{ vault.url }}/ui/)
-    validateVaultResponse ${response_status}
-
-    curl --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/mounts/{{ organization }}
-
-# Remove Policies of trustees
-- name: Remove Policies of trustees
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-{{ serviceItem.name }}-ro)
-    validateVaultResponse ${response_status}
-  loop: "{{ services.trustees }}"
-  loop_control:
-    loop_var: serviceItem
-  when: services.trustees is defined
-
-# Remove Policies of stewards
-- name: Remove Policies of stewards
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-{{ serviceItem.name }}-ro)
-    validateVaultResponse ${response_status}
-  loop: "{{ services.stewards }}"
-  loop_control:
-    loop_var: serviceItem
-  when: services.stewards is defined
-
-# Remove Policies of endorsers
-- name: Remove Policies of endorsers
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-{{ serviceItem.name }}-ro)
-    validateVaultResponse ${response_status}
-  loop: "{{ services.endorsers }}"
-  loop_control:
-    loop_var: serviceItem
-  when: services.endorsers is defined
-
-# Remove Policies of organization
-- name: Remove Policies of {{ organization }}
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-bevel-ac-ro)
-    validateVaultResponse ${response_status}
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/{{ organization }}-admin-rw)
-    validateVaultResponse ${response_status}
-
-# Remove Kubernetes Authentication Methods of organizations
-- name: Remove Kubernetes Authentication Methods of {{ organization }}
+# Delete keys associated with trustee nodes
+- name: Delete trustee keys
+  include_tasks: delete_node_keys.yaml
   vars:
-    auth_path: "kubernetes-{{ organization }}"
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ auth_path }}-admin-auth)
-    validateVaultResponse ${response_status}
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ auth_path }}-bevel-ac-auth)
-    validateVaultResponse ${response_status}
+    node_name: "{{ org.services.trustee.name | lower }}"
+    node_type: "trustees"
+  when: (org.services.trustee is defined) and (org.services.trustee.name | length > 0)
+
+# Delete keys associated with endorser nodes
+- name: Delete endorser keys
+  include_tasks: delete_node_keys.yaml
+  vars:
+    node_name: "{{ org.services.endorser.name | lower }}"
+    node_type: "endorsers"
+  when: (org.services.endorser is defined) and (org.services.endorser.name | length > 0)
+
+# Delete keys associated with steward nodes
+- name: Delete steward keys
+  include_tasks: delete_node_keys.yaml
+  vars:
+    node_name: "{{ stewards.name | lower }}"
+    node_type: "stewards"
+  loop: "{{ org.services.stewards }}"
+  loop_control:
+    loop_var: stewards
+  when: (stewards is defined) and (stewards | length > 0)
+
+# Delete Organization policy and auth engine
+- name: "Delete Organization {{ org_name }} policy and auth engine"
+  include_tasks: delete_policy_auth.yaml
   when: vault.root_token is defined
-
-# Remove Kubernetes Authentication Methods of trustees
-- name: Remove Kubernetes Authentication Methods of {{ organization }} of trustees
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    auth_path="kubernetes-{{ organization }}-{{ serviceItem.name }}-auth"
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/${auth_path})
-    validateVaultResponse ${response_status}
-  loop: "{{ services.trustees }}"
-  loop_control:
-    loop_var: serviceItem
-  when: vault.root_token is defined and services.trustees is defined
-
-# Remove Kubernetes Authentication Methods of stewards
-- name: Remove Kubernetes Authentication Methods of {{ organization }} of stewards
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    auth_path="kubernetes-{{ organization }}-{{ serviceItem.name }}-auth"
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/${auth_path})
-    validateVaultResponse ${response_status}
-  loop: "{{ services.stewards }}"
-  loop_control:
-    loop_var: serviceItem
-  when: vault.root_token is defined and services.stewards is defined
-
-# Remove Kubernetes Authentication Methods of endorsers
-- name: Remove Kubernetes Authentication Methods of {{ organization }} of endorsers
-  environment:
-    vault_token: "{{ vault.root_token }}"
-  shell: |
-    validateVaultResponse () {
-      if [ ${1} != 204 ]; then
-        echo "ERROR: Unable to retrieve. Http status: ${1}"
-        exit 1
-      fi
-    }
-    auth_path="kubernetes-{{ organization }}-{{ serviceItem.name }}-auth"
-    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/${auth_path})
-    validateVaultResponse ${response_status}
-  loop: "{{ services.endorsers }}"
-  loop_control:
-    loop_var: serviceItem
-  when: vault.root_token is defined and services.endorsers is defined

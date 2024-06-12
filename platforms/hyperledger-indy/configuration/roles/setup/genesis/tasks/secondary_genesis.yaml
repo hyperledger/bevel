@@ -1,0 +1,60 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Initialize variables for the first organization
+- name: "Initialize variables for the first organization"
+  set_fact:
+    first_org_name: "{{ network.organizations[0].name | lower }}"
+    first_org_kubernetes: "{{ network.organizations[0].k8s }}"
+
+# Retrieve the ConfigMap for domain transactions genesis for the first organization
+- name: "Get domain transactions genesis ConfigMap"
+  community.kubernetes.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: dtg
+    namespace: "{{ first_org_name }}-ns"
+    kubeconfig: "{{ first_org_kubernetes.config_file }}"
+  register: dtg_configmap
+
+# Retrieve the ConfigMap for pool transactions genesis for the first organization
+- name: "Get pool transactions genesis ConfigMap"
+  community.kubernetes.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: ptg
+    namespace: "{{ first_org_name }}-ns"
+    kubeconfig: "{{ first_org_kubernetes.config_file }}"
+  register: ptg_configmap
+
+# Save the domain transactions genesis content to a file
+- name: "Save domain transactions genesis to file"
+  copy:
+    content: "{{ dtg_configmap.resources[0].data.domain_transactions_genesis }}"
+    dest: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-genesis/files/domain_transactions_genesis.json"
+  when: dtg_configmap.resources[0].data.domain_transactions_genesis is defined
+
+# Save the pool transactions genesis content to a file
+- name: "Save pool transactions genesis to file"
+  copy:
+    content: "{{ ptg_configmap.resources[0].data.pool_transactions_genesis }}"
+    dest: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-genesis/files/pool_transactions_genesis.json"
+  when: ptg_configmap.resources[0].data.pool_transactions_genesis is defined
+
+# Generate secondary genesis HR files for the remaining organizations
+- name: "Generate secondary genesis HR file for the remaining organization"
+  include_tasks: secondary_genesis_orgs.yaml
+  vars:
+    org_name: "{{ org.name | lower }}"
+    component_name: "{{ org_name }}-genesis"
+    component_ns: "{{ org_name }}-ns"
+    component_type: "generate-genesis"
+    cloud_provider: "{{ org.cloud_provider | lower }}"
+    kubernetes: "{{ org.k8s }}"
+    vault: "{{ org.vault }}"
+  loop: "{{ network['organizations'][1:] }}"  # Skip the first organization
+  loop_control:
+    loop_var: org

@@ -4,10 +4,11 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-# Deploy Steward nodes
-- name: "Deploy Steward nodes"
-  include_tasks: nested.yaml
-  loop: "{{ org.services.stewards }}"
-  loop_control:
-    loop_var: steward
-  when: steward is defined and steward | length > 0
+# Primary genesis setup
+- name: "Primary genesis setup"
+  include_tasks: primary_genesis.yaml
+
+# Secondary genesis setup if there are multiple organizations
+- name: "Secondary genesis Setup"
+  include_tasks: secondary_genesis.yaml
+  when: network['organizations'] | length > 1

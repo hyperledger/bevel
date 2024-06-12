@@ -1,0 +1,29 @@
+# Remove Policies of trustees
+- name: Remove Policies of trustees
+  environment:
+    vault_token: "{{ vault.root_token }}"
+  shell: |
+    validateVaultResponse () {
+      if [ ${1} != 204 ]; then
+        echo "ERROR: Unable to retrieve. Http status: ${1}"
+        exit 1
+      fi
+    }
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/policy/bevel-vault-mgmt-{{ org_name }}-keys-{{ org_ns }}-policy)
+    validateVaultResponse ${response_status}
+  ignore_errors: true
+
+# Remove Kubernetes Authentication Methods of organizations
+- name: Remove Kubernetes Authentication Methods of {{ org_name }}
+  environment:
+    vault_token: "{{ vault.root_token }}"
+  shell: |
+    validateVaultResponse () {
+      if [ ${1} != 204 ]; then
+        echo "ERROR: Unable to retrieve. Http status: ${1}"
+        exit 1
+      fi
+    }
+    response_status=$(curl -o /dev/null -s -w "%{http_code}\n" --header "X-Vault-Token: ${vault_token}" --request DELETE {{ vault.url }}/v1/sys/auth/{{ org_name }})
+    validateVaultResponse ${response_status}
+  ignore_errors: true
