@@ -19,6 +19,7 @@
     channel_name: "{{ sys_channel_name }}"
     orderer: "{{ org.services.orderers | first }}"
     check: "latest_block"
+  when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
 
 # Call get_update_block to get the latest from appchannel channel block.
 - name: Call get_update_block to get latest appchannel block
@@ -37,10 +38,23 @@
     path: "{{ build_path }}/channel-artifacts"
     state: directory
 
+# Create the genesis block by consuming the latest config block for 2.5.x fabric versions
+- name: "Create genesis block"
+  shell: |
+    cat {{ build_path }}/{{ channel.channel_name | lower }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel.channel_name | lower }}.genesis.block.base64
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+  when: add_new_org == 'false' and ('2.5.' in network.version)
+
 # Create the genesis block by consuming the latest config block
 - name: "Create genesis block"
   shell: |
-    cat {{ build_path }}/{{ sys_channel_name }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel.channel_name | lower }}.genesis.block.base64
+    cat {{ build_path }}/{{ sys_channel_name | lower }}_config_block.pb | base64 > {{ build_path }}/channel-artifacts/{{ channel.channel_name | lower }}.genesis.block.base64
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+  when: add_new_org == 'false' and ('2.2.' in network.version or '1.4.' in network.version)
 
 # Add new genesis block to the vault
 - name: "Write genesis block to Vault"
@@ -49,6 +63,10 @@
   environment:
     VAULT_ADDR: "{{ org.vault.url }}"
     VAULT_TOKEN: "{{ org.vault.root_token }}"
+  loop: "{{ network.channels }}"
+  loop_control:
+    loop_var: channel
+  when: add_new_org == 'false' and ('2.5.' in network.version)
 
 # Delete the orderer cli
 - name: "Delete all temp {{ orderer.name }}-{{ org.name }}-cli"
