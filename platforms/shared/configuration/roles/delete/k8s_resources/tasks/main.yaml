@@ -19,6 +19,17 @@
     state: absent
   with_items: "{{ helm_info.stdout_lines }}"
   when: 
+  - network.type == "fabric"
+
+# Remove all Helm releases of organization except genesis
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ item }}"
+    release_namespace: "{{ organization_ns }}"
+    state: absent
+  with_items: "{{ helm_info.stdout_lines }}"
+  when: 
   - item != "genesis"
 
 # Remove genesis release at last and ignore errors for now
@@ -29,6 +40,8 @@
     release_namespace: "{{ organization_ns }}"
     state: absent
   ignore_errors: yes # Ignore failure until all platforms have genesis similar to Besu
+  when: 
+  - network.type != "fabric"
 
 - name: Get Helm releases
   shell: |

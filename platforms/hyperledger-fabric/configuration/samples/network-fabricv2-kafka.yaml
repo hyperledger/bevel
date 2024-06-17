@@ -51,14 +51,12 @@ network:
       type: orderer
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer1.crt           # Ensure that the directory exists
+      uri: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer2.crt           # Ensure that the directory exists
+      uri: orderer2.supplychain-net.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
   
   # The channels defined for a network with participating peers in each channel
   channels:
@@ -79,7 +77,7 @@ network:
         name: peer0
         gossipAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
         peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
     - organization:      
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -89,7 +87,7 @@ network:
         name: peer0
         gossipAddress: peer0.store-net.org3proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.store-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: warehouse
       type: joiner
@@ -99,7 +97,7 @@ network:
         name: peer0
         gossipAddress: peer0.warehouse-net.org2proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.warehouse-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: manufacturer
       type: joiner
@@ -109,9 +107,7 @@ network:
         name: peer0
         gossipAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.manufacturer-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
-    genesis:
-      name: OrdererGenesis  
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -125,12 +121,10 @@ network:
       state: London
       location: London
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
-      type: orderer
       external_url_suffix: org1proxy.blockchaincloudpoc.com
       org_status: new
       fabric_console: enabled               # To deploy Fabric console for this organization
       ca_data:
-        url: ca.supplychain-net.org1proxy.blockchaincloudpoc.com
         certificate: file/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
   
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -191,14 +185,14 @@ network:
           consensus: kafka
           grpc:
             port: 7050
-          ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+          ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer2
           type: orderer
           consensus: kafka
           grpc:
             port: 7050      
-          ordererAddress: orderer2.org1proxy.blockchaincloudpoc.com:443
+          ordererAddress: orderer2.supplychain-net.org1proxy.blockchaincloudpoc.com:443
         
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
@@ -208,13 +202,11 @@ network:
       state: Zurich
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-      type: peer
       external_url_suffix: org2proxy.blockchaincloudpoc.com
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: enabled               # To deploy Fabric console for this organization
       ca_data:
-        url: ca.manufacturer-net.org2proxy.blockchaincloudpoc.com
         certificate: file/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -297,13 +289,11 @@ network:
       state: London
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      type: peer
       external_url_suffix: org3proxy.blockchaincloudpoc.com
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.carrier-net.org3proxy.blockchaincloudpoc.com
         certificate: file/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -383,13 +373,11 @@ network:
       state: New York
       location: New York
       subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
-      type: peer
       external_url_suffix: org3proxy.blockchaincloudpoc.com
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.store-net.org3proxy.blockchaincloudpoc.com
         certificate: file/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -470,13 +458,11 @@ network:
       state: Massachusetts
       location: Boston
       subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
-      type: peer
       external_url_suffix: org2proxy.blockchaincloudpoc.com
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.warehouse-net.org2proxy.blockchaincloudpoc.com
         certificate: /file/server.crt
       
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube

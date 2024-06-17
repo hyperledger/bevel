@@ -1,13 +1,13 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ name }}
+  name: {{ component_name | replace('_','-') }}
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ name }}
+  releaseName: {{ component_name | replace('_','-') }}
   chart:
     spec:
       interval: 1m
@@ -22,6 +22,7 @@ spec:
       cluster:
         provider: {{ org.cloud_provider }}
         cloudNativeServices: false
+        kubernetesUrl: {{ kubernetes_url }}
       vault:
         type: hashicorp
         network: fabric
@@ -31,16 +32,12 @@ spec:
         secretPrefix: "data/{{ network.env.type }}{{ component }}"
         role: vault-role
       proxy:
-        provider: {{ network.env.proxy }}
+        provider: {{ network.env.proxy | quote }}
         externalUrlSuffix: {{ org.external_url_suffix }}
-
-    cacerts:
-      ca:
-        orgName: {{ component }}
-        subject: {{ subject }}
 
     storage:
       size: 512Mi
+      volumeBindingMode: Immediate
       allowedTopologies:
         enabled: false
 
@@ -54,43 +51,18 @@ spec:
 {% endif %}
 
     server:
-      tlsstatus: true
-      admin: {{ name }}-admin
+      removeCertsOnDelete: true
+      tlsStatus: true
+      adminUsername: {{ component }}-admin
+      adminPassword: {{ component }}-adminpw
+      subject: {{ subject }}
 {% if component_services.ca.configpath is defined %}
-      configpath: conf/fabric-ca-server-config-{{ component }}.yaml
+      configPath: conf/fabric-ca-server-config-{{ component }}.yaml
 {% endif %}
-
-    service:
-      servicetype: ClusterIP
-      ports:
-        tcp:
-          clusteripport: {{ component_services.ca.grpc.port }}
 {% if component_services.ca.grpc.nodePort is defined %}
-          nodeport: {{ component_services.ca.grpc.nodePort }}
+      nodePort: {{ component_services.ca.grpc.nodePort }}
 {% endif %}
-  
-{% if network.env.annotations is defined %}
-    deployment:
-      annotations:
-{% for item in network.env.annotations.deployment %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-    annotations:  
-      service:
-{% for item in network.env.annotations.service %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-      pvc:
-{% for item in network.env.annotations.pvc %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-{% endif %}
+      clusterIpPort: {{ component_services.ca.grpc.port }}
 
 {% if network.env.labels is defined %}
     labels:

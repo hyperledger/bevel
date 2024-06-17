@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ org_name }}-{{ orderer.name }}
+  name: {{ component_name | replace('_','-') }}
   namespace: {{ namespace }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ org_name }}-{{ orderer.name }}
+  releaseName: {{ component_name | replace('_','-') }}
   chart:
     spec:
       interval: 1m
@@ -17,118 +17,119 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/fabric-orderernode
   values:
-    metadata:
-      namespace: {{ namespace }}
-      network:
-        version: {{ network.version }}
-      images:
-        orderer: {{ docker_url }}/{{ orderer_image[network.version] }}
-        alpineutils: {{ docker_url }}/{{ alpine_image }}
-{% if network.env.annotations is defined %}
-    annotations:  
-      service:
-{% for item in network.env.annotations.service %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-      pvc:
-{% for item in network.env.annotations.pvc %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-      deployment:
-{% for item in network.env.annotations.deployment %}
-{% for key, value in item.items() %}
-        - {{ key }}: {{ value | quote }}
-{% endfor %}
-{% endfor %}
-{% endif %}
-{% if network.env.labels is defined %}
-    labels:
-{% if network.env.labels.service is defined %}
-      service:
-{% for key in network.env.labels.service.keys() %}
-        - {{ key }}: {{ network.env.labels.service[key] | quote }}
-{% endfor %}
-{% endif %}
-{% if network.env.labels.pvc is defined %}
-      pvc:
-{% for key in network.env.labels.pvc.keys() %}
-        - {{ key }}: {{ network.env.labels.pvc[key] | quote }}
-{% endfor %}
-{% endif %}
-{% if network.env.labels.deployment is defined %}
-      deployment:
-{% for key in network.env.labels.deployment.keys() %}
-        - {{ key }}: {{ network.env.labels.deployment[key] | quote }}
-{% endfor %}
-{% endif %}
-{% endif %}
-    orderer:
-      name: {{ orderer.name }}
-      loglevel: info
-      localmspid: {{ org_name }}MSP
-      tlsstatus: true
-      keepaliveserverinterval: 10s
-      ordererAddress: {{ orderer.ordererAddress }}
-
-    consensus:
-      name: {{ orderer.consensus }}
+    global:
+      version: {{ network.version }}
+      serviceAccountName: vault-auth
+      cluster:
+        provider: {{ org.cloud_provider }}
+        cloudNativeServices: false
+      vault:
+        type: hashicorp
+        network: fabric
+        address: {{ vault.url }}
+        authPath: {{ network.env.type }}{{ org_name }}
+        secretEngine: {{ vault.secret_path | default("secretsv2") }}
+        secretPrefix: "data/{{ network.env.type }}{{ org_name }}"
+        role: vault-role
+      proxy:
+        provider: {{ network.env.proxy | quote }}
+        externalUrlSuffix: {{ org.external_url_suffix }}
 
     storage:
-      storageclassname: {{ sc_name }}
-      storagesize: 512Mi  
+      size: 512Mi
+      reclaimPolicy: "Delete" 
+      volumeBindingMode: 
+      allowedTopologies:
+        enabled: false
+
+    certs:
+      generateCertificates: true
+      orgData:
+{% if network.env.proxy == 'none' %}
+        caAddress: ca.{{ namespace }}:7054
+{% else %}
+        caAddress: ca.{{ namespace }}.{{ org.external_url_suffix }}
+{% endif %}
+        caAdminUser: {{ org_name }}-admin
+        caAdminPassword: {{ org_name }}-adminpw
+        orgName: {{ org_name }}
+        type: orderer
+        componentSubject: {{ component_subject | quote }}
+
+      settings:
+        createConfigMaps: {{ create_configmaps }}
+        refreshCertValue: false
+        addPeerValue: false
+        removeCertsOnDelete: true
+        removeOrdererTlsOnDelete: true
+
+    image:
+      orderer: {{ docker_url }}/{{ orderer_image }}
+      alpineUtils: {{ docker_url }}/bevel-alpine:{{ bevel_alpine_version }}
+{% if network.docker.username is defined and network.docker.password is defined  %}
+      pullSecret: regcred
+{% else %}
+      pullSecret: ""
+{% endif %}
+
+    orderer:
+      consensus: {{ orderer.consensus }}
+      logLevel: info
+      localMspId: {{ org_name }}MSP
+      tlsStatus: true
+      keepAliveServerInterval: 10s
 
     service:
-      servicetype: ClusterIP
+      serviceType: ClusterIP
       ports:
         grpc:
-          clusteripport: {{ orderer.grpc.port }}
+          clusterIpPort: {{ orderer.grpc.port }}
 {% if orderer.grpc.nodePort is defined %}
           nodeport: {{ orderer.grpc.nodePort }}
 {% endif %}
         metrics: 
           enabled: {{ orderer.metrics.enabled | default(false) }}
-          clusteripport: {{ orderer.metrics.port | default(9443) }}
+          clusterIpPort: {{ orderer.metrics.port | default(9443) }}
+      resources:
+        limits:
+          memory: 512M
+          cpu: 1
+        requests:
+          memory: 512M
+          cpu: 0.25
 
-    vault:
-      address: {{ vault.url }}
-      role: vault-role
-      authpath: {{ item.k8s.cluster_id | default('')}}{{ network.env.type }}{{ item.name | lower }}
-      type: {{ vault.type | default("hashicorp") }}
-      secretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ item.name | lower }}/ordererOrganizations/{{ namespace }}/orderers/{{ orderer.name }}.{{ namespace }}
-{% if network.docker.username is defined and network.docker.password is defined %}
-      imagesecretname: regcred
-{% else %}
-      imagesecretname: ""
-{% endif %}
-      serviceaccountname: vault-auth
 {% if orderer.consensus == 'kafka' %}
     kafka:
-      readinesscheckinterval: 10
-      readinessthreshold: 10
+      readinessCheckInterval: 10
+      readinessThresHold: 10
       brokers:
 {% for i in range(consensus.replicas) %}
       - {{ consensus.name }}-{{ i }}.{{ consensus.type }}.{{ namespace }}.svc.cluster.local:{{ consensus.grpc.port }}
 {% endfor %}
 {% endif %}
 
-    proxy:
-      provider: {{ network.env.proxy }}
-      external_url_suffix: {{ item.external_url_suffix }}
-{% if '2.5' not in network.version %}
-    genesis: |-
-{{ genesis | indent(width=6, first=True) }}
-{% endif %}
+    healthCheck: 
+      retries: 10
+      sleepTimeAfterError: 15
 
-    config:
-      pod:
-        resources:
-          limits:
-            memory: 512M
-            cpu: 1
-          requests:
-            memory: 512M
-            cpu: 0.25
+{% if network.env.labels is defined %}
+      labels:
+{% if network.env.labels.service is defined %}
+        service:
+{% for key in network.env.labels.service.keys() %}
+          - {{ key }}: {{ network.env.labels.service[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.pvc is defined %}
+        pvc:
+{% for key in network.env.labels.pvc.keys() %}
+          - {{ key }}: {{ network.env.labels.pvc[key] | quote }}
+{% endfor %}
+{% endif %}
+{% if network.env.labels.deployment is defined %}
+        deployment:
+{% for key in network.env.labels.deployment.keys() %}
+          - {{ key }}: {{ network.env.labels.deployment[key] | quote }}
+{% endfor %}
+{% endif %}
+{% endif %}

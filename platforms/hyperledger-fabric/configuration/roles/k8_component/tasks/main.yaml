@@ -9,25 +9,25 @@
 #############################################################################################
 
 # Ensure that the directory exists for each entity, if not, it creates them
-- name: Ensure {{ component_type_name }} dir exists
+- name: Ensure {{ release_dir }} dir exists
   file:
-    path: "{{ release_dir }}/{{ component_type_name }}"
+    path: "{{ release_dir }}"
     state: directory
 
 # Create the value file for the k8 components
-- name: "Create {{ component_type }} file for {{ component_type_name }}"
+- name: "Create {{ component_type }} file for {{ org.name | lower }}"
   template:
     src: "{{ k8_templates[type] | default('default.tpl') }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
+    values_file: "{{ release_dir }}/{{ component_type }}.yaml"
     type: "{{ component_type }}"
 
 # Create the component in kubernetes cluster directly when using operator
 - name: Create the component in kubernetes cluster directly when using operator
   kubernetes.core.k8s:
     state: present
-    src: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
+    src: "{{ release_dir }}/{{ component_type }}.yaml"
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
   when:

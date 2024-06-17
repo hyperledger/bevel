@@ -116,8 +116,6 @@ spec:
             value: "{{ .Values.settings.addPeerValue }}"
           - name: USERS
             value: {{ .Values.users.usersList | toJson | b64enc }}
-          - name: USERS_ANSIBLE
-            value: {{ .Values.users.usersListAnsible }}
           - name: REFRESH_CERT_VALUE
             value: "{{ .Values.settings.refreshCertValue }}"
         {{- if eq .Values.global.vault.type "hashicorp" }}
@@ -246,14 +244,8 @@ spec:
                 checkSecrets users {{ .identity }}-msp
                 checkSecrets users {{ .identity }}-tls
                 {{ end }}
-                # Generate crypto material for users
                 cd /root/ca-tools/org
-                if [ -z "$USERS_ANSIBLE" ];
-                then 
-                  ./generate-user-crypto.sh peer ${USERS}
-                else 
-                  ./generate-user-crypto.sh peer ${USERS_ANSIBLE}
-                fi
+                ./generate-user-crypto.sh peer ${USERS}
 
                 # Save the generated certificates for peers and users
                 cd /scripts/peer
