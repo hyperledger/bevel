@@ -60,7 +60,7 @@ helm upgrade --install orderer3 ./fabric-orderernode --namespace supplychain-net
 
 ```bash
 # OPTIONAL: To use a custom peer configuration, copy core.yaml file into ./fabric-peernode/files
-cp /home/bevel/build/peer0-core.yaml ./fabric-peernode/files/core.yaml
+cp /home/bevel/build/peer0-core.yaml ./fabric-peernode/conf/default_core.yaml
 # Install the peers
 helm upgrade --install peer0 ./fabric-peernode --namespace supplychain-net --values ./values/noproxy-and-novault/peer.yaml
 helm upgrade --install peer1 ./fabric-peernode --namespace supplychain-net --values ./values/noproxy-and-novault/peer.yaml --set peer.gossipPeerAddress=peer0.supplychain-net:7051 --set peer.cliEnabled=true
@@ -162,7 +162,7 @@ helm upgrade --install orderer3 ./fabric-orderernode --namespace supplychain-net
 
 ```bash
 # OPTIONAL: To use a custom peer configuration, copy core.yaml file into ./fabric-peernode/files
-cp /home/bevel/build/peer0-core.yaml ./fabric-peernode/files/core.yaml
+cp /home/bevel/build/peer0-core.yaml ./fabric-peernode/conf/default_core.yaml
 # Install the peers
 helm upgrade --install peer0 ./fabric-peernode --namespace supplychain-net --values ./values/proxy-and-vault/peer.yaml
 helm upgrade --install peer1 ./fabric-peernode --namespace supplychain-net --values ./values/proxy-and-vault/peer.yaml --set peer.gossipPeerAddress=peer0.supplychain-net.test.yourdomain.com:443 --set peer.cliEnabled=true

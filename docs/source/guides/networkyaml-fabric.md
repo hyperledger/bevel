@@ -73,7 +73,6 @@ The fields under `env` section are
 | proxy      | Choice of the Cluster Ingress controller. Currently supports 'haproxy' for production/inter-cluster and 'none' for single cluster |
 | retry_count       | Retry count for the checks. |
 |external_dns       | If the cluster has the external DNS service, this has to be set `enabled` so that the hosted zone is automatically updated. |
-|annotations| Use this to pass additional annotations to the `service`, `deployment` and `pvc` elements of Kubernetes|
 |labels| Use this to pass additional labels to the `service`, `deployment` and `pvc` elements of Kubernetes|
 
 
@@ -120,7 +119,7 @@ orderers
 The snapshot of the `orderers` section with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:46:64"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:46:61"
 ```
 
 The fields under the each `orderer` are
@@ -131,7 +130,6 @@ The fields under the each `orderer` are
 | type        | For Fabric, `orderer` is the only valid type of orderers.   |
 | org_name    | Name of the organization to which this orderer belongs to |
 | uri         | Orderer URL which is accessible by all Peers. This must include the port even when running on 443                                              |
-| certificate | Path to orderer certificate. For inital network setup, ensure that the directory is present, the file need not be present. For adding a new organization, ensure that the file is the crt file of the orderer of the existing network. |
 
 
 <a name="channels"></a>
@@ -141,7 +139,7 @@ channels
 The snapshot of channels section with its fields and sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:66:149"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:63:158"
 ```
 
 The fields under the `channel` are
@@ -190,7 +188,7 @@ In the sample configuration example, we have five organization under the `organi
 The snapshot of an organization field with sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:154:171"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:160:176"
 ```
 
 Each `organization` under the `organizations` section has the following fields. 
@@ -202,11 +200,10 @@ Each `organization` under the `organizations` section has the following fields.
 | state                                       | State of the organization                                                                                        |
 | location                                    |  Location of the organization                                                                                    |
 | subject                                     | Subject format can be referred at [OpenSSL Subject](https://www.openssl.org/docs/man1.0.2/man1/openssl-req.html) |
-| type                                        | This field can be orderer/peer            |
 | external_url_suffix                         | Public url suffix of the cluster.         |
 | org_status         | `new` (for inital setup) or `existing` (for add new org) |
-| orderer_org        |  Ordering service provider. It should only be added to peer organizations |  
-| ca_data                                     | Contains the certificate authority url (dont include port if running on 443) and certificate path; this has not been implemented yet |
+| orderer_org        |  Ordering service provider.                              |  
+| ca_data                                     | Contains the certificate path; this has not been implemented yet |
 | cloud_provider                              | Cloud provider of the Kubernetes cluster for this organization. This field can be aws, azure, gcp or minikube |
 | aws                                         | When the organization cluster is on AWS |
 | k8s                                         | Kubernetes cluster deployment variables.|
@@ -217,7 +214,7 @@ Each `organization` under the `organizations` section has the following fields.
 For the aws and k8s field the snapshot with sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:172:181"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:178:188"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not 'aws')
@@ -238,7 +235,7 @@ The `k8s` field under each organization contains
 For gitops fields the snapshot from the sample configuration file with the example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:189:201"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:190:208"
 ```
 
 The gitops field under each organization contains
@@ -259,7 +256,7 @@ The gitops field under each organization contains
 For Hyperledger Fabric, you can also generate different user certificates and pass the names and attributes in the specific section for `users`. This is only applicable if using Fabric CA. An example is below:
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:288:294"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:331:337"
 ```
 
 The fields under `user` are
@@ -275,7 +272,7 @@ The services field for each organization under `organizations` section of Fabric
 Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:203:211"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:212:218"
 ```
 
 The fields under `ca` service are
@@ -288,10 +285,10 @@ The fields under `ca` service are
 | grpc.port                       | Grpc port number |
 
 
-Each organization with type as peer will have a peers service. The snapshot of peers service with example values is below
+Example of peer service. Below is a snapshot of the peer service with example values.
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:304:338"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:347:380"
 ```
 
 The fields under `peer` service are
@@ -302,7 +299,6 @@ The fields under `peer` service are
 | type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | gossippeeraddress             | Gossip address of another peer in the same Organization, including port. If there is only one peer, then use that peer address. Can be internal if the peer is hosted in the same Kubernetes cluster. |
 | peerAddress             | External address of this peer, including port. Must be the HAProxy qualified address. If using single cluster, this can be internal address. |
-| certificate | Path where the Peer's CA certificate will be stored. |
 | cli             | Optional field. If `enabled` will deploy the CLI pod for this Peer. Default is `disabled`. |
 | configpath | This field is mandatory for using external chaincode. This is the path where a custom core.yaml will be used for the peer. |
 | grpc.port                     | Grpc port                                                                                                        |
@@ -339,7 +335,7 @@ The chaincodes section contains the list of chaincode for the peer, the fields u
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:213:214"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:220:221"
 ```
 
 The fields under `consensus` service are
@@ -351,10 +347,10 @@ The fields under `consensus` service are
 | replicas                  | Only for `kafka`. Replica count of the brokers  |
 | grpc.port                 | Only for `kafka`. Grpc port of consensus service |
 
-The organization with orderer type will have orderers service. The snapshot of orderers service with example values is below
+Example of ordering service. The snapshot of orderers service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:215:239"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:222:246"
 ```
 
 The fields under `orderer` service are

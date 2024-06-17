@@ -1343,19 +1343,13 @@
         "uri": {
           "type": "string",
           "pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$"
-        },
-        "certificate": {
-          "type": "string",
-          "pattern": "^(\/[^\/ ]*)+[^\/ ]+\\.crt$",
-          "description": "Absolute path to the public certificates"
         }
       },
       "required": [
         "name",
         "type",
         "org_name",
-        "uri",
-        "certificate"
+        "uri"
       ],
       "additionalProperties": false
     },
@@ -1400,20 +1394,6 @@
           ],
           "additionalProperties": false
         },
-        "genesis": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9-]{1,30}$",
-              "description": "Name of the genesis block"
-            }
-          },
-          "required": [
-            "name"
-          ],
-          "additionalProperties": false
-        },
         "orderers": {
           "type": "array",
           "items": {
@@ -1443,7 +1423,6 @@
         "channel",
         "consortium",
         "channel_name",
-        "genesis",
         "orderers",
         "participants"
       ],
@@ -1595,13 +1574,6 @@
           "maxLength": 12,
           "description": "Name of the organization"
         },
-        "type": {
-          "type": "string",
-          "enum": [
-            "orderer",
-            "peer"
-          ]
-        },
         "country": {
           "type": "string",
           "description": "Country of the organization"
@@ -1630,31 +1602,15 @@
             "delete"
           ]
         },
-        "if": {
-          "properties": {
-            "type": {
-              "const": "peer"
-            }
-          }
-        },
-        "then": {
-          "properties": {
-            "orderer_org": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]{1,30}$",
-              "description": "Name of the organization providing the ordering service"
-            }
-          }
+        "orderer_org": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,30}$",
+          "description": "Name of the organization providing the ordering service"
         },
         "ca_data": {
           "type": "object",
           "description": "Contains the certificate authority url and certificate path; this has not been implemented yet",
           "properties": {
-            "url": {
-              "type": "string",
-              "pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](?::[0-9]{2,5})?$",
-              "description": "Gossip address of the peer"
-            },
             "certificate": {
               "type": "string",
               "pattern": "^\/?([^\/ ]*\/)+[^\/ ]+\\.crt$",
@@ -1662,35 +1618,15 @@
             }
           },
           "required": [
-            "url",
             "certificate"
           ],
           "additionalProperties": false
-        }
-      },
-      "if": {
-        "properties": {
-          "type": {
-            "const": "orderer"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "services": {
-            "$ref": "#/definitions/fabric_orderer_services"
-          }
-        }
-      },
-      "else": {
-        "properties": {
-          "services": {
-            "$ref": "#/definitions/fabric_peer_services"
-          }
+        },
+        "services": {
+          "$ref": "#/definitions/fabric_services"
         }
       },
       "required": [
-        "type",
         "country",
         "state",
         "location",
@@ -1699,7 +1635,7 @@
         "services"
       ]
     },
-    "fabric_orderer_services": {
+    "fabric_services": {
       "type": "object",
       "properties": {
         "ca": {
@@ -1713,20 +1649,6 @@
           "items": {
             "$ref": "#/definitions/fabric_service_orderer"
           }
-        }
-      },
-      "required": [
-        "ca",
-        "consensus",
-        "orderers"
-      ],
-      "additionalProperties": false
-    },
-    "fabric_peer_services": {
-      "type": "object",
-      "properties": {
-        "ca": {
-          "$ref": "#/definitions/fabric_service_ca"
         },
         "peers": {
           "type": "array",
@@ -1736,8 +1658,7 @@
         }
       },
       "required": [
-        "ca",
-        "peers"
+        "ca"
       ],
       "additionalProperties": false
     },
@@ -1879,7 +1800,7 @@
         },
         "name": {
           "type": "string",
-          "pattern": "^peer[0-9]{1,2}$",
+          "pattern": "^[a-z0-9-]{1,30}$",
           "description": "Name of the peer. Must be of the format peer0 for the first peer, peer1 for the second peer and so on."
         },
         "gossippeeraddress": {

@@ -91,8 +91,7 @@ These parameters are refered to as same in each parent or child chart
 | `certs.orgData.orgName` | Organization Name  | `supplychain` |
 | `certs.orgData.type` | Type of certificate to generate, choosed from `orderer` or `peer` | `peer` |
 | `certs.orgData.componentSubject` | X.509 subject for the organization  | `"O=Peer,L=51.50/-0.13/London,C=GB"` |
-| `certs.users.usersList` | Array of Users with their attributes  | `- identity: user1`<br/>`attributes:`<br/>`- key: "hf.Revoker"`<br/>`value: "true"` |
-| `certs.users.usersListAnsible` | Base64 encoded list of Users generally passed from Ansible  | `""` |
+| `certs.users.usersList` | Array of Users with their attributes  | `""` |
 | `certs.settings.createConfigMaps` | Flag to create configmaps. Must be set to `false` for additional orderers/peers in the same organization. | `false` |
 | `certs.settings.refreshCertValue` | Flag to refresh User certificates  | `false` |
 | `certs.settings.addPeerValue` | Flag to be used when adding a new peer to the organization  | `false` |

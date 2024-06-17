@@ -1,0 +1,24 @@
+# Fetch peer msp config
+- name: Fetch peer msp config
+  include_tasks: get_peer_msp_config.yaml
+  vars:
+    peer_name: "{{ peer.name }}"
+  loop: "{{ peers }}"
+  loop_control:
+    loop_var: peer
+
+# Get admin msp certificates from secret
+- name: Get admin msp certificates from secret
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ org.k8s.config_file }}"
+    kind: Secret
+    name: "admin-msp"
+    namespace: "{{ org_name }}-net"
+  register: msp_cert_data
+
+- name: Save admin-msp cert locally for genesis
+  copy:
+    content: "{{ msp_cert_data.resources[0] | to_nice_json }}"
+    dest: "{{ files_loc }}/{{ org_name }}.json"
+  vars:
+    files_loc: "{{ playbook_dir }}/../../../{{ charts_dir }}/fabric-genesis/files"

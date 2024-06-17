@@ -1,0 +1,21 @@
+# Get config file from configmap
+- name: Get config file from config map 
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ org.k8s.config_file }}"
+    kind: ConfigMap
+    name: "{{ peer_name }}-msp-config"
+    namespace: "{{ org_name }}-net"
+  register: config_file_data
+
+# Create the certs directory if it does not exist
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{ playbook_dir }}/../../../{{ charts_dir }}/fabric-genesis/files"
+    state: directory
+
+- name: Save config peer msp config locally for genesis
+  copy:
+    content: "{{ config_file_data.resources[0] | to_nice_json }}"
+    dest: "{{ files_loc }}/{{ org_name }}-config-file.json"
+  vars:
+    files_loc: "{{ playbook_dir }}/../../../{{ charts_dir }}/fabric-genesis/files"
