@@ -40,15 +40,18 @@ spec:
         name: {{ component_name }}
         repository: {{ network.docker.url }}/bevel-indy-node:{{ network.version }}
     node:
-      name: {{ stewardItem.name }}
+      name: {{ component_name }}
       ip: 0.0.0.0
       publicIp: {{ stewardItem.publicIp }}
       port: {{ stewardItem.node.port }}
+      targetPort: {{ stewardItem.node.targetPort }}
       ambassadorPort: {{ stewardItem.node.ambassador }}
     client:
+      name: {{ component_name }}
       publicIp: {{ stewardItem.publicIp }}
       ip: 0.0.0.0
       port: {{ stewardItem.client.port }}
+      targetPort: {{ stewardItem.client.targetPort }}
       ambassadorPort: {{ stewardItem.client.ambassador }}
     service:
 {% if organizationItem.cloud_provider != 'minikube' %}
@@ -99,4 +102,3 @@ spec:
       keys:
         storagesize: 3Gi
         storageClassName: {{ sc_name }}
-
