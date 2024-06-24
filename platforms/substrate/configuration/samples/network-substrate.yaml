@@ -17,13 +17,17 @@ network:
   #Environment section for Kubernetes setup
   env:
     type: "substratedev"              # tag for the environment. Important to run multiple flux on single cluster
-    proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Substrate
+    proxy: ambassador                 # value has to be 'ambassador' as 'haproxy' has not been implemented for Substrate
+    proxy_namespace: "ambassador"     # Namespace for the proxy
     #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
     #  This sample uses a single cluster, so we have to open 4 ports for each Node. These ports are again specified for each organization below
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      portRange:              # For a range of ports 
-        from: 15010
-        to: 15043
+      # Specify a list of individual ports to use
+      ports: [15010, 15023, 15024, 15025, 15033, 15034, 15035, 15043, 15044, 15045]
+      # Alternatively, specify a range of ports to use all ports within the specified range
+      # portRange:              
+      #   from: 15010  # Starting port of the range
+      #   to: 15045    # Ending port of the range
     # ports: 15020,15021      # For specific ports
     retry_count: 20                 # Retry count for the checks on Kubernetes cluster
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -59,7 +63,7 @@ network:
       name: carrier
       type: superuser
       external_url_suffix: subs.example.com   # This is the url suffix that will be added in DNS recordset. Must be different for different clusters
-      cloud_provider: gcp   # Options: aws, azure, gcp
+      cloud_provider: aws   # Options: aws, azure, gcp
       aws:
         access_key: "AWS_ACCESS_KEY"        # AWS Access key, only used when cloud_provider=aws
         secret_key: "AWS_SECRET_KEY"        # AWS Secret key, only used when cloud_provider=aws

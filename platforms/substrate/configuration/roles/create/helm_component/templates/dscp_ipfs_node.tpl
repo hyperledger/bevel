@@ -69,6 +69,6 @@ spec:
     vault:
       address: {{ vault.url }}
       role: vault-role
-      authpath: substrate{{ name }}
+      authpath: {{ network.env.type }}{{ name }}
       serviceaccountname: vault-auth
       certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name }}
