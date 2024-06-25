@@ -14,11 +14,16 @@ namespaceOverride: ''
 # Emissary Chart Values.
 emissary-ingress:
   service:
-{% if network.type == 'indy' %}
+{% if network.type == 'indy' and item.cloud_provider in ['aws', 'aws-baremetal'] %}
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
       service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "{{ elastic_ip }}"
+{% endif %}
+{% if network.type == 'indy' and item.cloud_provider == 'azure' %}
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-resource-group: "{{ item.azure.node_resource_group }}"
+      service.beta.kubernetes.io/azure-load-balancer-ipv4: "{{ elastic_ip }}"
 {% endif %}
     type: LoadBalancer
 
@@ -31,7 +36,7 @@ emissary-ingress:
     - name: https
       port: 443
       targetPort: 8443
-{% for port in ports or [] %}
+{% for port in ports %}
     - name: tcp-{{ port }}
       port: {{ port | int }}
       targetPort: {{ port | int }}
@@ -44,8 +49,6 @@ emissary-ingress:
 {% endfor %}
 {% endif %}
   adminService:
-    # IP address to assign (if cloud provider supports it)
-    loadBalancerIP:
     # Passed to cloud provider load balancer if created (e.g: AWS ELB)
     loadBalancerSourceRanges: {{ loadBalancerSourceRanges }}
 
@@ -57,7 +60,9 @@ emissary-ingress:
 ################################################################################
 ## Ambassador Edge Stack Configuration                                        ##
 ################################################################################
-
+redis:
+  image:
+    tag: 7.2.4
 # The Ambassador Edge Stack is free for limited use without a license key.
 # Go to https://{ambassador-host}/edge_stack/admin/#dashboard to register
 # for a community license key.
@@ -68,4 +73,3 @@ licenseKey:
   secretName:
   # Annotations to attach to the license-key-secret.
   annotations: {}
-

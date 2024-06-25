@@ -16,15 +16,21 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: indy
-  version: 1.11.0                         # Supported versions 1.11.0 and 1.12.1
+  version: 1.12.6                         # Supported versions 1.11.0, 1.12.1 & 1.12.6
 
   #Environment section for Kubernetes setup
   env:
-    type: "dev"              # tag for the environment. Important to run multiple flux on single cluster
+    type: "dev"                     # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
+    proxy_namespace: "ambassador"   # Namespace for the proxy
     # Must be different from all other ports specified in the rest of this network yaml
     ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
-      ports: 15010,15023,15024,15025,15033,15034,15035,15043,15044,15045 # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened 
+      # Specify a list of individual ports to use
+      ports: [15010,15023,15024,15025,15033,15034,15035,15043,15044,15045] # Each Client Agent uses 3 ports  # Indy does not use a port range as it creates an NLB, and only necessary ports should be opened
+      # Alternatively, specify a range of ports to use all ports within the specified range
+      # portRange:
+      #   from: 15010  # Starting port of the range
+      #   to: 15045    # Ending port of the range
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 20                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -63,6 +69,8 @@ network:
         region: "region"                        # AWS region
 
       publicIps: ["1.1.1.1", "2.2.2.2"]        # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      azure:
+        node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -116,6 +124,8 @@ network:
         region: "region"                        # AWS region
 
       publicIps: ["3.221.78.194"]               # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      azure:
+        node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
@@ -205,6 +215,8 @@ network:
         region: "region"                        # AWS region
       
       publicIps: ["3.221.78.194"]             # List of all public IP addresses of each availability zone from all organizations in the same k8s cluster
+      azure:
+        node_resource_group: "MC_myResourceGroup_myCluster_westeurope"
 
       # Kubernetes cluster deployment variables. The config file path has to be provided in case
       # the cluster has already been created.
