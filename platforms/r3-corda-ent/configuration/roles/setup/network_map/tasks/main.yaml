@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
+
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server: "{{ cluster_info.connection.host }}"
+
+# Create deployment file for network_map
+- name: Create network_map  deployment file
+  include_role: 
+    name: helm_component
+  vars:    
+    type: "corda_ent_network_map"
+    cred_truststore: "{{ org.credentials.truststore }}"
+    cred_keystore: "{{ org.credentials.keystore }}"
+    idman_int_port: "{{ org_services.idman.ports.internal }}"
+    idman_ext_port: "{{ org_services.idman.ports.external }}"
+    idman_rev_port: "{{ org_services.idman.ports.revocation }}"
+    auth_port: "{{ org_services.auth.port }}"
+    gateway_port: "{{ org_services.gateway.port }}"
+    zone_enm_port: "{{ org_services.zone.ports.enm }}"
+    network_map_int_port: "{{ org_services.networkmap.ports.internal }}"
+    network_map_ext_port: "{{ org_services.networkmap.ports.external }}"
+    network_map_admin_listener_port: "{{ org_services.networkmap.ports.admin_listener }}"
+
+# Git Push: Push the deployment files for network_map
+- name: Push network_map deployment files
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing notary deployment file for notary"
+
+# Check if the job is completed
+- name: "Check if {{ component_name }} job is completed in the {{ org_name }} organization"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: Job
+    namespace: "{{ component_ns }}"

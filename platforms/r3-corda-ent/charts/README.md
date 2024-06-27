@@ -99,11 +99,10 @@ helm install notary ./enterprise-node --namespace supplychain-ent --values ./val
 
 # Install cenm services : Networkmap service
 helm install networkmap ./cenm-networkmap --namespace supplychain-ent --values ./values/proxy-and-vault/cenm.yaml
-
 ```
 
-### To setup another node in a different namespace
 
+### To setup another node in a different namespace
 ```bash
 kubectl create namespace manufacturer-ent # if the namespace does not exist already
 # Create the roottoken secret

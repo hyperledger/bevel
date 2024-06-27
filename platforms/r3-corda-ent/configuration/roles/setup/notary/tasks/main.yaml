@@ -5,16 +5,51 @@
 ##############################################################################################
 
 ##############################################################################################
-# This role creates the value file for notary
+# This role creates the deployment files for node and pushes them to repository
 ##############################################################################################
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
 
----
-# Create Notary related to cenm
-- name: Create Notary for cenm org
-  include_tasks: notary_cenm.yaml
-  when: org.type == 'cenm'
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server: "{{ cluster_info.connection.host }}"
 
-# Create Notary related to org
-- name: Create Notary for notary org
-  include_tasks: notary_node.yaml
-  when: org.type == 'notary'
+# Create deployment file for notary node
+- name: Create notary node deployment file
+  include_role: 
+    name: helm_component
+  vars:    
+    type: corda_ent_notary
+    node_name: "{{ node.name | lower }}"
+    p2p_port: "{{ node.ports.p2p }}"
+    rpc_port: "{{ node.ports.rpc }}"
+    rpc_admin_port: "{{ node.ports.admin_rpc }}"
+    subject: "{{ node.subject }}"
+    legal_name: "{{ node.subject }}"
+    service_name: "{{ node.serviceName }}"
+    validating: "{{ node.validating }}"
+    # nms_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    # doorman_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
+  loop: "{{ node }}"
+  loop_control:
+    loop_var: node
+
+# Git Push: Push the deployment files for notary node
+- name: Push notary deployment files
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing notary deployment file for notary"
+
+# # Check if the job is completed
+# - name: "Check if {{ component_name }} job is completed in the {{ org_name }} organization"
+#   include_role:
+#     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+#   vars:
+#     component_type: Job
+#     namespace: "{{ component_ns }}"

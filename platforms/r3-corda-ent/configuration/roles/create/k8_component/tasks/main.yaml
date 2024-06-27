@@ -13,29 +13,18 @@
 ################################################################################################
 
 ---
-# Create and/or check if the target directory exists
-- name: Ensures {{ release_dir }}/{{ component_name }} dir exists
-  file:
-    path: "{{ release_dir }}/{{ component_name }}"
-    state: directory
+# Ensure that the directory exists for each entity, if not, it creates them
+- name: Ensure {{ component_type_name }} dir exists
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ release_dir }}/{{ component_type_name }}"
 
-# Create deployment file from a template
-- name: Create {{ component_type }} file for {{ component_name }}
+# Create the value file for the k8 components
+- name: "Create {{ component_type }} file for {{ component_type_name }}"
   template:
-    src: "{{ dlt_templates[component_type] }}"
+    src: "{{ k8_templates[type] | default('default.tpl') }}"
     dest: "{{ values_file }}"
   vars:
-    values_file: "{{ release_dir }}/{{ component_name }}/{{ component_type }}.yaml"
-
-################################################################################################
-# Test the value file for syntax errors/ missing values
-# This is done by calling the helm_lint role and passing the value file parameter
-# When a new k8_component is added, changes should be made in helm_lint role as well
-- name: Helm lint
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
-  vars:
-    helmtemplate_type: "{{ component_type }}"
-    chart_path: "{{ charts_dir }}"
-    value_file: "{{ release_dir }}/{{ component_name }}/{{ helmtemplate_type }}.yaml"
-  when: helm_lint=="true"
+    values_file: "{{ release_dir }}/{{ component_type_name }}/{{ component_type }}.yaml"
+    type: "{{ component_type }}"
