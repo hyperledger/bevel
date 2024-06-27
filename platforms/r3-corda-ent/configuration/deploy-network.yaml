@@ -20,98 +20,103 @@
       path: "./build"
       state: absent
 
-  # create namespace, service account and clusterrolebinding
-  - name: "Create namespace, service accounts and clusterrolebinding"
-    include_role: 
-      name: create/namespace_serviceaccount
+  # Create namespaces for organizations
+  - name: "Create namespace"
+    include_role:
+      name: create/namespace
+    vars:
+      component_name: "{{ org.name | lower }}-ent"
+      component_type_name: "{{ org.type | lower }}"
+      kubernetes: "{{ org.k8s }}"
+      release_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org.name | lower }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+
+  # Create necessary Kubernetes secrets for each organization
+  - name: "Create k8s secrets"
+    include_role:
+      name: create/secrets
     vars:
       component_ns: "{{ org.name | lower }}-ent"
-      organisation: "{{ org.name | lower }}"
       kubernetes: "{{ org.k8s }}"
-      gitops: "{{ org.gitops }}"
+      vault: "{{ org.vault }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
 
-  # Create Storageclass that will be used for this deployment
-  - name: Create Storage Class
+  # # Setup Init
+  - name: "Setup Init"
     include_role:
-      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
+      name: setup/init
     vars:
       org_name: "{{ org.name | lower }}"
-      sc_name: "{{ org_name }}-bevel-storageclass"
-      region: "{{ org.k8s.region | default('eu-west-1') }}"
+      component_name: "{{ org_name }}-init"
+      component_ns: "{{ org_name }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}/build"
+      charts_dir: "{{ org.gitops.chart_source }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
 
-  # Setup CENM services for the network
+  # Setup CENM
   - name: "Setup cenm"   
     include_role: 
       name: "setup/cenm"
     vars:
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      name: "{{ org.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ org.name | lower }}-ent"
+      org: "{{ network['organizations'] | first }}"
+      org_name: "{{ org.name | lower }}"
+      org_services: "{{ org.services }}"
+      component_name: "{{ org_name }}-cenm"
+      component_ns: "{{ org_name }}-ent"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      policy_type: "r3-corda-ent"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'cenm'
+      external_url_suffix: "{{ org.external_url_suffix }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}/build"
 
-  # Wait for cenm services to respond  
-  - name: Check that CENM uri are reachable
-    uri:
-      url: "{{ item.uri }}/status"
-      validate_certs: no
-    register: this
-    until: this.status == 200
-    loop: "{{ network['network_services'] }}"
-    retries: "{{ network.env.retry_count}}"
-    delay: 50
-
-  # Setup Corda Node services for the network
-  - name: Setup Corda Node services
-    include_role:
-      name: setup/node
-    vars:
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      name: "{{ org.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ org.name | lower }}-ent"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      policy_type: "r3-corda-ent"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.type == 'node'
-
-  # Setup Additional Notary services for the network
-  - name: Setup Additional Notary services
+  # Deploy notaries
+  - name: Deploy notary service
     include_role:
       name: setup/notary
     vars:
-      services: "{{ org.services }}"
-      organisation: "{{ org.name | lower }}"
-      name: "{{ org.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ org.name | lower }}-ent"
+      org_name: "{{ org.name | lower }}"
+      component_name: "{{ org_name }}-notary"
+      component_ns: "{{ org_name }}-ent"
+      cloud_provider: "{{ org.cloud_provider }}"
+      external_url_suffix: "{{ org.external_url_suffix }}"
+      node: "{{ org.services.notaries }}"
       kubernetes: "{{ org.k8s }}"
       vault: "{{ org.vault }}"
       gitops: "{{ org.gitops }}"
-      policy_type: "r3-corda-ent"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
-    when: org.type == 'notary'
+    when: 
+      - org.services.notaries is defined
+
+  # Setup NETWORK_MAP
+  - name: "Setup network_map"   
+    include_role: 
+      name: "setup/network_map"
+    vars:
+      org: "{{ network['organizations'] | first }}"
+      org_name: "{{ org.name | lower }}"
+      cloud_provider: "{{ org.cloud_provider | lower }}"
+      org_services: "{{ org.services }}"
+      component_name: "{{ org_name }}-nm"
+      component_ns: "{{ org_name }}-ent"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      external_url_suffix: "{{ org.external_url_suffix }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}/{{ org_name }}"
+
 
   # These variables can be overriden from the command line
   vars:
