@@ -31,6 +31,7 @@ spec:
         secretEngine: {{ vault.secret_path | default("secretsv2") }}
         secretPrefix: "data/{{ network.env.type }}{{ name }}"
         role: vault-role
+        tls: false
       proxy:
         provider: {{ network.env.proxy | quote }}
         externalUrlSuffix: {{ org.external_url_suffix }}
@@ -56,7 +57,7 @@ spec:
         caAdminPassword: {{ name }}-adminpw
         orgName: {{ name }}
         type: peer
-        componentSubject: {{ component_subject }}
+        componentSubject: "{{ component_subject }}"
 
 {% if org.users is defined %}
       users: 
@@ -84,11 +85,7 @@ spec:
 {% endif %}
 
     peer:
-{% if provider == 'none' %}
-      gossipPeerAddress: {{ component_ns }}:7051
-{% else %}
       gossipPeerAddress: {{ peer.peerAddress }}
-{% endif %}
       logLevel: info
       localMspId: {{ name }}MSP
       tlsStatus: true

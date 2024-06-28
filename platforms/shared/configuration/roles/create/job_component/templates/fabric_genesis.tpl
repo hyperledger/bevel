@@ -12,6 +12,7 @@ global:
     secretEngine: {{ vault.secret_path | default("secretsv2") }}
     secretPrefix: "data/{{ network.env.type }}{{ name }}"
     role: vault-role
+    tls: false
   proxy:
     provider: {{ network.env.proxy | quote }}
     externalUrlSuffix: {{ org.external_url_suffix }}
@@ -27,23 +28,18 @@ image:
 
 organizations:
 {% for organization in network.organizations %}
-  - organization:
 {% for data, value in organization.items() %}
 {% if data == 'name' %}
-    name: {{ value }}
-{% endif %}
-{% if data == 'type' %}
-    type: {{ value }}
+  - name: {{ value }}
 {% endif %}
 {% endfor %}
 {% for service in organization.services %}
 {% if service == 'orderers' %}
     orderers:
 {% for orderer in organization.services.orderers %}
-    - orderer:
 {% for key, value in orderer.items() %}
 {% if key == 'name' %}
-      name: {{ value }}
+    - name: {{ value }}
 {% endif %}
 {% if key == 'ordererAddress' %}
       ordererAddress: {{ value }}
@@ -54,10 +50,9 @@ organizations:
 {% if service == 'peers' %}
     peers:
 {% for peer in organization.services.peers %}
-    - peer:
 {% for key, value in peer.items() %}
 {% if key == 'name' %}
-      name: {{ value }}
+    - name: {{ value }}
 {% endif %}
 {% if key == 'peerAddress' %}
       peerAddress: {{ value }}
@@ -79,7 +74,8 @@ kafka:
 {% endif %}
 
 channels:
-{% for channel in network.channels %}  
+{% for channel in network.channels %} 
+{% if channel.channel_status == 'new' %} 
   - name: {{ channel.channel_name | lower }}
     consortium: {{ channel.consortium }}
     orderers: 
@@ -90,11 +86,10 @@ channels:
 {% for participant in channel.participants %}
       - {{ participant.name | lower }}
 {% endfor %}
+{% endif %}
 {% endfor %}
 
 settings:
-  # Flag to generate the genesis file for Fabrix 2.2.x
-  generateGenesis: true
-  # Flag to ensure the genesis configmap is removed on helm uninstall
-  removeConfigMapOnDelete: true
+  generateGenesis: {{ generateGenisisBLock }} 
+  removeConfigMapOnDelete: false
 

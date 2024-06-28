@@ -9,7 +9,7 @@ This guide explains how to add a new channel in a Hyperledger Fabric network usi
 
 1. Using the `add-new-channel.yaml` playbook: This method involves running an Ansible playbook that automates the process of adding a new channel to the network.
 
-1. Using `helm install`: This method involves using the `helm install` commands to directly add a new channel to the network.
+2. Using `helm install`: This method involves using the `helm install` commands to directly add a new channel to the network.
 
 ## Prerequisites
 - A fully configured Fabric network with Orderers, Peers, Peer Organization.
@@ -22,36 +22,63 @@ This guide explains how to add a new channel in a Hyperledger Fabric network usi
 
 ## Method 1: Using the `add-new-channel.yaml` playbook
 
-1. **Update Configuration File**
+1. **Add a defined channel with genesis or channeltx generated in basic deployment**
 
-    - Edit the `network.yaml` file to include a new channel with the following details:
-        - `channel_status: new`
-        - `org_status: existing`
-        - Organization details (name, CA address, MSP ID, etc.)
-		- Orderer information
-    - Remove existing channels or use `channel_status: existing`
-    - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
+    **Update Configuration File**
 
-    Snippet from `network.channels` section below:
+       - Edit the `network.yaml` file to include a channel with the following details:
+           - Organization details (name, CA address, MSP ID, etc.)
+   	   - Orderer information
+       - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
 
-    ```yaml
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-new-channel.yaml:66:193"
-    ```
+       Snippet from `network.channels` section below:
+
+       ```yaml
+       --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:63:165"
+       ```
+
+    **Run Playbook**
+
+       Execute the following command to run the `add-new-channel.yaml` playbook:
+
+       ```
+       ansible-playbook platforms/hyperledger-fabric/configuration/add-new-channel.yaml --extra-vars "@path-to-network.yaml"
+       ```
+       Replace `path-to-network.yaml` with the actual path to your updated `network.yaml` file.
+
+   	This will add a channel to the existing Fabric network.
+
+2. **Add a new channel by generating a new genesis or channeltx in an existing network**
+ 
+    **Update Configuration File**
+
+       - Edit the `network.yaml` file to include a new channel with the following details:
+           - `channel_status: new`
+           - Organization details (name, CA address, MSP ID, etc.)
+   		- Orderer information
+       - Remove existing channels or use `channel_status: existing`
+       - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
+
+       Snippet from `network.channels` section below:
+
+       ```yaml
+       --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-new-channel.yaml:63:227"
+       ```
 
     !!! tip
 
         For reference, see sample [network-fabric-add-channel.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabric-add-new-channel.yaml) file.
 
-1. **Run Playbook**
+    **Run Playbook**
 
-    Execute the following command to run the `add-new-channel.yaml` playbook:
+       Execute the following command to run the `add-new-channel.yaml` playbook:
 
-    ```
-    ansible-playbook platforms/hyperledger-fabric/configuration/add-new-channel.yaml --extra-vars "@path-to-network.yaml"
-    ```
-    Replace `path-to-network.yaml` with the actual path to your updated `network.yaml` file.
+       ```
+       ansible-playbook platforms/hyperledger-fabric/configuration/add-new-channel.yaml --extra-vars "@path-to-network.yaml" -e genererate_configtx=true
+       ```
+       Replace `path-to-network.yaml` with the actual path to your updated `network.yaml` file.
 
-	This will add a new channel to the existing Fabric network.
+   	This will add a new channel to the existing Fabric network.
 
 ## Method 2: Using `helm install`
 

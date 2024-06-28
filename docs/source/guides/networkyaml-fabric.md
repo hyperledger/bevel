@@ -139,7 +139,7 @@ channels
 The snapshot of channels section with its fields and sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:63:158"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:63:165"
 ```
 
 The fields under the `channel` are
@@ -188,7 +188,7 @@ In the sample configuration example, we have five organization under the `organi
 The snapshot of an organization field with sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:160:176"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:167:185"
 ```
 
 Each `organization` under the `organizations` section has the following fields. 
@@ -214,7 +214,7 @@ Each `organization` under the `organizations` section has the following fields.
 For the aws and k8s field the snapshot with sample values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:178:188"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:186:202"
 ```
 
 The `aws` field under each organization contains: (This will be ignored if cloud_provider is not 'aws')
@@ -232,10 +232,17 @@ The `k8s` field under each organization contains
 | context                                 | Context/Name of the cluster where the organization entities should be deployed                                   |
 | config_file                             | Path to the kubernetes cluster configuration file                                                                |
 
+The `vault` field under each organization contains
+
+| Field       | Description |
+|-------------|----------------------------------------------------------|
+| url        | The URL for Hashicorp Vault server with port (Do not use 127.0.0.1 or localhost)  |
+| root_token    | The root token for accessing the Vault server    |
+
 For gitops fields the snapshot from the sample configuration file with the example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:190:208"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:203:215"
 ```
 
 The gitops field under each organization contains
@@ -256,7 +263,7 @@ The gitops field under each organization contains
 For Hyperledger Fabric, you can also generate different user certificates and pass the names and attributes in the specific section for `users`. This is only applicable if using Fabric CA. An example is below:
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:331:337"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:338:344"
 ```
 
 The fields under `user` are
@@ -272,7 +279,7 @@ The services field for each organization under `organizations` section of Fabric
 Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:212:218"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:217:225"
 ```
 
 The fields under `ca` service are
@@ -288,7 +295,7 @@ The fields under `ca` service are
 Example of peer service. Below is a snapshot of the peer service with example values.
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:347:380"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:354:387"
 ```
 
 The fields under `peer` service are
@@ -335,7 +342,7 @@ The chaincodes section contains the list of chaincode for the peer, the fields u
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:220:221"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:227:228"
 ```
 
 The fields under `consensus` service are
@@ -350,7 +357,7 @@ The fields under `consensus` service are
 Example of ordering service. The snapshot of orderers service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:222:246"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:229:253"
 ```
 
 The fields under `orderer` service are
