@@ -24,45 +24,16 @@
       file:
         path: "./build"
         state: absent
-
-    # Create generate_crypto script for each organization
-    - include_role:
-        name: "create/crypto_script"
-      vars:
-        component_type: "{{ item.type | lower}}"
-        orderers: "{{ item.services.orderers }}"
-      loop: "{{ network['organizations'] }}"
-
-    # Creating channel artifacts 
-    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
-    # which is then consumed by configtxgen tool
-    - include_role:
-        name: "create/configtx"
-      vars:
-        config_file: "./build/configtx.yaml"
-
-    # This role generate channeltx
-    - include_role:
-        name: "create/channel_artifacts"
-      vars:
-        build_path: "./build"
-        genesis: "{{ item.genesis }}"
-        channel_name: "{{ item.channel_name | lower}}"
-        profile_name: "{{ item.channel_name }}"
-        add_new_org: 'false'
-        fetch_certs: "true"
-      loop: "{{ network['channels'] }}"
-      when: item.channel_status == 'new'
-
+    
     - name: "Create genesis block"
       include_role: 
         name: "create/genesis"
       vars:
-        build_path: "./build"
-        genesis: "{{ item.genesis }}"
-        channel_name: "{{ item.channel_name | lower }}"
-      loop: "{{ network['channels'] }}"
-      when: item.channel_status == 'new' and '2.5.' in network.version
+        org: "{{ network['organizations'] | first }}"
+        docker_url: "{{ network.docker.url }}"
+        kubernetes: "{{ org.k8s  }}"
+        generateGenisis: false
+      when: genererate_configtx is defined and genererate_configtx == 'true'
 
     # This role creates the value file for creating channel from creator organization
     # to the vault.
@@ -72,6 +43,7 @@
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
+        channel_name: "{{ item.channel_name | lower }}"
       loop: "{{ network['channels'] }}"
       when: item.channel_status == 'new' and ('2.2.' in network.version or '1.4.' in network.version)
     
@@ -97,20 +69,9 @@
       loop: "{{ network['channels'] }}"
       when: item.channel_status == 'new'
 
-    # This role creates the value file for anchor peer update over channel for
-    # each organization which is the part of the channel.
-    - include_role:
-        name: "create/anchorpeer"
-      vars:
-        build_path: "./build"
-        participants: "{{ item.participants }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"
-      when: item.channel_status == 'new'   
-
   vars: #These variables can be overriden from the command line
-    privilege_escalate: false           #Default to NOT escalate to root privledges
-    install_os: "linux"                 #Default to linux OS
-    install_arch:  "amd64"              #Default to amd64 architecture
-    bin_install_dir:  "~/bin"            #Default to /bin install directory for binaries
+    privilege_escalate: false           # Default to NOT escalate to root privledges
+    install_os: "linux"                 # Default to linux OS
+    install_arch:  "amd64"              # Default to amd64 architecture
+    bin_install_dir:  "~/bin"           # Default to /bin install directory for binaries
     add_new_org: 'false'                # Default to false as this is for main network creation

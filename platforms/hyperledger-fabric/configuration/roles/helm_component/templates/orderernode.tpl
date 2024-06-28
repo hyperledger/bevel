@@ -31,6 +31,7 @@ spec:
         secretEngine: {{ vault.secret_path | default("secretsv2") }}
         secretPrefix: "data/{{ network.env.type }}{{ org_name }}"
         role: vault-role
+        tls: false
       proxy:
         provider: {{ network.env.proxy | quote }}
         externalUrlSuffix: {{ org.external_url_suffix }}
@@ -54,7 +55,7 @@ spec:
         caAdminPassword: {{ org_name }}-adminpw
         orgName: {{ org_name }}
         type: orderer
-        componentSubject: {{ component_subject | quote }}
+        componentSubject: "{{ component_subject | quote }}"
 
       settings:
         createConfigMaps: {{ create_configmaps }}
@@ -78,8 +79,6 @@ spec:
       localMspId: {{ org_name }}MSP
       tlsStatus: true
       keepAliveServerInterval: 10s
-
-    service:
       serviceType: ClusterIP
       ports:
         grpc:

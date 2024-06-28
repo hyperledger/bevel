@@ -5,6 +5,17 @@
 ##############################################################################################
 
 ############################################################################################
+
+
+# Remove all Helm releases of organization except genesis
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "genesis"
+    release_namespace: "{{ org.name | lower }}-net"
+    state: absent
+  when: genererate_configtx is defined and genererate_configtx == 'true'
+
 # Fetch peers cetificates
 - name: Fetch peers cetificates
   include_tasks: get_certificates.yaml
@@ -27,3 +38,12 @@
   loop: "{{ network['channels'] }}"
   loop_control:
     loop_var: channel
+
+# Check or wait for the join channel job to complete
+- name: "waiting for genesis"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower }}-net"
+    component_name: "genesis"

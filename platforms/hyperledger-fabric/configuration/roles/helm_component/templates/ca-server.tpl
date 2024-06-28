@@ -31,12 +31,14 @@ spec:
         secretEngine: {{ vault.secret_path | default("secretsv2") }}
         secretPrefix: "data/{{ network.env.type }}{{ component }}"
         role: vault-role
+        tls: false
       proxy:
         provider: {{ network.env.proxy | quote }}
         externalUrlSuffix: {{ org.external_url_suffix }}
 
     storage:
       size: 512Mi
+      reclaimPolicy: "Delete"
       volumeBindingMode: Immediate
       allowedTopologies:
         enabled: false
@@ -55,7 +57,7 @@ spec:
       tlsStatus: true
       adminUsername: {{ component }}-admin
       adminPassword: {{ component }}-adminpw
-      subject: {{ subject }}
+      subject: "{{ subject | quote }}"
 {% if component_services.ca.configpath is defined %}
       configPath: conf/fabric-ca-server-config-{{ component }}.yaml
 {% endif %}

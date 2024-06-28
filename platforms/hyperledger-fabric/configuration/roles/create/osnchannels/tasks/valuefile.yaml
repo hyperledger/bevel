@@ -33,7 +33,7 @@
 # Create the value file for creator Organization
 - name: "Create Create_Channel value file osnadmin"
   include_role:
-    name: helm_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
   vars:
     name: "{{ org.name | lower }}"
     type: "osn_create_channel_job"
@@ -46,7 +46,6 @@
     vault: "{{ org.vault }}"
     k8s: "{{ org.k8s }}"
     orderers_list: "{{ org.services.orderers }}"
-    genesis: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block.base64') }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     add_orderer_value: "{{ add_orderer | default('false') }}"
   when: add_orderer is not defined or add_orderer == false
@@ -54,7 +53,7 @@
 # Create the value file for creator Organization
 - name: "Create Create_Channel value file osnadmin"
   include_role:
-    name: helm_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
   vars:
     name: "{{ org.name | lower }}"
     type: "osn_create_channel_job"
@@ -82,6 +81,7 @@
     gitops: "{{ org.gitops }}"
     msg: "[ci skip] Pushing channel-create files"
 
+
 # Check or wait for the create channel job to complete
 - name: "waiting for {{ org.name }} to create channel {{ channel_name }}"
   include_role:
@@ -89,5 +89,5 @@
   vars:
     component_type: "Job"
     namespace: "{{ org.name | lower}}-net"
-    component_name: "osn-createchannel-{{ channel_name }}"
+    component_name: "{{ channel_name }}"
     kubernetes: "{{ org.k8s }}"
