@@ -6,6 +6,8 @@ CURRENT_DIR=${PWD}
 
 echo "installing jq "
 apt-get install -y jq
+echo "installing wget "
+apt-get wget
 echo "installing sed "
 apk add sed
 echo "installing configtxlator"
