@@ -7,6 +7,10 @@
 
 [HashiCorp Vault](https://www.vaultproject.io/) is an open-source tool designed to manage secrets and protect sensitive data in modern computing environments. It provides a secure and centralized way to store, access, and distribute secrets such as passwords, API keys, encryption keys, and other confidential information. Vault is especially useful in cloud-native and distributed systems where securing secrets is crucial.
 
+!!! tip
+
+    With 1.1 Release, Hahsicorp Vault is optional for development environments, and Cloud KMS integration is on the roadmap.
+
 Hyperledger Bevel relies on Hashicorp Vault for managing all secrets like public and private certificates, passwords to repos or databases etc. which are used in a DLT/Blockchain network during the lifecycle of a deployment, and it is a prerequisite that the Vault is installed and unsealed prior to deployment of a DLT/Blockchain network.
 
 ## Core Features

@@ -3,9 +3,13 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# **Ansible**
+# Ansible
 
 [Ansible](https://docs.ansible.com/ansible/latest/index.html) is an open-source automation tool that simplifies the process of managing IT infrastructure and automating repetitive tasks. It is designed to make complex configuration and deployment processes easier, faster, and more consistent. Ansible is agentless, meaning it doesn't require any software to be installed on the managed hosts, making it lightweight and easy to set up.
+
+!!! tip
+
+    With 1.1 Release, Ansible is optional and can be used only for large deployment automation.
 
 With Ansible, you can define your infrastructure as code using simple, human-readable YAML files called "playbooks." Playbooks describe the desired state of your systems, specifying which tasks should be performed and in what order. These tasks can range from simple tasks like copying files or installing packages to more complex tasks like configuring services or managing cloud resources.
 

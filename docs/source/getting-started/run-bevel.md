@@ -4,19 +4,32 @@
 [//]: # (##############################################################################################)
 # Run Bevel
 
-Once your [pre-requisites](./prerequisites.md) are [configured](./configure-prerequisites.md), it's time to take the next step. Fork the [Hyperledger Bevel GitHub](https://github.com/hyperledger/bevel) repository and unlock the potential of this powerful tool for your Distributed Ledger Technology (DLT) deployment.
+Once your [pre-requisites](./prerequisites.md) are [configured](./configure-prerequisites.md), it's time to take the next step.
 
-Now, let's explore two user-friendly methods for using Hyperledger Bevel: 
+There are three user-friendly methods for using Hyperledger Bevel: 
 
-- [Using the **bevel-build** Docker container as Ansible controller.](#bevel-build)
-- [Using your own machine as Ansible controller.](#own-machine)
+- [Using Helm Charts](#using-helm-charts)
+- [Using the **bevel-build** Docker container as Ansible controller.](#using-docker-container)
+- [Using your own machine as Ansible controller.](#using-own-machine)
 
-<a name = "bevel-build"></a>
+## Using Helm Charts
+
+Release 1.1 onwards, Bevel can be used without Ansible automation. If you want to create a small development network, using the Helm charts will be simpler and faster. For production-ready networks or complex networks with multiple organisations, the below two options are recommended.
+
+Follow the respective Helm chart documentation to setup your network:
+
+* [R3 Corda Opensource Charts](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda/charts)
+* [R3 Corda Enterprise Charts](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/charts)
+* [Hyperledger Fabric Charts](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/charts)
+* [Hyperledger Indy Charts](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-indy/charts)
+* [Quorum Charts](https://github.com/hyperledger/bevel/tree/main/platforms/quorum/charts)
+* [Hyperledger Besu Charts](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-besu/charts)
+* [Substrate Charts](https://github.com/hyperledger/bevel/tree/main/platforms/substrate/charts)
+
 ## Using Docker container
 
 Follow [this tutorial](../tutorials/docker-deploy.md) for how to deploy from the docker container.
 
-<a name = "own-machine"></a>
 ## Using Own machine
 
 Using own machine as Ansible Controller needs these [additional pre-requisites](./prerequisites-machine.md).
