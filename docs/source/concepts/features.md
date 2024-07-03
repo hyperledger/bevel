@@ -19,13 +19,19 @@ The setup of a Distributed Ledger Technology (DLT) network doesn't hinge on mana
 ## One touch/command deployment
 With just one Ansible playbook — aptly named [site.yaml](https://github.com/hyperledger/bevel/tree/main/platforms/shared/configuration/site.yaml), you can orchestrate the creation of an entire Distributed Ledger Technology (DLT) network. Brace yourself for efficiency gains as this streamlined process significantly slashes the time typically spent configuring and managing the network components of Corda, Besu, Fabric or other supported DLT networks. 
 
-## Security through Vault
-In the realm of identity-based security, HashiCorp Vault takes centre stage within Hyperledger Bevel. Especially in the complex terrain of managing secrets across multiple clouds, the dynamic capabilities of HashiCorp Vault shine through. With Vault at its core, Hyperledger Bevel ensures the secure storage and precise control of access to critical elements like tokens, passwords, certificates, and encryption keys. This robust approach safeguards machines, applications, and sensitive data within a multi-cloud environment.
+## Security through Vault (Optional)
+In the realm of identity-based security, HashiCorp Vault takes centre stage within Hyperledger Bevel. Especially in the complex terrain of managing secrets across multiple clouds, the dynamic capabilities of HashiCorp Vault shine through. With Vault at its core, Hyperledger Bevel ensures the secure storage and precise control of access to critical elements like tokens, passwords, certificates, and encryption keys. This robust approach safeguards machines, applications, and sensitive data within a multi-cloud environment. Now **optional** for development environments.
 
 ## Sharing a Network.yaml file without disclosing any confidentiality
 Unlocking a new level of efficiency, Hyperledger Bevel empowers organizations to initiate a Distributed Ledger Technology (DLT) or Blockchain network swiftly. Leveraging a configured [network.yaml](../guides/networkyaml-fabric.md) file, the setup process is not only streamlined but sets the stage for seamless collaboration.
 
 Here's the game-changer: this [network.yaml](../guides/networkyaml-fabric.md) file can be easily shared with new organizations looking to join the DLT/Blockchain network. The brilliance lies in the ability to reuse this file without compromising the confidentiality of the initial organization's sensitive data.
+
+## Helm Chart Support
+Simplifies deployment of DLT networks with Helm charts. Specially for development environments, only `helm install` commands can be used to setup a DLT network in few minutes.
+
+## GitOps Optionality
+Provides flexibility by making GitOps deployment optional for development environments. This gives the developers a faster access to the DLT environment without the complexities of configuring GitOps.
 
 ## How is it different from other BaaS?
 - Hyperledger Bevel deployment scripts can be reused across cloud providers like AWS, Azure, GCP, DigitalOcean and OpenShift

@@ -96,7 +96,7 @@ The fields under `docker` section are
 
 !!! tip
     
-    Please follow [these instructions](../getting-started/configure-prerequisites.md#docker) to build and store the docker images before running the Ansible playbooks.
+    Please follow [these instructions](../getting-started/configure-prerequisites.md#docker-images) to build and store the docker images before running the Ansible playbooks.
 
 <a name="consensus"></a>
 consensus

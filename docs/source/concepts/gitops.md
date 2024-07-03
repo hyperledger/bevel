@@ -7,6 +7,10 @@
 
 [GitOps](https://www.weave.works/technologies/gitops/) is a modern approach to managing and deploying applications in Kubernetes clusters. It leverages the version control system Git as the source of truth for defining the desired state of your infrastructure and applications. Flux is a popular tool used to implement GitOps workflows, enabling automatic synchronization of changes from Git repositories to Kubernetes clusters.
 
+!!! tip
+
+    With 1.1 Release, GitOps is optional for small development environments.
+
 ## Features
 
 1. Source of Truth: In GitOps, the Git repository serves as the single source of truth for your infrastructure and application configurations. All desired states are declared and versioned in Git.

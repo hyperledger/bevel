@@ -88,7 +88,7 @@ The fields under `docker` section are
 | password   | Password or Access token required for login      |
 
 !!! note
-    Please follow [these instructions](../getting-started/configure-prerequisites.md#docker) to build and store the docker images before running the Ansible playbooks.
+    Please follow [these instructions](../getting-started/configure-prerequisites.md#docker-images) to build and store the docker images before running the Ansible playbooks.
 
 <a name="network_services"></a>
 network_services
