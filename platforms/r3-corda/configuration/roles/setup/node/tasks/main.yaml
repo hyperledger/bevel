@@ -8,121 +8,31 @@
 # This role creates the deployment files for node and pushes them to repository
 ##############################################################################################
 
-# Wait for namespace creation for nodes
-- name: "Wait for namespace creation for nodes"
+- name: "Setup primary init with network-service org"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+    name: init
   vars:
-    component_type: "Namespace"
-    component_name: "{{ component_ns }}"
-    type: "retry"
-  tags:
-  - notest
-
-# Generate crypto for nodes
-- name: Generate crypto for nodes
-  include_role:
-    name: create/certificates/node
-  vars:
-    component_name: "{{ node.name | lower }}"
-    cordapps_details: "{{ cordapps }}"
-    nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_cert_file: "{{ network | json_query('network_services[?type==`networkmap`].certificate') | first }}"
-    doorman_cert_file: "{{ network | json_query('network_services[?type==`doorman`].certificate') | first }}"
-    cert_subject: "{{ item.subject | regex_replace(',', '/') }}" #Use org level subject for certificate generation
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-
-# Create deployment files for h2 for node
-- name: 'Create node db deployment file'
-  include_role:
-    name: create/node_component
-  vars:
-    node_type: "node"    
-    component_type: "db"
-    org_name: "{{ item.name | lower }}"
-    component_name: "{{ node.name }}"
-    corda_version: "corda-{{ network.version }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-
-# Check if nodekeystore already created
-- name: Check if nodekeystore already created
-  shell: |
-    vault kv get -field=nodekeystore.jks {{ vault.secret_path | default(name) }}/{{ name }}/{{ node.name }}/certs/nodekeystore
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: nodekeystore_result
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node  
-  ignore_errors: yes
-  changed_when: false
-
-# create deployment files for job for node
-- name: 'Create node initial-registration job file'
-  include_role:
-    name: create/node_component
-  vars:    
-    node_type: "node"
-    component_type: "job"
-    org_name: "{{ item.name | lower }}"
-    component_auth: "{{ network.env.type }}{{ org_name }}"
-    component_name: "{{ node.name }}"
-    nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_domain: "{{ nms_url.split(':')[1] }}"
-    doorman_url: "{{ network | json_query('network_services[?type==`doorman`].uri') | first }}"
-    doorman_domain: "{{ doorman_url.split(':')[1] }}"
-    corda_version: "corda-{{ network.version }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: nodekeystore_result.results[0].failed == True
-
-# Git Push: Push the created deployment files to repository
-- name: "Push the created deployment files to repository"
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
-  vars:
-    GIT_DIR: "{{ playbook_dir }}/../../../"
-    msg: "[ci skip] Pushing db and job deployment files for {{ node.name }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
+    build_path: "./build"
+    init_type: "secondary_init"
+    values_dir: "./build/{{ component_ns }}"
     
 # Create deployment file for node node
-- name: 'Create node deployment file'
+- name: Create node deployment file
   include_role: 
-    name: create/node_component
+    name: create/helm_component
   vars:    
-    node_type: "node"
-    component_type: "node"
-    org_name: "{{ item.name | lower }}"
-    component_auth: "{{ network.env.type }}{{ org_name }}"
-    component_name: "{{ node.name }}"
+    type: "corda_node"
+    component_name: "{{ node.name | lower }}"
     nms_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-    nms_domain: "{{ nms_url.split(':')[1] }}"
     doorman_url: "{{ network | json_query('network_services[?type==`doorman`].uri') | first }}"
-    doorman_domain: "{{ doorman_url.split(':')[1] }}"
-    corda_version: "corda-{{ network.version }}"
-    cordapps_details: "{{ cordapps }}"
-    release_dir: "{{ playbook_dir }}/../../../{{ gitops.release_dir }}"
-  loop: "{{ services.peers }}"
+  loop: "{{ org.services.peers }}"
   loop_control:
     loop_var: node
 
-# Git Push: Push the deployment files for h2, job and node of node
-- name: 'Push node deployment files'
+# Git Push: Push the deployment files for node
+- name: Push node deployment files
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    msg: "[ci skip] Pushing node deployment file for {{ node.name }}"
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node  
+    msg: "[ci skip] Pushing node deployment file for node"

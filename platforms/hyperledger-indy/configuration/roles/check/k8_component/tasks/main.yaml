@@ -28,7 +28,7 @@
     role: "ro"
   shell: |
     secret="{{ service_account }}-token"
-    kube_token=$(kubectl --kubeconfig={{ kubernetes.config_file }} -n {{ component_ns }} get secret ${secret} -o jsonpath="{.data.token}" | base64 --decode)
+    kube_token="$(KUBECONFIG={{ kubernetes.config_file }} kubectl get secret ${secret} -n {{ component_ns }} -o go-template={% raw %}'{{ .data.token }}'{% endraw %} | base64 -d)"
     vault_token=$(curl --request POST --data '{"jwt": "'"$kube_token"'", "role": "{{ role }}"}' {{ vault.url }}/v1/auth/kubernetes-{{ organization }}-bevel-ac-auth/login | jq -j '.auth.client_token')
     echo $vault_token
   register: token_output

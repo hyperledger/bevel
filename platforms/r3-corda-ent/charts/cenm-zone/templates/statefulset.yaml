@@ -1,0 +1,111 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "zone.fullname" . }}
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "zone.fullname" . }}
+    app.kubernetes.io/name: zone-statefulset
+    app.kubernetes.io/component: zone
+    app.kubernetes.io/part-of: {{ include "zone.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "zone.fullname" . }}
+      app.kubernetes.io/name: zone-statefulset
+      app.kubernetes.io/component: zone
+      app.kubernetes.io/part-of: {{ include "zone.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "zone.fullname" . }}
+  volumeClaimTemplates: 
+    - metadata:
+        name: zone-h2
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+    - metadata:
+        name: zone-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "zone.fullname" . }}
+        app.kubernetes.io/name: zone-statefulset
+        app.kubernetes.io/component: zone
+        app.kubernetes.io/part-of: {{ include "zone.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}        
+      containers:
+        - name: zone
+          image: {{ .Values.image.zone.repository }}:{{ .Values.image.zone.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            bash /opt/cenm/run.sh
+          volumeMounts:
+          - name: cenm-certs
+            mountPath: /certs
+          - name: zone-conf
+            mountPath: /opt/cenm/run.sh
+            subPath: run.sh
+          - name: zone-logs
+            mountPath: /opt/cenm/logs
+          - name: zone-h2
+            mountPath: /opt/cenm/h2
+        - name: logs-zone
+          image: {{ .Values.image.zone.repository }}:{{ .Values.image.zone.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+          - |-
+            cd /opt/cenm/
+            while true; do tail -f logs/zone-service/*.log 2>/dev/null ; sleep 5; done
+            # in case sth went wrong just wait indefinitely ...
+            tail -f /dev/null
+          volumeMounts:
+          - name: zone-logs
+            mountPath: /opt/cenm/logs
+      volumes:
+        - name: zone-conf
+          configMap:
+            name: {{ include "zone.fullname" . }}-conf
+            defaultMode: 0777
+        - name: cenm-certs
+          secret:
+            secretName: cenm-certs

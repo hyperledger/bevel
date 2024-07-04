@@ -7,53 +7,47 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Values.peer.name }}
-  namespace: {{ $.Values.metadata.namespace }}
-  {{- if or $.Values.proxy (and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal")) }}
-  annotations:
-    {{- if $.Values.annotations }}
-    {{- range $key, $value := $.Values.annotations.service }}
-    {{- range $k, $v := $value }}
-    {{ $k }}: {{ $v | quote }}
-    {{- end }}
-    {{- end }}
-    {{- end }} 
-  {{- if and $.Values.service.loadBalancerType (eq $.Values.service.loadBalancerType "Internal") }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  {{- if or .Values.global.proxy (and .Values.peer.loadBalancerType (eq .Values.peer.loadBalancerType "Internal")) }}
+  {{- if and .Values.peer.loadBalancerType (eq .Values.peer.loadBalancerType "Internal") }}
     cloud.google.com/load-balancer-type: "Internal"
   {{- end }}
   {{- end }}
   labels:
-    run: {{ $.Values.peer.name }}
-    app.kubernetes.io/name: {{ $.Values.peer.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    run: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/component: fabric
+    app.kubernetes.io/part-of: {{ include "fabric-peernode.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
+    {{- include "labels.service" . | nindent 4 }}
 spec:
-  type: {{ $.Values.service.servicetype }}
+  type: {{ .Values.peer.serviceType }}
   selector:
-    app: {{ $.Values.peer.name }}
+    app: {{ .Release.Name }}
   ports:
   - name: grpc
     protocol: TCP
     targetPort: 7051
-    port: {{ $.Values.service.ports.grpc.clusteripport }}
-    {{- if $.Values.service.ports.grpc.nodeport }}
-    nodePort: {{ $.Values.service.ports.grpc.nodeport }}
+    port: {{ .Values.peer.ports.grpc.clusterIpPort }}
+    {{- if .Values.peer.ports.grpc.nodePort }}
+    nodePort: {{ .Values.peer.ports.grpc.nodePort }}
     {{- end }}
   - name: events
     protocol: TCP
     targetPort: 7053
-    port: {{ $.Values.service.ports.events.clusteripport }}
-    {{- if $.Values.service.ports.events.nodeport }}
-    nodePort: {{ $.Values.service.ports.events.nodeport }}
+    port: {{ .Values.peer.ports.events.clusterIpPort }}
+    {{- if .Values.peer.ports.events.nodePort }}
+    nodePort: {{ .Values.peer.ports.events.nodePort }}
     {{- end }}
   - protocol: TCP
     name: couchdb
     targetPort: 5984
-    port: {{ $.Values.service.ports.couchdb.clusteripport }}
-    {{- if $.Values.service.ports.couchdb.nodeport }}
-    nodePort: {{ $.Values.service.ports.couchdb.nodeport }}
+    port: {{ .Values.peer.ports.couchdb.clusterIpPort }}
+    {{- if .Values.peer.ports.couchdb.nodePort }}
+    nodePort: {{ .Values.peer.ports.couchdb.nodePort }}
     {{- end }}
   - name: grpc-web
     protocol: TCP
@@ -62,64 +56,63 @@ spec:
   - name: operations
     protocol: TCP
     targetPort: 9443
-    port: {{ $.Values.service.ports.metrics.clusteripport }}
-  {{- if (eq $.Values.service.servicetype "ClusterIP") }}
+    port: {{ .Values.peer.ports.metrics.clusterIpPort }}
+  {{- if (eq .Values.peer.serviceType "ClusterIP") }}
   clusterIP: None
   {{- end }}
-  {{- if $.Values.service.loadBalancerIP }}
-  loadBalancerIP: {{ $.Values.service.loadBalancerIP }}
+  {{- if .Values.peer.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.peer.loadBalancerIP }}
   {{- end }}
 
-{{- if eq $.Values.proxy.provider "haproxy" }}
+{{- if eq .Values.global.proxy.provider "haproxy" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.peer.name }}
-  namespace:  {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}
+  namespace:  {{ .Release.Namespace }}
   annotations:
-    kubernetes.io/ingress.class: "haproxy"
     ingress.kubernetes.io/ssl-passthrough: "true"  
 spec:
+  ingressClassName: "haproxy"
   rules:
-  - host: {{ $.Values.peer.name }}.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+  - host: {{ .Release.Name }}.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.peer.name }}
+            name: {{ .Release.Name }}
             port:
-              number: {{ $.Values.service.ports.grpc.clusteripport }}
-  - host: {{ $.Values.peer.name }}-proxy.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+              number: {{ .Values.peer.ports.grpc.clusterIpPort }}
+  - host: {{ .Release.Name }}-proxy.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.peer.name }}
+            name: {{ .Release.Name }}
             port:
               number: 7443
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.peer.name }}-ops
-  namespace:  {{ $.Values.metadata.namespace }}
-  annotations:
-    kubernetes.io/ingress.class: "haproxy"
+  name: {{ .Release.Name }}-ops
+  namespace:  {{ .Release.Namespace }}
 spec:
+  ingressClassName: "haproxy"
   rules:
-  - host: {{ $.Values.peer.name }}-ops.{{ $.Values.metadata.namespace }}.{{ $.Values.proxy.external_url_suffix }}
+  - host: {{ .Release.Name }}-ops.{{ .Release.Namespace }}.{{ .Values.global.proxy.externalUrlSuffix }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Values.peer.name }}
+            name: {{ .Release.Name }}
             port:
               number: 9443
 {{- end }}

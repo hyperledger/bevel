@@ -6,10 +6,9 @@
 <a name = "adding-new-orderer-to-existing-organization-in-a-running-fabric-network"></a>
 # Adding a new RAFT orderer to existing Orderer organization in Hyperledger Fabric
 
-  - [Prerequisites](#prerequisites)
-  - [Modifying Configuration File](#modifying-configuration-file)
-  - [Run playbook](#run-playbook)
-  - [Chaincode Installation](#chaincode-installation)
+- [Prerequisites](#prerequisites)
+- [Modifying Configuration File](#modifying-configuration-file)
+- [Run playbook](#run-playbook)
 
 
 <a name = "prerequisites"></a>
@@ -31,24 +30,21 @@ For generic instructions on the Fabric configuration file, refer [this guide](..
 
 While modifying the configuration file(`network.yaml`) for adding new peer, all the existing orderers should have `status` tag as `existing` and the new orderers should have `status` tag as `new` under `network.organizations` as
 
-    network:
-      organizations:
-        - organization:
-          org_status: existing  # org_status must be existing when adding peer
-          ..
-          ..
-          services:
-            orderers:
-            - orderer:
-              ..
-              ..
-              status: new   # new for new peers(s)              
-            - orderer:
-              ..
-              ..
-              status: existing   # existing for existing peers(s)
-            
+```yaml
 
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml:126:135"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml:174:174"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml:185:220"
+
+```
+and under `network.orderers` the new orderer must be added.
+
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft-add-orderer.yaml:42:66"
+```
+          
 The `network.yaml` file should contain the specific `network.organization` details.
 
 Ensure the following is considered when adding the new orderer on a different cluster:

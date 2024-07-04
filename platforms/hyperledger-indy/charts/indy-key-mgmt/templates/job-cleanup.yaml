@@ -1,0 +1,114 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "indy-key-mgmt.name" . }}-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: indy-key-mgmt-cleanup
+    app.kubernetes.io/component: key-mgmt-cleanup
+    app.kubernetes.io/part-of: {{ include "indy-key-mgmt.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: indy-key-mgmt-cleanup
+        app.kubernetes.io/component: key-mgmt-cleanup
+        app.kubernetes.io/part-of: {{ include "indy-key-mgmt.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      containers:
+        - name: cleanup-keys
+          image: {{ .Values.image.keyUtils }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+
+              # Install necessary packages using custom package manager script
+              . /scripts/package-manager.sh
+              packages_to_install="curl"
+              install_packages "$packages_to_install"
+              # Download kubectl binary
+              curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl;
+              chmod u+x kubectl && mv kubectl /usr/local/bin/kubectl;
+
+              #function to delete kubernetes secrets
+              function deleteAllSecret {
+                identity=$1
+                secretData=$2
+                jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$secretData" | \
+                while read -r key value; do
+                  jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$value" | \
+                  while read -r subkey subvalue; do
+                    if [ "$key" == "identity" ]; then
+                      # Do not iterate as identity has only 1 level of keys
+                      secretName=$(echo "$identity-$key-$subkey" |sed 's/_/-/g')
+                      if kubectl get secret --namespace {{ $.Release.Namespace }} $secretName &> /dev/null; then
+                        kubectl delete secret --namespace {{ $.Release.Namespace }} $secretName
+                      fi
+                    else
+                      # Otherwise, iterate over next set of key-value pairs
+                      jq -r 'to_entries[] | "\(.key) \(.value)"' <<< "$subvalue" | \
+                      while read -r key1 value1; do
+                        secretName=$(echo "$identity-$key-$subkey-$key1" |sed 's/_/-/g')
+                        if kubectl get secret --namespace {{ $.Release.Namespace }} $secretName &> /dev/null; then
+                          kubectl delete secret --namespace {{ $.Release.Namespace }} $secretName
+                        fi
+                      done
+                    fi
+                  done
+                done
+              }
+
+{{- if .Values.settings.removeKeysOnDelete }}
+              echo "Deleting Kubernetes Secrets"
+            {{- if .Values.settings.identities.trustee }}
+              trustees_json=$(generate_identity {{ .Values.settings.identities.trustee }} trustees)
+              json=$(echo "$trustees_json" | jq -r '.trustees."{{ .Values.settings.identities.trustee }}"')
+              deleteAllSecret "{{ .Values.settings.identities.trustee }}" "$json"
+            {{- end }}
+            {{- if .Values.settings.identities.endorser }}
+              endorsers_json=$(generate_identity {{ .Values.settings.identities.endorser }} endorsers)
+              json=$(echo "$endorsers_json" | jq -r '.endorsers."{{ .Values.settings.identities.endorser }}"')
+              deleteAllSecret "{{ .Values.settings.identities.endorser }}" "$json"
+            {{- end }}
+            {{- range .Values.settings.identities.stewards }}
+              stewards_json=$(generate_identity {{ . }} stewards)
+              json=$(echo "$stewards_json" | jq -r '.stewards."{{ . }}"')
+              deleteAllSecret "{{ . }}" "$json"
+            {{- end }}
+{{- end }}
+      volumes:
+      - name: package-manager
+        configMap:
+          name: package-manager
+          defaultMode: 0777

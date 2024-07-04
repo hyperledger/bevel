@@ -3,13 +3,11 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 # USAGE: 
 # docker build . -t bevel-build
 # docker run -v $(pwd):/home/bevel/ bevel-build
 
 FROM ubuntu:20.04
-
 # Create working directory
 WORKDIR /home/
 ENV OPENSHIFT_VERSION='0.13.1'
@@ -37,12 +35,16 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/*
-RUN npm install -g ajv-cli    
+RUN npm install -g ajv-cli
 RUN apt-get update && apt-get install -y python3-venv
 
 RUN rm /etc/apt/apt.conf.d/docker-clean
 RUN mkdir /etc/ansible/
 RUN /bin/echo -e "[ansible_provisioners:children]\nlocal\n[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
+
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl
+RUN chmod +x ./kubectl
+RUN mv ./kubectl /usr/local/bin
 
 # Copy the provisional script to build container
 COPY ./run.sh /home
@@ -58,6 +60,4 @@ ENV PATH=/root/bin:/root/.local/bin/:$PATH
 
 #path to mount the repo
 VOLUME /home/bevel/
-
-
 CMD ["/home/run.sh"]

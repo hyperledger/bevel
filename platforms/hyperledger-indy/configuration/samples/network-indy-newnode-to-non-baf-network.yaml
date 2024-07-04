@@ -20,14 +20,13 @@ network:
   env:
     type: indy                      # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador               # value has to be 'ambassador' as 'haproxy' has not been implemented for Indy
-    proxy_namespace: "ambassador"   # Namespace for the proxy
-    ambassadorPorts:
-      # Specify a list of individual ports to use
-      ports: [15010, 15023, 15024, 15025, 15033, 15034, 15035, 15043, 15044, 15045]
-      # Alternatively, specify a range of ports to use all ports within the specified range
-      # portRange:              
-      #   from: 15010  # Starting port of the range
-      #   to: 15045    # Ending port of the range
+    proxy_namespace: "ambassador"
+    #  These ports are enabled per cluster, so if you have multiple clusters you do not need so many ports
+    #  This sample uses a single cluster, so we have to open 3 ports for each Node. These ports are again specified for each organization below
+    ambassadorPorts:                # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
+      portRange:              # For a range of ports
+        from: 15010
+        to: 15052 
     loadBalancerSourceRanges: # (Optional) Default value is '0.0.0.0/0', this value can be changed to any other IP adres or list (comma-separated without spaces) of IP adresses, this is valid only if proxy='ambassador'
     retry_count: 40                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
@@ -36,7 +35,7 @@ network:
   # Please ensure all required images are built and stored in this registry.
   # Do not check-in docker_password.
   docker:
-    url: "index.docker.io/hyperledgerlabs"
+    url: "ghcr.io/hyperledger"
     username: "docker_username"
     password: "docker_password"
 
@@ -113,8 +112,3 @@ network:
           port: 9712
           targetPort: 9712
           ambassador: 9712        # Port for ambassador service
-      endorsers:
-      - endorser:
-        name: bank-endorser
-        full_name: Some Decentralized Identity Mobile Services Provider
-        avatar: http://bank.com/avatar.png

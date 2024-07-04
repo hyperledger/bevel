@@ -1,12 +1,47 @@
+
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+---
+global:
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure  # choose from: minikube | aws
+    cloudNativeServices: false # 'false' is implemented
+    #Provide the kubernetes host url
+    #Eg. kubernetesUrl: https://10.3.8.5:6443
+    kubernetesUrl:
+  vault:
+    # Provide the type of vault
+    type: "" # hashicorp
+    # Provide the vault role used.
+    role: vault-role
+    # Provide the network type
+    network: substrate
+    # Provide the vault server address
+    address: ""
+    # Provide the vault authPath configured to be used.
+    authPath: supplychain
+    # Provide the secret engine.
+    secretEngine: secretsv2
+    # Provide the vault path where the secrets will be stored
+    secretPrefix: "data/supplychain"
 
 # substrate node runtime image
 # Eg. repository: parity/substrate
 image:
-  repository: substrate
-  tag: 3.0.0
+  repository: ghcr.io/inteli-poc/dscp-node
+  tag: v4.3.1
   pullPolicy: IfNotPresent
+# imagePullSecrets: 
+#   - name: "regcred"
 
 # image for downloading chain snapshot - 7-Zip Docker image based on Alpine Linux.
 # Eg. repository: crazymax/7zip
@@ -26,11 +61,9 @@ googleCloudSdk:
   image:
     repository: google/cloud-sdk
     tag: slim # more lightweight than the full image and still contains gsutil
-  #serviceAccountKey: ""
+  # serviceAccountKey: ""
 
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -42,7 +75,7 @@ serviceAccount:
   # Provide the service account name authenticated to vault.
   # NOTE: Make sure that the service account is already created and authenticated to use the vault.
   # Eg. name: vault-auth
-  name: ""
+  name: vault-auth
 
 podSecurityContext:
   runAsUser: 1000
@@ -64,101 +97,100 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-#extraLabels:
+# extraLabels:
 #  type: rpc
 
 # This section contains the Substrate node details.
 node:
-  # Provide the name of the node.
-  # Eg. name: example
-  name:
+  chainDataSnapshotUrl: false
+  chainDataGcsBucketUrl: false
   # Specifies the chain specification. It can be one of the predefined ones (dev, local, or staging) 
   # or it can be a path to a file with the chainspec (such as one exported by the `build-spec` subcommand). 
   # Eg. chain: local or chain: <path to chain spec file>
-  chain: 
+  chain: inteli
   # Substrate CLI executable
   # Eg. command: substrate
-  command: 
+  command: ./dscp-node
+  isBootnode:
+    enabled: true # false | true
+    bootnodeName: validator-1
+    bootnodeAddr: validator-1-substrate-node-0-rc-p2p.supplychain-subs #if using proxy set it to this validator-1.<yourDomain.com>
+    bootnodePort: 30333
   # Provide the size of the volume
   # Eg. dataVolumeSize: 1Gi
-  dataVolumeSize: 100Gi
+  dataVolumeSize: 10Gi
   # Provide the number of replicas for your pods.
   # replicas: 1
   replicas: 1
   # role of the node
   # Eg. role: full
-  role:
-  #customChainspecUrl:
-  ## Node may require custom name for chainspec file. Example: moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
-  ## Note: path should start with /data/ since this folder mount in init container download-chainspec.
-  #Eg. customChainspecPath: "/data/chainspec.json"
-  customChainspecPath: ""
-  #chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-  #chainDataSnapshotFormat: 7z
+  role: validator # full | validator
+  customChainspecUrl: true
+  # Node may require custom name for chainspec file. Example: moonbeam https://github.com/PureStake/moonbeam/issues/1104#issuecomment-996787548
+  # Note: path should start with /data/ since this folder mount in init container download-chainspec.
+  # Eg. customChainspecPath: "/data/chainspec.json"
+  customChainspecPath: "/data/chainspec.json"
+  # chainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+  # chainDataSnapshotFormat: 7z
   # Specifies the directory for storing all of the data related to this chain.
   # Eg. chainPath: /tmp/alice
   chainPath: ""
-  #chainDataKubernetesVolumeSnapshot: ""
-  #chainDataGcsBucketUrl: ""
+  # chainDataKubernetesVolumeSnapshot: ""
+  # chainDataGcsBucketUrl: ""
   collator:
     isParachain: false
-    relayChain: polkadot
-  #  relayChainCustomChainspecUrl: ""
-  #  relayChainCustomChainspecPath: "/data/relay_chain_chainspec.json"
-  #  relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
-  #  relayChainDataSnapshotFormat: 7z
-  #  relayChainPath: ""
-  #  relayChainDataKubernetesVolumeSnapshot: ""
-  #  relayChainDataGcsBucketUrl: ""
-  #  relayChainFlags:
-  enableStartupProbe:
-  enableReadinessProbe:
+    # relayChainCustomChainspecUrl: ""
+    # relayChainCustomChainspecPath: "/data/relay_chain_chainspec.json"
+    # relayChainDataSnapshotUrl: "https://dot-rocksdb.polkashots.io/snapshot"
+    # relayChainDataSnapshotFormat: 7z
+    # relayChainPath: ""
+    # relayChainDataKubernetesVolumeSnapshot: ""
+    # relayChainDataGcsBucketUrl: ""
+    # relayChainFlags:
+
+  enableStartupProbe: false
+  enableReadinessProbe: false
   flags:
-    # - "--rpc-external"
-    # - "--ws-external"
-    # - "--rpc-methods=safe"
-    # - "--rpc-cors=all"
-    # - "--prometheus-external"
-  keys: {}
-  #  - type: "gran"
-  #    scheme: "ed25519"
-  #    seed: "//Alice//gran"
-  #  - type: "babe"
-  #    scheme: "sr25519"
-  #    seed: "//Alice//babe"
+    - "--rpc-external"
+    - "--ws-external"
+    - "--rpc-methods=Unsafe"
+    - "--rpc-cors=all"
+    - "--unsafe-ws-external"
+    - "--unsafe-rpc-external"
+
   persistGeneratedNodeKey: false
-  #customNodeKey: ""
+  # customNodeKey: ""
   resources: {}
   serviceMonitor:
     enabled: false
-    #namespace: monitoring
-    #interval: 10s
+    # namespace: monitoring
+    # interval: 10s
     # scrapeTimeout: 10s
+
   perNodeServices:
     createApiService: true
     createP2pService: true
-    p2pServiceType: ClusterIP  # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
-    relayServiceAnnotations: {}
-    paraServiceAnnotations: {}
+    p2pServiceType: ClusterIP # Must be type ClusterIP, NodePort or LoadBalancer, If using type NodePort or LoadBalancer then you must set NodeSelecter accordingly.
     setPublicAddressToExternal:
       enabled: false
-      ipRetrievalServiceUrl: https://ifconfig.io/ip
-  #podManagementPolicy: Parallel
+      ipRetrievalServiceUrl: https://ifconfig.io
+  podManagementPolicy: Parallel
+
   ports:
-  # Specifies the port to listen on for peer-to-peer (p2p) traffic
-  # Eg. p2p: 30333
-    p2p:
-  # Specifies the port to listen on for incoming WebSocket traffic
-  # Eg. ws: 9944
-    ws:
-  # Specifies the port to listen on for incoming RPC traffic
-  # Eg. 9933
-    rpc:
+    # Specifies the port to listen on for peer-to-peer (p2p) traffic
+    # Eg. p2p: 30333
+    p2p: 30333 #30333 
+    # Specifies the port to listen on for incoming WebSocket traffic
+    # Eg. ws: 9944
+    ws: 9944
+    # Specifies the port to listen on for incoming RPC traffic
+    # Eg. 9933
+    rpc: 9933
 
   # Enables Jaeger Agent as a sidecar
   tracing:
     enabled: false
-
+  
   # Enables Sustrate API as a sidecar
   substrateApiSidecar:
     enabled: false
@@ -167,14 +199,14 @@ node:
 proxy:
   # Mention the proxy provider. Currently ambassador is supported
   # eg. provider: ambassador
-  provider: ambassador
+  provider: none # none | ambassador
   # url that will be added in DNS recordset
   # eg. external_url: test.substrate.example.com
-  external_url:
+  external_url: 
   # Mention the p2p port configured on proxy.
   # NOTE: Make sure that the port is enabled and not binded on the proxy.
   # Eg. p2p: 15010
-  p2p:
+  p2p: 
   # Provide the secret name which contains the certificate
   certSecret: 
 
@@ -215,29 +247,12 @@ tolerations: []
 
 affinity: {}
 
-# Provide the name of the storageclass.
-# NOTE: Make sure that the storageclass exist prior to this deployment as
-# this chart doesn't create the storageclass.
-# Eg. storageClass: gcpstorageclass
-storageClass:
-
 extraContainers: []
-
-# This section contains the vault related information.
-# NOTE: Make sure that the vault is already unsealed, intialized and configured to
-# use the Kubernetes service account token based authentication.
-vault:
-  # Provide the vault address
-  # Eg. address: http://vault.example.com:8200
-  address:  
-  # Provide the vault path where the secrets are stored
-  # Eg. secretPrefix: secretsv2/sub-org-name
-  secretPrefix:
-  # Provide the auth path configured to be used. Default is /kubernetes
-  authPath: 
-  # Provide the vault role used.
-  # Eg. appRole: vault-role
-  appRole:
-  # NOTE: The alpine image used is the base alpine image with CURL installed.
-  # Eg. image: ghcr.io/hyperledger/bevel-alpine:latest
-  image:
+# Override necessary Subchart values
+storage:
+  size: "10Gi"
+  # NOTE: when you set this to Retain, the volume WILL persist after the chart is delete and you need to manually delete it
+  reclaimPolicy: "Delete" # choose from: Delete | Retain
+  volumeBindingMode: Immediate # choose from: Immediate | WaitForFirstConsumer
+  allowedTopologies:
+    enabled: false

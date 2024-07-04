@@ -1,0 +1,25 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
+
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server: "{{ cluster_info.connection.host }}"
+
+# Install init node
+- name: "Install init node"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars: 
+    cloud_provider: "{{ org.cloud_provider | lower }}"
+    type: "corda_ent_init"
+    secondaryInit: false

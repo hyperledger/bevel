@@ -1,0 +1,49 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-tlscert-gen.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: quorum-tlscert-gen-job-cleanup
+    app.kubernetes.io/component: job-cleanup
+    app.kubernetes.io/part-of: {{ include "quorum-tlscert-gen.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: quorum-tlscert-gen-job-cleanup
+        app.kubernetes.io/component: job-cleanup
+        app.kubernetes.io/part-of: {{ include "quorum-tlscert-gen.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      containers:
+        - name: delete-certs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              if kubectl get secret --namespace {{ .Release.Namespace }} {{ include "quorum-tlscert-gen.name" . }}-tls-certs &>/dev/null; then
+                echo "Deleting tls-certs secret in k8s ..."
+                kubectl delete secret --namespace {{ .Release.Namespace }} {{ include "quorum-tlscert-gen.name" . }}-tls-certs
+              fi

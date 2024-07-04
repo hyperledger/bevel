@@ -1,0 +1,346 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-job
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "before-hook-creation"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}-job
+    app.kubernetes.io/component: fabric-genesis-job
+    app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}-job
+        app.kubernetes.io/component: fabric-genesis-job
+        app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: OnFailure
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
+      - name: configtx-file
+        configMap:
+          name: {{ .Release.Name }}-configtx-yaml
+          defaultMode: 0775
+      {{- range $org := $.Values.organizations }}
+      {{- $file := $.Files.Get (printf "files/%s.json" $org.name) }}
+      {{- if $file }}
+      - name: {{ $org.name }}-admin-msp
+        configMap:
+          name: {{ $.Release.Name }}-admin-msp-certs
+          items:
+          - key: {{ $org.name }}.json
+            path: {{ $org.name }}.json
+      {{- end }}
+      {{- $file := $.Files.Get (printf "files/%s-config-file.json" $org.name) }}
+      {{- if $file }}
+      - name: {{ $org.name }}-config-file
+        configMap:
+          name: {{ $.Release.Name }}-admin-msp-certs
+          items:
+          - key: {{ $org.name }}-config-file.json
+            path: {{ $org.name }}-config-file.json
+      {{- end }}
+      {{- range $orderer := $org.orderers }}
+      {{- $ordfile := $.Files.Get (printf "files/%s-orderer-tls.json" $orderer.name) }}
+      {{- if $ordfile }}
+      - name: {{ $orderer.name }}-tls-config
+        configMap:
+          name: {{ $.Release.Name }}-admin-msp-certs
+          items:
+          - key: {{ $orderer.name }}-orderer-tls.json
+            path: {{ $orderer.name }}-orderer-tls.json
+      {{- end }}
+      {{- end }}
+      {{- end }} 
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      containers:
+        - name:  "generate-artifacts"
+          image: {{ .Values.image.fabricTools }}:{{ .Values.global.version }}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.global.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.global.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.global.vault.authPath }}
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: VAULT_TYPE
+            value: "{{ $.Values.global.vault.type }}"
+          - name: NETWORK_VERSION
+            value: "{{ $.Values.global.version }}"
+          - name: PROXY
+            value: {{ .Values.global.proxy.provider }}
+          - name: EXTERNAL_URL_SUFFIX
+            value: {{ .Values.global.proxy.externalUrlSuffix }}
+          - name: COMPONENT_NAME
+            value: {{ .Release.Namespace }}
+          command: ["bash", "-c"]
+          args:
+            - |-
+              #!/usr/bin/env sh
+              safeConfigmap () {
+                FOLDER_PATH=$1
+                NAME=$2
+                KEY=$3
+                kubectl get configmap --namespace ${COMPONENT_NAME} ${NAME}
+                if [ $? -ne 0 ]; then
+                  kubectl create configmap --namespace ${COMPONENT_NAME} ${NAME} --from-file=${KEY}=$FOLDER_PATH
+                fi
+              }
+              . /scripts/package-manager.sh
+              # Define the packages to install
+              apt-get update --allow-releaseinfo-change
+              packages_to_install="jq curl wget"
+              install_packages "$packages_to_install"
+              # Download kubectl binary
+              curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl;
+              chmod u+x kubectl && mv kubectl /usr/local/bin/kubectl;
+
+{{- if eq .Values.global.vault.type "hashicorp" }}
+              . /scripts/bevel-vault.sh
+              # Calling a function to retrieve the vault token.
+              vaultBevelFunc "init"
+
+              function getMSPCerts {
+                KEY=$1
+                path=$2
+                mkdir -p ${path}/msp/admincerts
+                mkdir -p ${path}/msp/cacerts
+                mkdir -p ${path}/msp/tlscacerts
+
+                echo "Getting TLS certificates from Vault."
+                vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/users/${KEY}"
+
+                ADMINCERT=$(echo ${VAULT_SECRET} | jq -r '.["admincerts"]')
+                CACERTS=$(echo ${VAULT_SECRET} | jq -r '.["cacerts"]')
+                TLSCACERTS=$(echo ${VAULT_SECRET} | jq -r '.["tlscacerts"]')
+
+                echo "${ADMINCERT}" > ${path}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem
+                echo "${TLSCACERTS}" > ${path}/msp/tlscacerts/ca.crt
+                echo "${CACERTS}" > ${path}/msp/cacerts/ca.crt
+              }
+
+              function getOrdererTLSCerts {
+                KEY=$1
+                path=$2
+                mkdir -p ${path}/orderers/${KEY}/tls
+                echo "Getting TLS certificates from Vault."
+                vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/orderers/${KEY}-tls"
+
+                TLS_SERVER_CERT=$(echo ${VAULT_SECRET} | jq -r '.["server_crt"]')
+
+                echo "${TLS_SERVER_CERT}" > ${path}/orderers/${KEY}/tls/server.crt
+              }
+              function writeSafeSecret {
+                key=$1
+                file=$2
+                cat $file | base64 > ${key}.base64
+  
+                vaultBevelFunc "init"
+                FILE_B64=$(cat ${key}.base64) 
+
+                echo "
+                  {
+                    \"data\": 
+                      {
+                        \"${key}_base64\": \"${FILE_B64}\"
+                      }  
+                  }" > payload.json
+                
+                vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/channel-artifacts/${key}" 'payload.json'
+                rm payload.json
+
+                kubectl get configmap --namespace ${COMPONENT_NAME} ${key}
+                if [ $? -ne 0 ]; then
+                  kubectl create configmap --namespace ${COMPONENT_NAME} ${key} --from-file=${key}_base64=${key}.base64
+                fi
+              }
+  {{- else }}
+              function getMSPCerts {
+                key=$1
+                path=$2
+                mkdir -p ${path}/msp/admincerts
+                mkdir -p ${path}/msp/cacerts
+                mkdir -p ${path}/msp/tlscacerts
+                KUBENETES_SECRET=$(kubectl get secret ${key} --namespace ${COMPONENT_NAME} -o json)
+                if [ "$KUBENETES_SECRET" = "" ]; then
+                  echo "Certficates absent in kuberenetes secrets"
+                  exit 1
+                else
+                  ADMINCERT=$(echo "$KUBENETES_SECRET" | jq -r '.data.admincerts'  | base64 -d)
+                  CACERTS=$(echo "$KUBENETES_SECRET" | jq -r '.data.cacerts'  | base64 -d)
+                  TLSCACERTS=$(echo "$KUBENETES_SECRET" | jq -r '.data.tlscacerts'  | base64 -d)
+                    
+                  echo "${ADMINCERT}" > ${path}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem
+                  echo "${TLSCACERTS}" > ${path}/msp/tlscacerts/ca.crt
+                  echo "${CACERTS}" > ${path}/msp/cacerts/ca.crt
+                    
+                fi
+              }
+
+              function getOrdererTLSCerts {
+                key=$1
+                path=$2
+                mkdir -p ${path}/orderers/${key}/tls
+
+                KUBENETES_SECRET=$(kubectl get secret ${key}-tls --namespace ${COMPONENT_NAME} -o json)
+                if [ "$KUBENETES_SECRET" = "" ]; then
+                  echo "Certficates absent in kuberenetes secrets"
+                  exit 1
+                else
+                  TLS_SERVER_CERT=$(echo "$KUBENETES_SECRET" | jq -r '.data.servercrt'  | base64 -d)
+                  echo "${TLS_SERVER_CERT}" > ${path}/orderers/${key}/tls/server.crt
+                fi
+              }
+
+              function writeSafeSecret {
+                key=$1
+                file=$2
+                cat $file | base64 > ${key}.base64
+
+                kubectl get configmap --namespace ${COMPONENT_NAME} ${key}
+                if [ $? -ne 0 ]; then
+                  kubectl create configmap --namespace ${COMPONENT_NAME} ${key} --from-file=${key}_base64=${key}.base64
+                fi
+              }
+  {{- end }} 
+              
+              OUTPUT_PATH_PEER="/templates/crypto-config/organizations"
+            {{- range $org := $.Values.organizations }}
+              if [ -e /templates/{{ $org.name }}.json ]; then
+                # Read the admin-msp details from files for other orgs
+                ADMINCERTS=$(jq -r '.data.admincerts' /templates/{{ $org.name}}.json)
+                CACERTS=$(jq -r '.data.cacerts' /templates/{{ $org.name}}.json)
+                TLSCACERTS=$(jq -r '.data.tlscacerts' /templates/{{ $org.name}}.json)
+    
+                mkdir -p ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/admincerts
+                mkdir -p ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/cacerts
+                mkdir -p ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/tlscacerts
+
+                echo "$ADMINCERTS" | base64 -d > ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/admincerts/Admin@{{ $org.name }}-net-cert.pem
+                echo "$TLSCACERTS" | base64 -d > ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/tlscacerts/ca.crt
+                echo "$CACERTS" | base64 -d > ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/cacerts/ca.crt
+              else
+                # Read the admin-msp details from k8s secrets for org that is executing the genesis
+                getMSPCerts admin-msp ${OUTPUT_PATH_PEER}/{{ $org.name }}
+              fi
+            {{- if $org.peers }}
+              if [ -e /templates/{{ $org.name }}-config-file.json ]; then
+                # Read the MSP Configfile from files for other orgs
+                CONFIG_FILE=$(jq -r '.data."mspConfig"' /templates/{{ $org.name }}-config-file.json)
+                echo "$CONFIG_FILE" > ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/config.yaml
+              else
+                # Read the MSP Configfile from k8s secrets for org that is executing the genesis
+                {{- with (first $org.peers) }}
+                KUBENETES_SECRET=$(kubectl get configmap {{ .name }}-msp-config --namespace ${COMPONENT_NAME} -o json)
+                if  [ "$KUBENETES_SECRET" = "" ]; then
+                  echo "MSP Config absent in Kuberenetes"
+                  exit 1
+                else
+                  CONFIG_FILE=$(echo "$KUBENETES_SECRET" | jq -r '.data.mspConfig')
+                  echo "${CONFIG_FILE}" > ${OUTPUT_PATH_PEER}/{{ $org.name }}/msp/config.yaml
+                fi
+                {{- end }}
+              fi
+            {{- end }}
+            {{- if $org.orderers }}
+              {{- range $orderer := $org.orderers }}
+              if [ -e /templates/{{ $orderer.name }}-orderer-tls.json ]; then
+                # Read the MSP Configfile from files for other orgs
+                CONFIG_FILE=$(jq -r '.data.servercrt' /templates/{{ $orderer.name }}-orderer-tls.json)
+                echo "$CONFIG_FILE" | base64 -d > ${OUTPUT_PATH_PEER}/{{ $org.name }}/orderers/{{ $orderer.name }}/tls/server.crt
+              else
+                getOrdererTLSCerts {{ $orderer.name }} ${OUTPUT_PATH_PEER}/{{ $org.name }}
+              fi
+              {{- end }}
+            {{- end }}
+            {{- end }}
+              cd /templates
+              version2_5=`echo $NETWORK_VERSION | grep -c 2.5`
+              {{- if .Values.settings.generateGenesis }}
+              if [ $version2_5 = 1 ]; then
+                echo "version 2.5.x does not need syschannel genesis"
+              else
+                echo "version 2.2.x syschannel genesis"
+                configtxgen -configPath "/templates" -profile OrdererGenesis -channelID syschannel -outputBlock genesis.block
+                writeSafeSecret syschannel-genesis genesis.block
+              fi
+              {{- end }}
+              {{- range $channel := $.Values.channels }}
+                if [ $version2_5 = 1 ]; then
+                  echo "version 2.5.x"
+                  configtxgen -configPath "/templates" -profile {{ $channel.name }} -channelID {{ $channel.name }} -outputBlock {{ $channel.name }}.genesis.block
+                  writeSafeSecret {{ $channel.name }}-genesis {{ $channel.name }}.genesis.block
+                else
+                  echo "version 2.2.x"
+                  configtxgen -configPath "/templates" -profile {{ $channel.name }} -channelID {{ $channel.name }} -outputCreateChannelTx {{ $channel.name }}.tx
+                  writeSafeSecret {{ $channel.name }}-channeltx {{ $channel.name }}.tx
+                  {{- range $participant := $channel.participants }}
+                    configtxgen -configPath "/templates" -profile {{ $channel.name }} -channelID {{ $channel.name }} -asOrg {{ $participant }}MSP -outputAnchorPeersUpdate {{ $channel.name }}{{ $participant }}MSPAnchor.tx
+                    writeSafeSecret {{ $channel.name }}-{{ $participant }}-anchortx {{ $channel.name }}{{ $participant }}MSPAnchor.tx
+                  {{- end }}
+                fi
+              {{- end }}
+          volumeMounts:
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh
+          - name: configtx-file
+            mountPath: /templates/configtx.yaml
+            subPath: configtx.yaml
+          - name: certificates
+            mountPath: /templates/crypto-config
+          {{- range $org := $.Values.organizations }}
+          {{- $file := $.Files.Get (printf "files/%s.json" $org.name) }}
+          {{- if $file }}
+          - name: {{ $org.name }}-admin-msp
+            mountPath: /templates/{{ $org.name }}.json
+            subPath: {{ $org.name }}.json
+          {{- end }}
+          {{- $file := $.Files.Get (printf "files/%s-config-file.json" $org.name) }}
+          {{- if $file }}
+          - name: {{ $org.name }}-config-file
+            mountPath: /templates/{{ $org.name }}-config-file.json
+            subPath: {{ $org.name }}-config-file.json
+          {{- end }}
+          {{- range $orderer := $org.orderers }}
+          {{- $ordfile := $.Files.Get (printf "files/%s-orderer-tls.json" $orderer.name) }}
+          {{- if $ordfile }}
+          - name: {{ $orderer.name }}-tls-config
+            mountPath: /templates/{{ $orderer.name }}-orderer-tls.json
+            subPath: {{ $orderer.name }}-orderer-tls.json
+          {{- end }}
+          {{- end }}
+          {{- end }}

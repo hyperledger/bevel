@@ -1,0 +1,45 @@
+#helm install ca-certs -f values/noproxy-and-novault/genesis.yaml -n supplychain-net fabric-genesis
+global:
+  version: 2.5.4
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+  vault:
+    type: kubernetes
+  proxy:
+    provider: none
+    externalUrlSuffix: supplychain-net
+
+organizations:
+  - name: supplychain
+    orderers:
+      - name: orderer1
+        ordererAddress: orderer1.supplychain-net:7050 # Internal/External URI of the orderer
+      - name: orderer2
+        ordererAddress: orderer2.supplychain-net:7050
+      - name: orderer3
+        ordererAddress: orderer3.supplychain-net:7050
+    peers:
+      - name: peer0
+        peerAddress: peer0.supplychain-net:7051 # Internal/External URI of the peer
+      - name: peer1
+        peerAddress: peer1.supplychain-net:7051
+
+  - name: carrier
+    peers:
+      - name: peer0
+        peerAddress: peer0.carrier-net:7051 # Internal/External URI of the peer
+
+consensus: raft
+channels:
+  - name: allchannel
+    consortium: SupplyChainConsortium
+    orderers:
+      - supplychain
+    participants:
+      - supplychain
+      - carrier
+
+settings:
+  removeConfigMapOnDelete: true

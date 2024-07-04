@@ -5,40 +5,45 @@
 ##############################################################################################
 
 ############################################################################################
-# Create the channel-artifacts folder
-- name: "Creating channel-artifacts folder"
-  file:
-    path: "{{ build_path }}/channel-artifacts"
-    state: directory
 
-# Remove old genesis block
-- name: Remove old genesis block
-  file:
-    path: "{{ build_path }}/channel-artifacts/{{ channel_name }}.genesis.block"
+
+# Remove all Helm releases of organization except genesis
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "genesis"
+    release_namespace: "{{ org.name | lower }}-net"
     state: absent
+  when: genererate_configtx is defined and genererate_configtx == 'true'
 
-# Create the genesis block by consuming the configtx.yaml file
-- name: "Create genesis block"
-  shell: |
-    cd {{ build_path }}
-    {% if '2.5' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID {{ channel_name }} -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
-    {% elif '2.2' in network.version %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel  -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
-    {% else %}
-    ./configtxgen -profile {{ genesis.name }} -channelID syschannel -outputBlock ./channel-artifacts/{{ channel_name }}.genesis.block
-    {% endif %}
-    cat ./channel-artifacts/{{ channel_name }}.genesis.block | base64 > ./channel-artifacts/{{ channel_name }}.genesis.block.base64
-  when: add_new_org == 'false'
-
-# Write genesis block to Vault
-- name: "Write genesis block to Vault"  
-  shell: |
-    vault kv put {{ org.vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/ordererOrganizations/{{ org.name }}-net/{{ channel_name }} {{ network.env.type }}GenesisBlock=@{{build_path}}/channel-artifacts/{{ channel_name }}.genesis.block.base64
-  environment:
-    VAULT_ADDR: "{{ org.vault.url }}"
-    VAULT_TOKEN: "{{ org.vault.root_token }}"
+# Fetch peers cetificates
+- name: Fetch peers cetificates
+  include_tasks: get_certificates.yaml
+  vars:
+    charts_dir: "{{ organization.gitops.chart_source }}"
+    org_name: "{{ organization.name | lower }}"
+    peers: "{{ organization.services.peers }}"
   loop: "{{ network['organizations'] }}"
   loop_control:
-    loop_var: org
-  when: add_new_org == 'false' and org.type == "orderer"
+    loop_var: organization
+  when: 
+    - organization.services.peers is defined and organization.services.peers | length > 0
+    - organization.name != org.name
+
+# Get channel_name
+- name: Get channel_name
+  include_tasks: get_channel_creator.yaml
+  vars:
+    channel_orgs: "{{ channel.orderers}}"
+  loop: "{{ network['channels'] }}"
+  loop_control:
+    loop_var: channel
+
+# Check or wait for the join channel job to complete
+- name: "waiting for genesis"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_type: "Job"
+    namespace: "{{ org.name | lower }}-net"
+    component_name: "genesis"

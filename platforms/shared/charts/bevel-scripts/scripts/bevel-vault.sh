@@ -37,7 +37,7 @@ initHashicorpVaultToken() {
     # Extract error message (if any) from the response using jq
     ERROR=$(echo "$RESPONSE" | jq -r '.errors[0]')
     # Extract the Vault secret data from the response using jq
-    VAULT_TOKEN=$(echo "$RESPONSE" | jq -r '.auth.client_token')
+    export VAULT_TOKEN=$(echo "$RESPONSE" | jq -r '.auth.client_token')
 
     # Check if the Vault token is empty, null, or contains errors
     if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ] || echo "$VAULT_TOKEN" | grep -q "errors"; then

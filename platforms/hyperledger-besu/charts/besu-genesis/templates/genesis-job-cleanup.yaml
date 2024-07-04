@@ -41,11 +41,14 @@ spec:
             - |
 
 {{- if .Values.settings.removeGenesisOnDelete }}
+              if kubectl get configmap --namespace {{ .Release.Namespace }} besu-genesis &> /dev/null; then
+                echo "Deleting genesis configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} besu-genesis
+              fi
 
-              echo "Deleting genesis configmap in k8s ..."
-              kubectl delete configmap --namespace {{ .Release.Namespace }} besu-genesis
-
-              echo "Deleting node-enodes configmap in k8s ..."
-              kubectl delete configmap --namespace {{ .Release.Namespace }} besu-peers
+              if kubectl get configmap --namespace {{ .Release.Namespace }} besu-peers &> /dev/null; then
+                echo "Deleting node-enodes configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} besu-peers
+              fi
 
 {{- end}} 

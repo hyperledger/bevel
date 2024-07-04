@@ -3,74 +3,47 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
-# Default values for indy-key-mgmt.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-
-metadata:
-  #Provide the namespace for organization's peer
-  #Eg. namespace: bevel
-  namespace:
-
-  #Provide the name for indy-key-mgmt release
-  #Eg. name: indy-key-mgmt
-  name:
-
-network:
-  #Provide the name for network
-  #Eg. name: bevel
-  name:
+---
+# The following are for overriding global values
+global:
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
+    #Provide the kubernetes host url
+    #Eg. kubernetesUrl: https://10.3.8.5:8443
+    kubernetesUrl: 
+  vault:
+    #Provide the type of vault
+    type: hashicorp   # hashicorp | kubernetes
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: indy
+    #Provide the vault server address
+    address: 
+    #Provide the vault authPath configured to be used.
+    authPath: authority
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/authority"
 
 image:
-  #Provide the image name for the indy-key-mgmt container
-  #Eg. name: indy-key-mgmt
-  name:
-
-  #Provide the image repository for the indy-key-mgmt container
-  #Eg. repository: indy-key-mgmt:latest
-  repository:
-
-  #Provide the image pull secret of image
+  #Provide the image for the job container
+  #Eg. keyUtils: ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6
+  keyUtils: ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6
+  #Provide the secret to use if private repository
   #Eg. pullSecret: regcred
   pullSecret:
 
+settings:
+  removeKeysOnDelete: true
+  identities:
+    trustee: authority-trustee
+    endorser: 
+    stewards: []
 
-vault:
-  #Provide the vault server address
-  #Eg. address: http://54.226.163.39:8200
-  address:
-
-  #Provide the vault secret version address
-  # Supported are "1" or "2"
-  version: "1"
-
-  #Provide the key path for vault
-  #Eg. keyPath: provider.stewards
-  keyPath:
-
-  #Provide the identity for vault
-  #Eg. identity: my-identity
-  identity:
-
-  #Provide the authpath
-  #Eg. authpath: kubernetes-bevel-provider-admin-auth
-  auth_path:
-  # Provide the vault path where the  certificates are stored
-  # Eg. certsecretprefix: secret/organisation-name
-  certsecretprefix:
-  # The amount of times to retry fetching from/writing to Vault before giving up.
-  # Eg. retries: 10
-  retries: 10
-  # The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault.
-  # Eg. sleepTimeAfterError: 15  
-  sleepTimeAfterError: 15
-
-account:
-  #Provide the service account name
-  #Eg. service: vault-auth-provider-agent-app
-  service:
-
-  #Provide the service account role
-  #Eg. role: ro
-  role:

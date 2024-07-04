@@ -11,7 +11,7 @@ network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
   type: fabric
-  version: 2.2.2                 # currently tested 1.4.8 and 2.2.2
+  version: 2.2.2                 # currently tested 1.4.8, 2.2.2 and 2.5.4
 
   frontend: enabled #Flag for frontend to enabled for nodes/peers
 
@@ -47,26 +47,24 @@ network:
       type: orderer
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer1.crt           # Path of the orderer certificate which must exist
+      uri: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer2.crt           # Path of the orderer certificate which must exist
+      uri: orderer2.supplychain-net.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
     - orderer:
       type: orderer
       name: orderer3
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer3.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer3.crt           # Ensure that the directory exists
+      uri: orderer3.supplychain-net.org1proxy.blockchaincloudpoc.com:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
 
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
+    channel_status: new
     chaincodes:
       - "chaincode_name"
     orderers:
@@ -81,7 +79,7 @@ network:
         name: peer0
         gossipAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443  # Must include port, External or internal URI of the gossip peer
         peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
     - organization:
       name: warehouse
       type: joiner
@@ -91,7 +89,7 @@ network:
         name: peer0
         gossipAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: manufacturer
       type: joiner
@@ -101,7 +99,7 @@ network:
         name: peer0
         gossipAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
     - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -111,7 +109,7 @@ network:
         name: peer0
         gossipAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443
         peerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
     endorsers:
     # Only one peer per org required for endorsement
     - organization:
@@ -135,9 +133,7 @@ network:
         name: peer0
         corepeerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443
         certificate: /home/bevel/build/manufacturer/server.crt # certificate path for peer
-    genesis:
-      name: OrdererGenesis
-
+  
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
   # then these services should be listed in this section as well.
@@ -150,11 +146,9 @@ network:
       state: London
       location: London
       subject: "O=Orderer,OU=Orderer,L=51.50/-0.13/London,C=GB"
-      type: orderer
       external_url_suffix: org1proxy.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be new / existing
       ca_data:
-        url: ca.supplychain-net.org1proxy.blockchaincloudpoc.com
         certificate: /home/bevel/build/supplychain/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
       aws:
@@ -211,21 +205,21 @@ network:
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer1.org1proxy.blockchaincloudpoc.com:443
+          ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer2
           type: orderer
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer2.org1proxy.blockchaincloudpoc.com:443
+          ordererAddress: orderer2.supplychain-net.org1proxy.blockchaincloudpoc.com:443
         - orderer:
           name: orderer3
           type: orderer
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer3.org1proxy.blockchaincloudpoc.com:443
+          ordererAddress: orderer3.supplychain-net.org1proxy.blockchaincloudpoc.com:443
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -234,12 +228,10 @@ network:
       state: Zurich
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-      type: peer
       external_url_suffix: org2proxy.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be new / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.manufacturer-net.org2proxy.blockchaincloudpoc.com
         certificate: /home/bevel/build/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -288,7 +280,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.manufacturer-net.org2proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          certificate: /home/bevel/build/manufacturer/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051
@@ -322,12 +313,10 @@ network:
       state: London
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      type: peer
       external_url_suffix: org3proxy.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be new / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.carrier-net.org3proxy.blockchaincloudpoc.com
         certificate: /home/bevel/build/carrier/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -375,7 +364,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          certificate: /home/bevel/build/carrier/peer0.crt       # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051
@@ -409,12 +397,10 @@ network:
       state: New York
       location: New York
       subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
-      type: peer
       external_url_suffix: org4proxy.blockchaincloudpoc.com
       org_status: new # Status of the organization for the existing network, can be new / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.store-net.org4proxy.blockchaincloudpoc.com
         certificate: /home/bevel/build/store/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -467,7 +453,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
           gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
           peerAddress: peer0.store-net.org4proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          certificate: /home/bevel/build/store/peer0.crt # Path to peer Certificate
           cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag. 
           grpc:
             port: 7051
@@ -500,12 +485,10 @@ network:
       state: Massachusetts
       location: Boston
       subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
-      type: peer
       external_url_suffix: org5proxy.blockchaincloudpoc.com
       org_status: existing # Status of the organization for the existing network, can be new / existing
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.warehouse-net.org5proxy.blockchaincloudpoc.com
         certificate: /home/bevel/build/warehouse/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -553,7 +536,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
           gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.warehouse-net.org5proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          certificate: /home/bevel/build/warehouse/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.         
           grpc:
             port: 7051

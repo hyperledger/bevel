@@ -1,0 +1,56 @@
+#helm install pee0-carrier -f values/noproxy-and-novault/peer.yaml -n carrier-net fabric-peer
+global:
+  version: 2.5.4
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: carrier
+    secretEngine: secretsv2
+    secretPrefix: "data/carrier"
+    tls: false
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+certs:
+  generateCertificates: true
+  orgData:
+    caAddress: ca.carrier-net.test.yourdomain.com
+    caAdminUser: carrier-admin
+    caAdminPassword: carrier-adminpw
+    orgName: carrier
+    type: peer
+    componentSubject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
+  users: 
+    usersList:
+      - user:
+        identity: user1
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+  settings:
+    #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+    createConfigMaps: true
+    refreshCertValue: false
+    addPeerValue: false
+    removeCertsOnDelete: true
+    removeOrdererTlsOnDelete: true
+storage:
+  enabled: false
+peer:
+  gossipPeerAddress: 
+  logLevel: info
+  localMspId: carrierMSP
+  tlsStatus: true
+  cliEnabled: true
+  ordererAddress: orderer1.supplychain-net.test.yourdomain.com:443
+  builder: hyperledger/fabric-ccenv
+  couchdb:
+    username: carrier-user
+    password: carrier-userpw
+  upgrade: false

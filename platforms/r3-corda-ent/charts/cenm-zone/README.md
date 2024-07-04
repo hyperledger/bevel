@@ -3,183 +3,101 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "deploy zone"></a>
-# Zone Deployment
+# cenm zone-service
 
-- [Zone Deployment Helm Chart](#Zone-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The cenm-zone chart deploys a R3 Corda Enterprise zone. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
-<a name = "Zone-deployment-helm-chart"></a>
-## Zone Deployment Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/charts/cenm-zone) Deploys and configure a zone service within a Kubernetes cluster.
+## TL;DR
 
-<a name = "prerequisites"></a>
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install zone bevel/cenm-zone
+```
+
 ## Prerequisites
----
-Before deploying the chart please ensure you have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm is installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-This chart has following structue:
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
+
+> **Important**: Ensure the `enterprise-init` chart has been installed before installing this. Also check the dependent charts. Installing this chart seperately is not required as it is a dependent chart for cenm, and is installed with cenm chart.
+
+## Installing the Chart
+
+To install the chart with the release name `zone`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install zone bevel/cenm-zone
 ```
-  ├── cenm-zone
-  │   ├── Chart.yaml
-  │   ├── templates
-  │   │   ├── deployment.yaml
-  │   │   ├── _helpers.tpl
-  │   │   ├── pvc.yaml
-  |   |   |__ configmap.yaml
-  │   │   └── service.yaml 
-  │   └── values.yaml
+
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+
+> **Tip**: List all releases using `helm list`
+
+## Uninstalling the Chart
+
+To uninstall/delete the `zone` deployment:
+
+```bash
+helm uninstall zone
 ```
-Type of files used:
 
-- `templates`       : This directory contains the Kubernetes manifest templates that define the resources to be deployed.
-- `deployment.yaml` : This file is a configuration file for deployement in Kubernetes.It creates a deployment file with a specified number of replicas and defines various settings for the deployment,There are two init containers defined in the spec section. Init containers are run before the main containers and are often used for setup tasks.The init containers use environment variables to retrieve secrets and certificates from a HashiCorp Vault server, which are then used in the main container. It also specifies volume mounts to access shared storage within the pod.
-- `_helpers.tpl`    : A template file used for defining custom labels in the Helm chart.
-- `pvc.yaml`        : A PersistentVolumeClaim (PVC) is a request for storage by a user.
-- `service.yaml`    : This file defines a Kubernetes Service with multiple ports for protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
-- `configmap.yaml`  : ConfigMap resource in Kubernetes with a specific name and namespace, along with labels for identification.  
-- `chart.yaml`      : Provides metadata about the chart, such as its name, version, and description.
-- `values.yaml`     : Contains the default configuration values for the chart. It includes configuration for the metadata, image, storage, Vault, etc.
-
-a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/r3-corda-ent/charts/cenm-zone/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
 
-### Metadata
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be used for Vault Auth management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `ambassador` | `ambassador` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Besu P2P and RPC service will be available | `test.blockchaincloudpoc.com` |
+| `global.cenm.sharedCreds.truststore` | The truststore password the pki created truststores | `password` |
+| `global.cenm.sharedCreds.keystore` | The truststore password the pki created ketstores | `password` |
+| `global.cenm.zone.enmPort` | The port for zone enm listner | `25000` |
+| `global.cenm.zone.adminPort` | The port for zone admin | `12345` |
 
-| Name            | Description                                                     | Default Value |
-| ----------------| ----------------------------------------------------------------| ------------- |
-| namespace       | Provide the namespace for the Corda Enterprise Signer           | cenm          |
-| nodeName        | Provide the name of the node                                    | zone          |
-| prefix          | Provide prefix for deployment                                   | cenm          |
+### Storage
+
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
+
 
 ### Image
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
+| `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
+| `image.zone.repository`   | CENM zone image repository  | `corda/enterprise-zone`|
+| `image.zone.tag`   | CENM zone image tag as per version | `1.5.9-zulu-openjdk8u382`|
 
-| Name                     | Description                                                                           | Default Value                                 |
-| ------------------------ | ----------------------------------------------------------------------------------    | ----------------------------------------------|
-| initContainerName        | Information about the Docker container used for the init-containers                   | ghcr.io/hyperledger                           |
-| zoneContainer            | Provide the image for the main Zone container                                         | corda/enterprise-zone:1.5.1-zulu-openjdk8u242 |
-| ImagePullSecret          | Provide the K8s secret that has rights for pulling the image off the registry         | ""                                            |
-| pullPolicy               | Provide the pull policy for Docker images, either Always or IfNotPresent              | IfNotPresent                                  |
+### Database Settings
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `database.driverClassName`    | DB drive class name  | `org.h2.Driver`            |
+| `database.jdbcDriver`    | DB jdbc driver  | `""`            |
+| `database.driverClassName`    | DB url  | `jdbc:h2:file:./h2/zone-persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=0;AUTO_SERVER_PORT=0`            |
+| `database.user`    | DB user name  | `zone-db-user`            |
+| `database.password`    | DB password  | `zone-db-password`            |
 
-### Config
-
-| Name                     | Description                                                    | Default Value    |
-| ------------------------ | ---------------------------------------------------------------| ---------------  |
-| baseDir                  | Provide volume related specifications                          | /opt/cenm        |
-| pvc                      | Provide any extra annotations for the PVCs                     | 5Gi              |
-| pod                      | Set memory limits of pod                                       | 1Gi              |
-| zoneJar                  | The directory where the Zone Service .jar file is stored       | bin              |
-| logsContainersEnabled    | Enable container displaying live logs                          | true             |
-| securityContext          | Securitycontext at pod level                                   | ""               | 
-
-### CenmServices
-
-| Name           | Description                               | Default Value |
-| ---------------| ------------------------------------------| ------------- |
-| idmanName      | Provide the name of the idman             | idman         |
-| authName       | Name of the auth service                  | auth          |
-| authPort       | Auth Service port                         | 8081          |
-
-### Database
-
-| Name                     | Description                                                                     | Default Value         |
-| ------------------------ | --------------------------------------------------------------------------------| ----------------------|
-| driverClassName          | Java class name to use for the database                                         | /opt/cenm             |
-| jdbcDriver               | JDBC Driver name                                                                | ""                    |
-| url                      | The DB connection URL                                                           | ""                    |
-| user                     | DB user name                                                                    | "example-db-user"     |
-| password                 | DB password                                                                     | "example-db-password" |
-| runMigration             | Option to run database migrations as part of startup                            | "true"                | 
-
-### Service
-
-| Name                  | Description                               | Default Value   |
-| --------------------- | ------------------------------------------| -------------   |
-| type                  | Provide the type of service               | ""              |
-| port                  | provide the port for service              | 80              |
-
-### listenerPort
-
-| Name         | Description                                                                   | Default Value   |
-| -------------| ----------------------------------------------------------------------------- | -------------   |
-| enm          | Provide the port where the Zone Service listens for Angel Services to connect | "25000"         |
-| admin        | Provide the port where Angel Services connect to the Zone Service             | "12345"         |
-
-### Vault
-
-| Name                      | Description                                                               | Default Value |
-| ------------------------- | --------------------------------------------------------------------------| ------------- |
-| address                   | Address/URL of the Vault server                                           | ""            |
-| role                      | Role used for authentication with Vault                                   | vault-role    |
-| authpath                  | Authentication path for Vault                                             | entcordacenm  |
-| serviceAccountName        | Provide the already created service account name autheticated to vault    | vault-auth    |
-| certSecretPrefix          | Provide the vault path where the certificates are stored                  | ""            |
-| retries                   | Amount of times to retry fetching from/writing to Vault before giving up  | 10            |
-| sleepTimeAfterError       | Amount of time in seconds wait after an error occurs                      | 15            |
-
-<a name = "deployment"></a>
-## Deployment
----
-To deploy the Zone Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/r3-corda-ent/charts/cenm-zone/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install, upgrade, verify delete the chart:
-
-To install the chart:
-```bash
-helm repo add bevel https://hyperledger.github.io/bevel/
-helm install <release-name> ./cenm-zone
-```
-
-To upgrade the chart:
-```bash
-helm upgrade <release-name> ./cenm-zone
-```
-
-To verify the deployment:
-```bash
-kubectl get jobs -n <namespace>
-```
-Note : Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
-
-To delete the chart: 
-```bash
-helm uninstall <release-name>
-```
-Note : Replace `<release-name>` with the desired name for the release.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Zone Deployment Helm Chart](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/charts/cenm-zone), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

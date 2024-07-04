@@ -1,0 +1,57 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "indy-genesis.name" . }}-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: indy-genesis-cleanup
+    app.kubernetes.io/component: genesis-cleanup
+    app.kubernetes.io/part-of: {{ include "indy-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: indy-genesis-cleanup
+        app.kubernetes.io/component: genesis-cleanup
+        app.kubernetes.io/part-of: {{ include "indy-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      containers:
+        - name: genesis-cleanup
+          image: {{ .Values.image.alpineutils }}
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+{{- if .Values.settings.removeGenesisOnDelete }}
+              if kubectl get configmap --namespace {{ $.Release.Namespace }} dtg &> /dev/null; then
+                kubectl delete configmap --namespace {{ $.Release.Namespace }} dtg
+              fi
+              if kubectl get configmap --namespace {{ $.Release.Namespace }} ptg &> /dev/null; then
+                kubectl delete configmap --namespace {{ $.Release.Namespace }} ptg
+              fi
+{{- end }}

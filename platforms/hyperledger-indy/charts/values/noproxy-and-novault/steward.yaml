@@ -1,0 +1,31 @@
+---
+#helm install validator-1 -f values/noproxy-and-novault/validator.yml -n supplychain-bes besu-node
+#helm upgrade validator-1 -f values/noproxy-and-novault/validator.yml -n supplychain-bes besu-node
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: azure # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false
+  proxy:
+    provider: none
+
+storage:
+  keys: "512Mi"
+  data: "4Gi"
+
+image:
+  indyNode:
+    repository: ghcr.io/hyperledger/bevel-indy-node
+    tag: 1.12.6
+
+settings:
+  serviceType: NodePort
+  node:
+    publicIp: "node-ip"
+    port: 30011
+    externalPort: 30011
+
+  client:
+    publicIp: "node-ip"
+    port: 30012
+    externalPort: 30012

@@ -167,149 +167,14 @@ spec:
               readOnly: true
             {{- end }}
         {{- end }}
-        - name: node-secrets
-          image: {{ .Values.vault.image }}
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: VAULT_ADDR
-            value: {{ .Values.vault.address }}
-          - name: VAULT_SECRET_PREFIX
-            value: {{ .Values.vault.secretPrefix }}
-          - name: KUBERNETES_AUTH_PATH
-            value: {{ .Values.vault.authPath }}
-          - name: VAULT_APP_ROLE
-            value: {{ .Values.vault.appRole }}
-          - name: PEER_NAME
-            value: {{ .Values.node.name }}
-          command: ["/bin/sh", "-c"]
-          args:
-          - |-
-            #!/bin/sh
-              validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${vault_secret_key})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                    echo "Http response code from Vault - $http_code"
-                    if test "$curl_response" != "0"; then
-                      echo "Error: curl command failed with error code - $curl_response"
-                      exit 1
-                    fi
-                  fi
-                fi
-              }
-
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-
-              ## Login to Vault to get an app role token ##
-              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-                -H "Content-Type: application/json" \
-                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-                jq -r 'if .errors then . else .auth.client_token end')
-              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              echo "logged in"
-
-              vault_secret_key="${VAULT_SECRET_PREFIX}/${PEER_NAME}/substrate"
-              
-              echo "Getting node-key, aura and grandpa secret seeds from $vault_secret_key"
-
-              LOOKUP_SECRET_RESPONSE=$(curl -sS \
-                --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${vault_secret_key} | \
-                jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-              
-              {{- range $keys := .Values.node.keys }}
-              secretSeed=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["{{ .seed }}"]')
-              echo "${secretSeed}" > /secrets/{{ .seed }}              
-              {{- end }}
-
-              node_key=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["node_key"]')
-              echo "${node_key}" > /secrets/node_key
-          volumeMounts:
-          - name: keystore
-            mountPath: /secrets
-            readOnly: false
-        - name: retrieve-chain-spec
-          image: {{ .Values.vault.image }}
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: VAULT_ADDR
-            value: {{ .Values.vault.address }}
-          - name: VAULT_SECRET_PREFIX
-            value: {{ .Values.vault.secretPrefix }}
-          - name: KUBERNETES_AUTH_PATH
-            value: {{ .Values.vault.authPath }}
-          - name: VAULT_APP_ROLE
-            value: {{ .Values.vault.appRole }}
-          command: ["/bin/sh", "-c"]
-          args:
-          - |-
-            #!/bin/sh
-              
-              validateVaultResponse () {
-                if echo ${2} | grep "errors"; then
-                  echo "ERROR: unable to retrieve ${1}: ${2}"
-                  exit 1
-                fi
-                if  [ "$3" == "LOOKUPSECRETRESPONSE" ]
-                then
-                  http_code=$(curl -sS -o /dev/null -w "%{http_code}" \
-                  --header "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
-                  ${VAULT_ADDR}/v1/${vault_secret_key})
-                  curl_response=$?
-                  if test "$http_code" != "200" ; then
-                    echo "Http response code from Vault - $http_code"
-                    if test "$curl_response" != "0"; then
-                      echo "Error: curl command failed with error code - $curl_response"
-                      exit 1
-                    fi
-                  fi
-                fi
-              }
-
-              KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
-
-              ## Login to Vault to get an app role token ##
-              VAULT_CLIENT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login \
-                -H "Content-Type: application/json" \
-                -d '{"role":"'"${VAULT_APP_ROLE}"'","jwt":"'"${KUBE_SA_TOKEN}"'"}' | \
-                jq -r 'if .errors then . else .auth.client_token end')
-              validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              echo "logged in"
-
-              vault_secret_key="${VAULT_SECRET_PREFIX}/genesis"
-              
-              echo "Getting the chain spec from $vault_secret_key"
-
-              LOOKUP_SECRET_RESPONSE=$(curl -sS \
-                --header "X-Vault-Token:${VAULT_CLIENT_TOKEN}" \
-                ${VAULT_ADDR}/v1/${vault_secret_key} | \
-                jq -r 'if .errors then . else . end')
-              validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE" 
-              
-              chain_spec=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data.data["genesis"]')
-              echo "${chain_spec}" | base64 -d > {{ .Values.node.customChainspecPath }}
-          volumeMounts:
-            - name: chain-data
-              mountPath: /data
-        {{- if or .Values.node.customChainspecUrl .Values.node.collator.relayChainCustomChainspecUrl }}
+        {{- if and .Values.node.customChainspecUrl .Values.node.collator.relayChainCustomChainspecUrl }}
         - name: download-chainspec
           image: {{ .Values.initContainer.image.repository }}:{{ .Values.initContainer.image.tag }}
           command: [ "/bin/sh" ]
           args:
             - -c
             - |
-              {{- if .Values.node.customChainspecUrl }}
+              {{- if and (.Values.node.customChainspecUrl) (.Values.node.customChainspecPath) }}
               if [ ! -f {{ .Values.node.customChainspecPath }} ]; then
                 wget -O {{ .Values.node.customChainspecPath }} {{ .Values.node.customChainspecUrl }}
               fi
@@ -323,85 +188,6 @@ spec:
             - name: chain-data
               mountPath: /data
         {{- end }}
-        {{- if .Values.node.keys }}
-        - name: inject-keys
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/bin/sh", "-c"]
-          args:
-          - |-
-            {{- range $keys := .Values.node.keys }}
-              {{ $.Values.node.command }} key insert --base-path /data \
-              {{- if $.Values.vault.secretPrefix }}
-              --chain {{ $.Values.node.customChainspecPath }} \
-              --key-type {{ .type }} \
-              --scheme {{ .scheme }} \
-              --suri /secrets/{{ .seed }} \
-              {{- else }}
-              --chain ${CHAIN} \
-              --key-type $(cat /var/run/secrets/{{ .type }}/type) \
-              --scheme $(cat /var/run/secrets/{{ .type }}/scheme) \
-              --suri /var/run/secrets/{{ .type }}/seed \
-              {{- end }}
-              && echo "Inserted key {{ .type }} into Keystore" \
-              || echo "Failed to insert key {{ .type}} into Keystore."
-            {{- end }}
-          env:
-            - name: CHAIN
-              value: {{ .Values.node.chain }}
-          volumeMounts:
-            - mountPath: /secrets
-              name: keystore
-            - mountPath: /data
-              name: chain-data
-          {{- range $keys := .Values.node.keys }}
-            - mountPath: /var/run/secrets/{{ .type }}
-              name: {{ .type }}
-          {{- end }}
-        {{- end }}
-        {{- if .Values.node.perNodeServices.createP2pService }}
-        - name: query-services
-          image: {{ .Values.kubectl.image.repository }}:{{ .Values.kubectl.image.tag }}
-          command: [ "/bin/sh" ]
-          args:
-            - -c
-            - |
-              POD_INDEX="${HOSTNAME##*-}"
-              {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-              RELAY_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
-              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
-              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-rc-p2p, saved ${RELAY_CHAIN_P2P_PORT} to /data/relay_chain_p2p_port"
-              {{- else if or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-              RELAY_CHAIN_P2P_PORT=30333
-              echo -n "${RELAY_CHAIN_P2P_PORT}" > /data/relay_chain_p2p_port
-              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-rc-p2p is ${RELAY_CHAIN_P2P_PORT}"
-              {{- end }}
-              {{- if and .Values.node.collator.isParachain (eq .Values.node.perNodeServices.p2pServiceType "Nodeport") }}
-              PARA_CHAIN_P2P_PORT="$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-pc-p2p -o jsonpath='{.spec.ports[*].nodePort}')"
-              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
-              echo "Retrieved Kubernetes service node port from {{ $fullname }}-${POD_INDEX}-pc-p2p, saved ${PARA_CHAIN_P2P_PORT} to /data/para_chain_p2p_port"
-              {{- else if and .Values.node.collator.isParachain (or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
-              PARA_CHAIN_P2P_PORT=30334
-              echo -n "${PARA_CHAIN_P2P_PORT}" > /data/para_chain_p2p_port
-              echo "Kubernetes service {{ $fullname }}-${POD_INDEX}-pc-p2p is ${PARA_CHAIN_P2P_PORT}"
-              {{- end }}
-              {{- if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
-              EXTERNAL_ADDRESS=$(curl -sS {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }})
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "Retrieved external IP from {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }}, saved ${EXTERNAL_ADDRESS} to /data/node_external_address"
-              {{- else if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") }}
-              EXTERNAL_ADDRESS=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
-              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
-              EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
-              echo -n "${EXTERNAL_ADDRESS}" > /data/node_external_address
-              echo "External hostname is ${EXTERNAL_ADDRESS}, saved to /data/node_external_address"
-              {{- end }}
-          volumeMounts:
-          - mountPath: /data
-            name: chain-data
-        {{- end }}
       containers:
         - name: {{ .Values.node.chain }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -409,85 +195,104 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
           - |-
+
             #!/bin/sh
-              {{- if .Values.node.perNodeServices.createP2pService }}
-              if [ ! -s /data/node_external_address ]; then echo "EXTERNAL_ADDRESS is empty" && exit 1 ; fi
-              EXTERNAL_ADDRESS="$(cat /data/node_external_address)"
-              echo "EXTERNAL_ADDRESS=${EXTERNAL_ADDRESS}"
-              RELAY_CHAIN_P2P_PORT="$(cat /data/relay_chain_p2p_port)"
-              echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
-              {{- if eq .Values.proxy.provider "ambassador" }}
-              EXTERNAL_ADDRESS="{{ .Values.proxy.external_url }}"
-              echo "EXTERNAL_ADDRESS=${EXTERNAL_ADDRESS}"
-              EXTERNAL_P2P_PORT="{{ .Values.proxy.p2p }}"
-              echo "EXTERNAL_P2P_PORT=${EXTERNAL_P2P_PORT}"
+
+              echo "Step 1: Install necessary packages using custom package manager script"
+              . /scripts/package-manager.sh
+              packages_to_install="jq curl"
+              install_packages "$packages_to_install"
+
+              echo "STEP-2: Download and set up kubectl for Kubernetes management"
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              mv kubectl /usr/local/bin/
+              kubectl version --client
+
+              echo "Step 3: Extract chain specification (genesis) from Kubernetes ConfigMap and store it"
+              chain_spec=$(kubectl get configmap "substrate-genesis" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["genesis"]')
+              echo "${chain_spec}" | base64 -d > {{ .Values.node.customChainspecPath }}
+
+              echo "Step 4: Retrieve secret keys from Kubernetes Secrets if available"
+              secretName="substrate-node-{{ .Release.Name }}-keys"
+              if kubectl get secret "${secretName}" --namespace {{ .Release.Namespace }} >/dev/null 2>&1; then
+                # Extract AURA secret phrase from Kubernetes Secret
+                AURA_SECRETPHRASE=$(kubectl get secret "${secretName}" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.aura_file_b64' | base64 -d | jq -r '.secretPhrase')
+                # Extract GRANDPA secret phrase from Kubernetes Secret
+                GRAN_SECRETPHRASE=$(kubectl get secret "${secretName}" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.grandpa_file_b64' | base64 -d | jq -r '.secretPhrase')
+                # Extract NODE_KEY from Kubernetes Secret
+                NODE_KEY=$(kubectl get secret "${secretName}" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.node_key')
+              fi
+              # Check if bootnode is enabled
+              {{- if .Values.node.isBootnode.enabled }}
+                # Retrieve BOOTNODE_ID from Kubernetes Secret
+                BOOTNODE_ID=$(kubectl get secret "substrate-node-{{ .Values.node.isBootnode.bootnodeName }}-keys" --namespace {{ .Release.Namespace }} -o json | jq -r '.data["substrate-node-keys"]' | base64 -d | jq -r '.data.node_id')
               {{- end }}
-              {{- if .Values.node.collator.isParachain }}
-              PARA_CHAIN_P2P_PORT="$(cat /data/para_chain_p2p_port)"
-              echo "PARA_CHAIN_P2P_PORT=${PARA_CHAIN_P2P_PORT}"
+
+              echo "Step 5: Insert keys into Keystore using dscp-node command-line tool"
+              # Insert AURA key into Keystore
+              ./{{ .Values.node.command }} key insert --base-path=/data --chain=/data/chainspec.json --key-type=aura --scheme=Sr25519 --suri="${AURA_SECRETPHRASE}" && echo "Inserted key aura into Keystore" || echo "Failed to insert key aura into Keystore."
+              # Insert GRANPA key into Keystore
+              ./{{ .Values.node.command }} key insert --base-path=/data --chain=/data/chainspec.json --key-type=gran --scheme=Ed25519 --suri="${GRAN_SECRETPHRASE}" && echo "Inserted key gran into Keystore" || echo "Failed to insert key gran into Keystore."
+
+              echo "Step 6: Determine various ports and external addresses for P2P communication"
+              POD_INDEX="${HOSTNAME##*-}"
+              {{- if and (.Values.node.perNodeServices.createP2pService) (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
+                RELAY_CHAIN_P2P_PORT=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.spec.ports[*].nodePort}')
+              {{- else if or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
+                RELAY_CHAIN_P2P_PORT=8080 # Default port
               {{- end }}
+              
+              {{- if and (.Values.node.perNodeServices.createP2pService) (.Values.node.collator.isParachain) (eq .Values.node.perNodeServices.p2pServiceType "Nodeport") }}
+                PARA_CHAIN_P2P_PORT=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-pc-p2p -o jsonpath='{.spec.ports[*].nodePort}')
+              {{- else if and (.Values.node.collator.isParachain) (or (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP")) }}
+                PARA_CHAIN_P2P_PORT=30334 # Default port
               {{- end }}
+              
+              {{- if and (.Values.node.perNodeServices.createP2pService) (.Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "NodePort") }}
+                EXTERNAL_ADDRESS=$(curl -sS {{ .Values.node.perNodeServices.setPublicAddressToExternal.ipRetrievalServiceUrl }})
+              {{- else if and .Values.node.perNodeServices.setPublicAddressToExternal.enabled (eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer") }}
+                EXTERNAL_ADDRESS=$(kubectl --namespace {{ .Release.Namespace }} get service {{ $fullname }}-${POD_INDEX}-rc-p2p -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+              {{- else if eq .Values.proxy.provider "ambassador" }}
+                EXTERNAL_ADDRESS="{{ $fullname }}-${POD_INDEX}.{{ .Values.proxy.external_url }}"
+                EXTERNAL_P2P_PORT="{{ .Values.proxy.p2p }}"
+              {{- else if eq .Values.node.perNodeServices.p2pServiceType "ClusterIP" }}
+                EXTERNAL_ADDRESS={{ $fullname }}-${POD_INDEX}-rc-p2p.{{ .Release.Namespace }}.svc.cluster.local
+                EXTERNAL_P2P_PORT="{{ .Values.node.ports.p2p }}"
+              {{- end }}
+
+              echo "Step 7: Start the node"
               exec {{ .Values.node.command }} \
-                --name=${POD_NAME} \
-                --base-path=/data/ \
-                --chain={{ if .Values.node.customChainspecUrl }}{{ .Values.node.customChainspecPath }}{{ else }}${CHAIN}{{ end }} \
-                {{- if or (eq .Values.node.role "authority") (eq .Values.node.role "validator") }}
-                --validator \
-                {{- end }}
-                {{- if eq .Values.node.role "collator" }}
-                --collator \
-                {{- end }}
-                {{- if or (eq .Values.node.role "light") (eq .Values.node.role "member")  }}
-                --light \
-                {{- end }}
-                {{- if .Values.node.collator.isParachain }}
-                {{- if .Values.node.perNodeServices.createP2pService }}
-                {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
-                {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-                --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
-                {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
-                --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
-                {{- end }}
-                {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-                --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
-                {{- end }}
-                --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT} \
-                {{- end }}
-                --listen-addr=/ip4/0.0.0.0/tcp/30334 \
-                {{- end }}
-                {{- if .Values.node.persistGeneratedNodeKey }}
-                --node-key-file /data/node-key \
-                {{- else if .Values.node.customNodeKey }}
-                --node-key $(cat /tmp/custom-node-key) \
-                {{- else if .Values.vault.secretPrefix }}
-                --node-key $(cat /secrets/node_key) \
-                {{- end }}
-                {{- if .Values.node.tracing.enabled }}
-                --jaeger-agent=127.0.0.1:{{ .Values.jaegerAgent.ports.compactPort }} \
-                {{- end }}
-                {{- join " " .Values.node.flags | nindent 16 }} \
-                {{- if .Values.node.collator.isParachain }}
-                -- \
-                --base-path=/data/relay/ \
-                {{- end }}
-                {{- if .Values.node.collator.relayChainCustomChainspecUrl }}
-                --chain={{ .Values.node.relayChainCustomChainspecPath }} \
-                {{- end }}
-                {{- if .Values.node.perNodeServices.createP2pService }}
-                {{- if .Values.node.perNodeServices.setPublicAddressToExternal.enabled }}
-                {{- if eq .Values.node.perNodeServices.p2pServiceType "NodePort" }}
-                --public-addr=/ip4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
-                {{- else if eq .Values.node.perNodeServices.p2pServiceType "LoadBalancer" }}
-                --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${RELAY_CHAIN_P2P_PORT} \
-                {{- end }}
-                {{- else if and (not .Values.node.perNodeServices.setPublicAddressToExternal.enabled) (eq .Values.node.perNodeServices.p2pServiceType "ClusterIP") }}
-                --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${EXTERNAL_P2P_PORT} \
-                {{- end }}
-                --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT} \
-                {{- else }}
-                --listen-addr=/ip4/0.0.0.0/tcp/30333 \
-                {{- end }}
-                {{- join " " .Values.node.collator.relayChainFlags | nindent 16 }}
+              --name=${POD_NAME} \
+              --base-path=/data/ \
+              --node-key=${NODE_KEY} \
+              --chain={{ if .Values.node.customChainspecUrl }}{{ .Values.node.customChainspecPath }}{{ else }}${CHAIN}{{ end }} \
+              {{- if or (eq .Values.node.role "authority") (eq .Values.node.role "validator") }}
+              --validator \
+              {{- else if eq .Values.node.role "collator" }}
+              --collator \
+              {{- else if or (eq .Values.node.role "light") (eq .Values.node.role "member")  }}
+              --light \
+              {{- end }}
+              {{- if .Values.node.isBootnode.enabled }}
+              --bootnodes "/dns4/{{ .Values.node.isBootnode.bootnodeAddr }}/tcp/{{ .Values.node.isBootnode.bootnodePort }}/p2p/${BOOTNODE_ID}" \
+              {{- end }}
+              {{- if (.Values.node.collator.isParachain) }}
+              --base-path=/data/relay/ \
+              --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${PARA_CHAIN_P2P_PORT} \
+              --listen-addr=/ip4/0.0.0.0/tcp/${PARA_CHAIN_P2P_PORT} \
+              {{- else if (.Values.node.perNodeServices.createP2pService) }}
+              --public-addr=/dns4/${EXTERNAL_ADDRESS}/tcp/${EXTERNAL_P2P_PORT} \
+              --listen-addr=/ip4/0.0.0.0/tcp/${RELAY_CHAIN_P2P_PORT} \
+              {{- end }}
+              {{- if .Values.node.tracing.enabled }}
+              --jaeger-agent=127.0.0.1:{{ .Values.jaegerAgent.ports.compactPort }} \
+              {{- end }}
+              {{- if .Values.node.collator.relayChainCustomChainspecUrl }}
+              --chain={{ .Values.node.relayChainCustomChainspecPath }} \
+              {{- end }}
+              {{- join " " .Values.node.flags | nindent 16 }} \
+              {{- join " " .Values.node.collator.relayChainFlags | nindent 16 }}
           env:
             - name: CHAIN
               value: {{ .Values.node.chain }}
@@ -551,6 +356,9 @@ spec:
             name: custom-node-key
             readOnly: true
           {{- end }}
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh
         {{- if .Values.node.substrateApiSidecar.enabled }}
         - name: substrate-api-sidecar
           image: {{ .Values.substrateApiSidecar.image.repository }}:{{ .Values.substrateApiSidecar.image.tag }}
@@ -604,8 +412,6 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end}}
       serviceAccountName: {{ $serviceAccountName }}
-      securityContext:
-      {{- toYaml .Values.podSecurityContext | nindent 8 }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -640,6 +446,9 @@ spec:
         - name: keystore
           emptyDir:
             medium: Memory
+        - name: package-manager
+          configMap:
+            name: package-manager
   volumeClaimTemplates:
     - apiVersion: v1
       kind: PersistentVolumeClaim
@@ -653,7 +462,7 @@ spec:
           kind: VolumeSnapshot
           apiGroup: snapshot.storage.k8s.io
         {{- end }}
-        storageClassName: {{ .Values.storageClass }}
+        storageClassName: substrate-storage-{{ .Release.Name }}
         resources:
           requests:
-            storage: {{ .Values.node.dataVolumeSize }}
+            storage: {{ .Values.storage.size }}

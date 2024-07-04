@@ -3,85 +3,69 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+# The following are for overriding global values
+global:
+  # HLF Network Version
+  #Eg. version: 2.2.2
+  version: 2.2.2
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth  
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
+  vault:
+    #Provide the type of vault
+    #Eg. type: hashicorp
+    type: hashicorp
+    #Provide the vaultrole for an organization
+    #Eg. vaultrole: org1-vault-role
+    role: vault-role
+    #Provide the network type
+    network: fabric
+    #Provide the vault server address
+    #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+    address:
+    #Provide the kubernetes auth backed configured in vault for an organization
+    #Eg. authpath: carrier
+    authPath: carrier
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/carrier"
+    #Enable or disable TLS for vault communication
+    #Eg. tls: true
+    tls: 
 
-metadata:
-  #Provide the namespace for organization's peer
-  #Eg. namespace: org1-net
-  namespace: org1-net
-  images:
-    #Provide the valid image name and version for fabric tools
-    #Eg. fabrictools: hyperledger/fabric-tools:1.4.0
-    fabrictools: ghcr.io/hyperledger/bevel-fabric-tools:2.2.2
-    #Provide the valid image name and version to read certificates from vault server
-    #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
-    alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
-  #Provide the custom labels
-  #NOTE: Provide labels other than name, release name , release service, chart version , chart name , app.
-  #Eg. labels:
-  #      role: create_channel
-  labels:
-
-deployment:
-  annotations:
-
+image:
+  #Provide the valid image name and version for fabric tools
+  #Eg. fabricTools: hyperledger/fabrictools
+  fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
+  #Provide the valid image name and version to read certificates from vault server
+  #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret:
 
 peer:
   #Provide the name of the peer as per deployment yaml.
   #Eg. name: peer0
   name: peer0
   #Provide the address of the peer who creates the channel and port to be mentioned is grpc cluster IP port
-  #Eg. address: peer0.org1-net:7051
-  address: peer0.org1-net:7051
-  #Provide the localmspid for organization
-  #Eg. localmspid: Org1MSP
-  localmspid: Org1MSP
-  #Provide the loglevel for organization's peer
-  #Eg. loglevel: info
-  loglevel: debug
-  #Provide the value for tlsstatus to be true or false for organization's peer
-  #Eg. tlsstatus: true
-  tlsstatus: true
-
-
-vault:
-  #Provide the vaultrole for an organization
-  #Eg. vaultrole: org1-vault-role
-  role: vault-role
-  #Provide the vault server address
-  #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
-  address:
-  #Provide the kubernetes auth backed configured in vault for an organization
-  #Eg. authpath: devorg1-net-auth1
-  authpath: devorg1-net-auth
-  #Provide the value for vault secretprefix
-  #Eg. adminsecretprefix: secretsv2/data/crypto/peerOrganizations/.../users/admin
-  adminsecretprefix: secretsv2/data/crypto/peerOrganizations/org1-net/users/admin
-  #Provide the value for vault secretprefix
-  #Eg. orderersecretprefix: secretsv2/data/crypto/peerOrganizations/.../orderer
-  orderersecretprefix: secretsv2/data/crypto/peerOrganizations/org1-net/orderer
-  #Provide the serviceaccountname for vault
-  #Eg. serviceaccountname: vault-auth
-  serviceaccountname: vault-auth
-  #Provide the type of vault
-  #Eg. type: hashicorp
-  type: hashicorp
-  #Provide the imagesecretname for vault
-  #Eg. imagesecretname: regcred
-  imagesecretname: ""
-  #Kuberenetes secret for vault ca.cert
-  #Enable or disable TLS for vault communication if value present or not
-  #Eg. tls: vaultca
-  tls: 
-
-channel:
-  #Provide the name of the channel
-  #Eg. name: mychannel
-  name: mychannel
-
-orderer:
+  #Eg. address: peer0.carrier-net:7051
+  address: peer0.carrier-net:7051
+  #Provide the localMspId for organization
+  #Eg. localMspId: carrierMSP
+  localMspId: carrierMSP
+  #Provide the logLevel for organization's peer
+  #Eg. logLevel: info
+  logLevel: debug
+  #Provide the value for tlsStatus to be true or false for organization's peer
+  #Eg. tlsStatus: true
+  tlsStatus: true
   #Provide the address for orderer
-  #Eg. address: orderer.fratest-com:7050
-  address: orderer1.org1proxy.blockchaincloudpoc.com:443
-
-#Provide the base64 encoded file contents for channeltx
-channeltx: 
+  #Eg. ordererAddress: orderer1.test.yourdomain.com:443
+  ordererAddress: orderer1.supplychain-net:7050

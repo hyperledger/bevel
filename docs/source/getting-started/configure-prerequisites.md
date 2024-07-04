@@ -6,10 +6,9 @@
 # Configure Common Pre-requisites
 
 - [GitOps Authentication](#gitops-authentication)
-- [Vault Initialization and unseal](#vaultunseal)
-- [Docker Images](#docker)
+- [Unseal Hashicorp Vault](#unseal-hashicorp-vault)
+- [Docker Images](#docker-images)
 
-<a name = "gitops-authentication"></a>
 ## GitOps Authentication
 
 For synchronizing the Git repo with the cluster, Hyperledger Bevel configures Flux for each cluster. The authentication can be via SSH or HTTPS.
@@ -34,7 +33,6 @@ The above command generates an SSH key-pair: **gitops** (private key) and **gito
 
 And add the public key contents (starts with **ssh-rsa**) as an Access Key (with read-write permissions) in your Github repository by following [this guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 
-<a name = "vaultunseal"></a>
 ## Unseal Hashicorp Vault 
 
 The [Hashicorp Vault](../concepts/vault.md) must be initialised and unsealed. Complete the following steps to unseal and access the Vault.
@@ -43,7 +41,7 @@ The [Hashicorp Vault](../concepts/vault.md) must be initialised and unsealed. Co
 
 !!! important 
 
-    Vault version should be > **1.13.1**
+    Vault version should be > **1.13.1** and  <= **1.15.2**
 
 * Set the environment Variable **VAULT_ADDR** as the Vault service. 
 
@@ -83,8 +81,6 @@ The [Hashicorp Vault](../concepts/vault.md) must be initialised and unsealed. Co
 
     It is recommended to use Vault auto-unseal using Cloud KMS for Production Systems. And also, rotate the root token regularly.
 
-
-<a name = "docker"></a>
 ## Docker Images
 
 Hyperledger Bevel provides pre-built docker images which are available on [GitHub Repo](https://github.com/orgs/hyperledger/packages?repo_name=bevel). Ensure that the versions/tags you need are available. If not, [ask a question](../contributing/asking-a-question.md).

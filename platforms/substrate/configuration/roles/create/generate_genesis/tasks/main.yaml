@@ -1,0 +1,68 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Set organization variable based on the first organization in the network
+- name: Set organization variable
+  set_fact:
+    organization: "{{ network.organizations[0] }}"
+
+# Initialize counts for validator and member nodes
+- name: Initialize counts
+  set_fact:
+    validator_count: 0
+    member_count: 0
+
+# Loop through each organization to count nodes
+- name: Count nodes
+  include_tasks: nodes.yaml
+  vars:
+    peers: "{{ item.services.peers }}"
+  loop: "{{ network['organizations'] }}"
+
+
+# Retrieve kubernetes server url
+- name: Get the kubernetes server url
+  shell: |
+    KUBECONFIG={{ organization.k8s.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
+  register: kubernetes_server_url
+
+# Generate keys and genesis file
+- name: Generate keys and genesis file
+  include_role:
+    name: create/helm_component
+  vars:
+    name: "{{ organization.name }}"
+    org_name: "{{ organization.name }}"
+    type: "genesis_job"
+    component_name: "genesis"
+    component_ns: "{{ organization.name }}-subs"
+    vault: "{{ organization.vault }}"
+    kubernetes_url: "{{ kubernetes_server_url.stdout }}"
+    charts_dir: "{{ organization.gitops.chart_source }}"
+    values_dir: "{{playbook_dir}}/../../../{{ organization.gitops.release_dir }}"
+
+# Push the created deployment files to the Git repository
+- name: "Push the created deployment files to the Git repository"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    component_ns: "{{ organization.name }}"
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing key management job files for {{ component_ns }}"
+    gitops: "{{ organization.gitops }}"
+  tags: notest
+
+# Check if the Genesis job is completed
+- name: Check if the Genesis job is completed
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    component_name: "genesis"
+    component_type: Job
+    namespace: "{{ organization.name }}-subs"
+    kubernetes: "{{ organization.k8s }}"
+  tags:
+  - notest

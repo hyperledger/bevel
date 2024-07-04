@@ -12,42 +12,48 @@
 - name: Delete docker creds
   k8s:
     kind: Secret
-    namespace: "{{ component_name }}"
+    namespace: "{{ component_ns }}"
     name: "regcred"
     state: absent
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
-  ignore_errors: yes
-  changed_when: false
-
-# Delete service creds
-- name: "Delete service creds"
-  include_tasks: nested_main.yaml
-  loop: "{{ services | dict2items }}"
-  loop_control:
-    loop_var: service
-  when: component_type != 'node'
-
-# Delete the Ambassador Creds
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: "{{ component_name }}"
-    name: "{{ node.name }}-ambassador-certs"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: node
-  when: component_type == 'node'
-  ignore_errors: yes
+  ignore_errors: true
   changed_when: false
 
 # Delete crypto materials from vault
 - name: Delete Crypto for nodes
   shell: |
-    vault secrets disable {{ item.vault.secret_path | default(item.name) }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-registrationcerts
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-tlscerts
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers }}"
+  loop_control:
+    loop_var: peer
+  when: services.peers is defined
+  ignore_errors: true
+
+- name: Delete Crypto for notary
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-registrationcerts
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ peer.name }}-tlscerts
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  vars: 
+    peer: "{{ services.notary }}"
+  when: services.notary is defined
+  ignore_errors: true
+
+- name: Delete Crypto for network service
+  shell: |
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ org_name }}-certs
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/{{ org_name }}-tlscerts
+  environment:
+    VAULT_ADDR: "{{ item.vault.url }}"
+    VAULT_TOKEN: "{{ item.vault.root_token }}"
+  ignore_errors: true
+  when: component_type == 'network-service'

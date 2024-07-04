@@ -1,0 +1,292 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-certs-job
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-delete-policy: "before-hook-creation"
+  labels:
+    app.kubernetes.io/name: {{ include "fabric-catools.name" . }}-job
+    app.kubernetes.io/component: ca-tools
+    app.kubernetes.io/part-of: {{ include "fabric-catools.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "fabric-catools.name" . }}
+        app.kubernetes.io/component: ca-tools
+        app.kubernetes.io/part-of: {{ include "fabric-catools.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      volumes:
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: generate-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-orderer.sh
+              path: generate-crypto-orderer.sh
+      - name: generate-orderer-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: orderer-script.sh
+              path: orderer-script.sh
+      - name: generate-crypto-peer
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-peer.sh
+              path: generate-crypto-peer.sh
+      - name: generate-crypto-add-peer
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-crypto-add-peer.sh
+              path: generate-crypto-add-peer.sh
+      - name: generate-user-crypto
+        configMap:
+          name: crypto-scripts-cm
+          defaultMode: 0775
+          items:
+            - key: generate-user-crypto.sh
+              path: generate-user-crypto.sh
+      - name: store-vault-orderer
+        configMap:
+          name: orderer-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-orderer.sh
+              path: store-vault-orderer.sh
+      - name: store-vault-peer
+        configMap:
+          name: peer-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-peer.sh
+              path: store-vault-peer.sh
+      - name: store-vault-users
+        configMap:
+          name: users-script-store-vault
+          defaultMode: 0775
+          items:
+            - key: store-vault-users.sh
+              path: store-vault-users.sh
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+      - name: package-manager
+        configMap:
+          name: package-manager
+      containers:
+        - name: generate-certs
+          image: "{{ .Values.image.caTools }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: COMPONENT_TYPE
+            value: {{ .Values.orgData.type }}
+          - name: COMPONENT_NAME
+            value: {{ .Release.Namespace }}
+          - name: ADD_PEER
+            value: "{{ .Values.settings.addPeerValue }}"
+          - name: USERS
+            value: {{ .Values.users.usersList | toJson | b64enc }}
+          - name: REFRESH_CERT_VALUE
+            value: "{{ .Values.settings.refreshCertValue }}"
+        {{- if eq .Values.global.vault.type "hashicorp" }}
+          - name: VAULT_ADDR
+            value: {{ .Values.global.vault.address }}
+          - name: VAULT_APP_ROLE
+            value: {{ .Values.global.vault.role }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ .Values.global.vault.authPath }}
+          - name: VAULT_TYPE
+            value: {{ .Values.global.vault.type }}
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+        {{- end }}
+          command: ["sh", "-c"]
+          args:
+            - |
+
+              . /scripts/package-manager.sh
+              # Define the packages to install
+              packages_to_install="jq curl"
+              install_packages "$packages_to_install"
+              # Download kubectl binary
+              curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl;
+              chmod u+x kubectl && mv kubectl /usr/local/bin/kubectl;
+
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+              . /scripts/bevel-vault.sh
+              echo "Getting vault Token..."
+              vaultBevelFunc "init"
+{{- end }}
+              OUTPUT_PATH="/crypto-config/${COMPONENT_TYPE}Organizations/${COMPONENT_NAME}"
+              mkdir -p ${OUTPUT_PATH}/ca
+              mkdir -p ${OUTPUT_PATH}/msp/admincerts
+              # Get the CA cert from Kubernetes secret
+              kubectl get secret --namespace {{ .Release.Namespace }} fabric-ca-server-certs >/dev/null 2>&1
+              if [ $? -eq 0 ]; then
+                LOOKUP_SECRET_RESPONSE=$(kubectl get secret -n {{ .Release.Namespace }} fabric-ca-server-certs -o jsonpath='{.data}');
+                echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".\"tls.crt\"" | base64 -d > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem;
+              else
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+                vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/ca"
+                if [ "$SECRETS_AVAILABLE" = "yes" ]; then
+                  # Get ca cert
+                  ca_cert=$(echo ${VAULT_SECRET} | jq -r ".rootca_pem")
+                  echo "${ca_cert}" > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem
+                  ca_key=$(echo ${VAULT_SECRET} | jq -r ".rootca_key")
+                  echo "${ca_key}" > ${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}.key
+                  # Also create the k8s secret
+                  kubectl create secret tls ${key} --namespace ${COMPONENT_NAME} \
+                    --cert=${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}-cert.pem \
+                    --key=${OUTPUT_PATH}/ca/ca.${COMPONENT_NAME}.key
+                else
+                  echo "CA certs not found in Vault"
+                  exit 1
+                fi;
+{{- else }}
+                echo "CA certs not found in Kubernetes secret"
+                exit 1
+{{- end }}
+              fi
+              echo "CA certificate saved locally."
+              checkSecrets() {
+                type=$1
+                key=$2
+                kubectl get secret --namespace {{ .Release.Namespace }} ${key} >/dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                  # Secret found
+                  touch /crypto-config/${key}-exists
+                  if [ $key = "admin-msp" ]; then
+                    # Get the admin cert if admin-msp already exists
+                    LOOKUP_SECRET_RESPONSE=$(kubectl get secret --namespace {{ .Release.Namespace }} ${key} -o jsonpath='{.data}');
+                    echo "${LOOKUP_SECRET_RESPONSE}" | jq -j ".\"admincerts\"" | base64 -d > ${OUTPUT_PATH}/msp/admincerts/Admin@${COMPONENT_NAME}-cert.pem;
+                  fi
+                else
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+                  #Read if secret exists in Vault 
+                  vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${type}/${key}"
+                  if [ "$SECRETS_AVAILABLE" = "yes" ]; then
+                    touch /crypto-config/${key}-exists
+                    #TODO Maybe create the K8s secrets from Vault secrets here if needed
+                  fi;
+{{- else }}
+                  echo "Secret $key does not exist."
+{{- end }}
+                fi
+              }
+
+              # Check if secrets already exist
+              checkSecrets users admin-msp
+              checkSecrets users admin-tls
+              checkSecrets ${COMPONENT_TYPE}s {{ .Release.Name }}-msp
+              checkSecrets ${COMPONENT_TYPE}s {{ .Release.Name }}-tls
+
+              echo "Starting certificate generation."
+              if [ "$COMPONENT_TYPE" = "orderer" ]; then
+                # Generate crypto material for organization orderers (admin)
+                cd /root/ca-tools/org
+                ./generate-crypto-orderer.sh
+                
+                if [ ! -e /crypto-config/{{ .Release.Name }}-msp-exists ] || [ ! -e /crypto-config/{{ .Release.Name }}-tls-exists ] || [ "$REFRESH_CERT_VALUE" = "true" ]; then
+                  # Generate crypto material for organization orderer
+                  echo "Need to execute scripts for orderer {{ .Release.Name }}"
+                  cd /root/ca-tools/org 
+                  ./orderer-script.sh {{ .Release.Name }}
+                fi
+
+                # Save the generated certificates
+                cd /scripts/orderer
+                ./store-vault-orderer.sh {{ .Release.Name }}
+              fi
+
+              if [ "$COMPONENT_TYPE" = "peer" ]; then
+                # Generate crypto material for organization peer (admin)
+                cd /root/ca-tools/org 
+                if [ "$ADD_PEER" = "false" ]; then
+                  ./generate-crypto-peer.sh {{ .Release.Name }}
+                else
+                  if [ ! -e /crypto-config/{{ .Release.Name }}-msp-exists ] || [ ! -e /crypto-config/{{ .Release.Name }}-tls-exists ] || [ "$REFRESH_CERT_VALUE" = "true" ]; then
+                    ./generate-crypto-add-peer.sh {{ .Release.Name }}
+                  fi
+                fi;
+                {{- range .Values.users.usersList }}
+                checkSecrets users {{ .identity }}-msp
+                checkSecrets users {{ .identity }}-tls
+                {{ end }}
+                cd /root/ca-tools/org
+                ./generate-user-crypto.sh peer ${USERS}
+
+                # Save the generated certificates for peers and users
+                cd /scripts/peer
+                ./store-vault-peer.sh {{ .Release.Name }}
+                cd /scripts/peer
+            {{- range .Values.users.usersList }}
+                ./store-vault-users.sh {{ .identity }}
+            {{ end }}
+              fi;
+              # this command creates the indicator of the completion of scripts
+              echo "Certificate generation complete."
+          volumeMounts:
+          - name: certificates
+            mountPath: /crypto-config
+          - name: generate-crypto
+            mountPath: /root/ca-tools/org/generate-crypto-orderer.sh
+            subPath: generate-crypto-orderer.sh
+          - name: generate-orderer-crypto
+            mountPath: /root/ca-tools/org/orderer-script.sh
+            subPath: orderer-script.sh
+          - name: generate-crypto-peer
+            mountPath: /root/ca-tools/org/generate-crypto-peer.sh
+            subPath: generate-crypto-peer.sh
+          - name: generate-crypto-add-peer
+            mountPath: /root/ca-tools/org/generate-crypto-add-peer.sh
+            subPath: generate-crypto-add-peer.sh
+          - name: generate-user-crypto
+            mountPath: /root/ca-tools/org/generate-user-crypto.sh
+            subPath: generate-user-crypto.sh
+          - name: package-manager
+            mountPath: /scripts/package-manager.sh
+            subPath: package-manager.sh
+          - name: store-vault-orderer
+            mountPath: /scripts/orderer/store-vault-orderer.sh
+            subPath: store-vault-orderer.sh
+          - name: store-vault-peer
+            mountPath: /scripts/peer/store-vault-peer.sh
+            subPath: store-vault-peer.sh
+          - name: store-vault-users
+            mountPath: /scripts/peer/store-vault-users.sh
+            subPath: store-vault-users.sh
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh

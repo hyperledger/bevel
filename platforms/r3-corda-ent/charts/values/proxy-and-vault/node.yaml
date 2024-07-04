@@ -1,0 +1,45 @@
+---
+#helm install notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node 
+#helm upgrade notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    network: corda-enterprise
+  proxy:
+    provider: "ambassador"
+    externalUrlSuffix: test.blockchaincloud.com
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+image:
+  node:
+    repository: corda/corda-enterprise
+    tag: 4.10.3-zulu-openjdk8-alpine
+
+network:
+  creds:
+    truststore: password
+
+tls:
+  nameOverride: node   # should match the release name
+  enabled: true
+
+nodeConf:
+  legalName: "O=Node,OU=Node,L=London,C=GB"
+  doormanPort: 443
+  networkMapPort: 443
+  doormanDomain: cenm-doorman.test.blockchaincloud.com
+  networkMapDomain: cenm-nms.test.blockchaincloud.com
+  networkMapURL: https://cenm-nms.test.blockchaincloud.com
+  doormanURL: https://cenm-doorman.test.blockchaincloud.com

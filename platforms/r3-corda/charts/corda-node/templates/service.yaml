@@ -3,89 +3,113 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.service.name }}
-  namespace: {{ .Values.metadata.namespace }}
-  annotations:
+  name: {{ .Release.Name }}-db
+  namespace: {{ .Release.Namespace }}
   labels:
-    run: {{ .Values.service.name }}
-    app.kubernetes.io/name: {{ .Values.service.name }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/name: h2-service
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: "{{ include "corda-node.fullname" . }}"
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
 spec:
-    type: {{ .Values.service.type }}
-    selector:
-      app: {{ .Values.nodeName }}
-    ports:
-    # for p2p communication among corda node
-    - name: p2p
-      protocol: TCP
-      port: {{ .Values.service.p2p.port }}
-      targetPort: {{ .Values.service.p2p.targetPort }}
-      {{- if .Values.service.p2p.nodePort }}
-      nodePort: {{ .Values.service.p2p.nodePort}}
-      {{- end }}
-    # for rpc communication between corda node and webserver
-    - name: rpc
-      protocol: TCP
-      port: {{ .Values.service.rpc.port }}
-      targetPort: {{ .Values.service.rpc.targetPort }}
-      {{- if .Values.service.rpc.nodePort }}
-      nodePort: {{ .Values.service.rpc.nodePort}}
-      {{- end }}
-    # for rpc admin communication 
-    - name: rpcadmin
-      protocol: TCP
-      port: {{ .Values.service.rpcadmin.port }}
-      targetPort: {{ .Values.service.rpcadmin.targetPort }}
-      {{- if .Values.service.rpcadmin.nodePort }}
-      nodePort: {{ .Values.service.rpcadmin.nodePort}}
-      {{- end }}
-
-{{ if $.Values.ambassador }}
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+  - name: tcp
+    protocol: TCP
+    port: {{ .Values.nodeConf.dbPort }}
+    targetPort: 1521
+  - name: web
+    protocol: TCP
+    port: 8080
+    targetPort: 81
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: p2p-service
+    app.kubernetes.io/component: corda
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: corda
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+  ports:
+  # for p2p communication among corda node
+  - name: p2p
+    protocol: TCP
+    port: {{ .Values.nodeConf.p2pPort }}
+    targetPort: {{ .Values.nodeConf.p2pPort }}
+  # for rpc communication between corda node and webserver
+  - name: rpc
+    protocol: TCP
+    port: {{ .Values.nodeConf.rpcPort }}
+    targetPort: {{ .Values.nodeConf.rpcPort }}
+  # for rpc admin communication 
+  - name: rpcadmin
+    protocol: TCP
+    port: {{ .Values.nodeConf.rpcadminPort }}
+    targetPort: {{ .Values.nodeConf.rpcadminPort }}
+{{- if eq .Values.global.proxy.provider "ambassador" }}
+{{- if .Values.tls.enabled }}
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:
-  name: {{ .Values.ambassador.component_name }}-host
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Release.Name }}-host
+  namespace: {{ .Release.Namespace }}
 spec:
-  hostname: {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
+  hostname: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
   acmeProvider:
     authority: none
   requestPolicy:
     insecure:
       action: Route
   tlsSecret:
-    name: {{ .Values.ambassador.component_name }}-ambassador-certs
-    namespace: {{ .Values.metadata.namespace }}
----
-apiVersion: getambassador.io/v3alpha1
-kind: TLSContext
-metadata:
-  name: {{ .Values.ambassador.component_name }}-context
-  namespace: {{ .Values.metadata.namespace }}
-spec:
-  hosts:
-  - {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
-  secret: {{ .Values.ambassador.component_name }}-ambassador-certs.{{ .Values.metadata.namespace }}
-  secret_namespacing: true
-  min_tls_version: v1.2
+    name: {{ .Release.Name }}-tls-certs
+    namespace: {{ .Release.Namespace }}
+{{- end }}
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
-  name: {{ .Values.ambassador.component_name }}-p2p-mapping
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ .Release.Name }}-p2p-mapping
+  namespace: {{ .Release.Namespace }}
 spec:
-  host: {{ .Values.ambassador.component_name }}.{{ .Values.ambassador.external_url_suffix }}
+  host: {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
   prefix: /
-  service: https://{{ .Values.ambassador.component_name }}.{{ .Values.metadata.namespace }}:{{ .Values.nodeConf.p2p.port }}
-  tls: {{ .Values.ambassador.component_name }}-context
-{{ end }}
-
+  service: {{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.nodeConf.p2pPort }}
+{{- if .Values.tls.enabled }}
+  tls: {{ .Release.Name }}-tlscontext
+---
+apiVersion: getambassador.io/v3alpha1
+kind: TLSContext
+metadata:
+  name: {{ .Release.Name }}-tlscontext
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+  - {{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}
+  secret: {{ .Release.Name }}-tls-certs.{{ .Release.Namespace }}
+  secret_namespacing: true
+  min_tls_version: v1.2
+{{- end }}
+{{- end }}

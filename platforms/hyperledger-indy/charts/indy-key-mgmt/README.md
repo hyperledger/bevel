@@ -3,170 +3,89 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "indy-key-mgmt"></a>
 # indy-key-mgmt
 
-- [indy-key-mgmt Helm Chart](#indy-node-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-job)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The indy-key-mgmt chart generates the various keys needed for a Hyperledger Indy node. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
-<a name = "# indy-key-mgmt"></a>
-## indy-key-mgmt Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/tree/develop/platforms/hyperledger-indy/charts/indy-key-mgmt) helps to deploy the indy-key-mgmt job.
+## TL;DR
 
-<a name = "prerequisites"></a>
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install authority-keys bevel/indy-key-mgmt
+```
+
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-```
-indy-key-mgmt/
-    |- templates/
-            |- _helpers.tpl
-            |- configmap.yaml
-    |- Chart.yaml
-    |- README.md
-    |- values.yaml
+> **Important**: Also check the dependent charts.
+
+## Installing the Chart
+
+To install the chart with the release name `authority-keys`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install authority-keys bevel/indy-key-mgmt
 ```
 
-- `templates/`: This directory contains the template files for generating Kubernetes resources.
-- `_helpers.tpl`:  Contains custom label definitions used in other templates.
-- `configmap.yaml`:  This file provides information about the kubernetes configmap job 
-- `Chart.yaml`: Provides metadata about the chart, such as its name, version, and description.
-- `README.md`: This file provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the chart. It includes configuration for the metadata, image, node, Vault, etc.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-key-mgmt/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+> **Tip**: List all releases using `helm list`
+
+## Uninstalling the Chart
+
+To uninstall/delete the `authority-keys` deployment:
+
+```bash
+helm uninstall authority-keys
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
-### metadata
 
-| Name            | Description                                      | Default Value   |
-| ----------------| -----------------------------------------------  | ----------------|
-| namespace       | Provide the namespace for organization's peer    | bevel           |
-| name            | Provide the name for indy-key-mgmt release       | indy-key-mgmt   |
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS, AKS or minikube. Currently ony `aws`, `azure` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.cluster.kubernetesUrl` | URL of the Kubernetes Cluster  | `""`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.network`  | Network type that is being deployed | `indy`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `authority`            |
+| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/authority`  |
 
-### network
+### Image
 
-| Name            | Description                                      | Default Value |
-| ----------------| -----------------------------------------------  | ------------- |
-| name            | Provide the name for network                     | bevel         |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.keyUtils`  | Indy Key Gen image repository for the Indy version  | `ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 
-### image
-| Name            | Description                                                  | Default Value   |
-| ----------------| -----------------------------------------------------------  | ----------------|
-| name            | Provide the image name for the indy-key-mgmt container       | indy-key-mgmt   |
-| repository      | Provide the image repository for the indy-key-mgmt container | ind-key-mgmt:lts|
-| pullSecret      | Provide the image pull secret of image                       | regcred         | 
+### Settings
 
-### vault
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`settings.removeKeysOnDelete` | Setting to delete the keys when uninstalling the release | `true` |
+| `settings.identities.trustee` | Single trustee identity to be created for the organization. Set to empty if not needed  | `authority-trustee` |
+| `settings.identities.endorser` | Single endorser identity to be created for the organization. Set to empty if not needed  | `""` |
+| `settings.identities.stewards` | Array of steward identities to be created for the orgnaization. Set to empty if not needed  | `[]` |
 
-| Name                | Description                                   | Default Value |
-| ----------------    | -------------------------------------------   | ------------- |
-| address             | Provide the vault server address              | http://54.226.163.39:8200  |
-| version             | Provide the vault secret version address      | "1 or 2"      |
-| keyPath             | Provide the key path for vault                | provider.stewards   |
-| identity            | Provide the identity for vault                | my-identity          |
-| auth_path           | Provide the authpath                          | kubernetes-bevel-provider-admin-auth |
-| certsecretprefix    | Provide the vault path where the  certificates are stored  | secret/organisation-name            |
-| retries             | Provide The amount of times to retry fetching from/writing to Vault before giving up        | "10"          |
-| sleepTimeAfterError | The amount of time in seconds to wait after an error occurs when fetching from/writing to Vault""      | "15"          |
-
-
-
-
-### account
-
-| Name    | Description                       | Default Value |
-| --------| --------------------------------- | ------------- |
-| service | Provide the service account name  | vault-auth-provider-agent-app     |
-| role    |Provide the service account role   | ro          |
-
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the indy-key-mgmt job Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-key-mgmt/values.yam) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./indy-key-mgmt
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the indy-key-mgmt job to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the jobs, we can use the following command:
-```
-$ kubectl get jobs -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the job was created. The command will display information about the jobs.
-
-
-<a name = "updating-the-deployment"></a>
-## Updating the deployment
----
-
-If we need to update the job with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-key-mgmt/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./indy-key-mgmt
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the job , ensuring the job  is up to date.
-
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the jobs and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the  [INDY  authorization job Helm Chart](https://github.com/hyperledger/bevel/tree/develop/platforms/hyperledger-indy/charts/indy-auth-job), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

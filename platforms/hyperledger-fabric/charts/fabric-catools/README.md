@@ -3,234 +3,117 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "ca-tools-hyperledger-fabric-deployment"></a>
-# CA Tools Hyperledger Fabric Deployment
+# fabric-catools
 
-- [CA Tools Hyperledger Fabric Deployment Helm Chart](#ca-tools-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The fabric-catools chart creates job(s) to generate the certificates and keys required for Hyperledger Fabric network. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "ca-tools-hyperledger-fabric-deployment-helm-chart"></a>
-## CA Tools Hyperledger Fabric Deployment Helm Chart
----
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-catools) to deploy Fabric CA tools.
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install catools bevel/fabric-catools
+```
 
-
-<a name = "prerequisites"></a>
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+## Installing the Chart
 
-```
-fabric-catools/
-  |- templates/
-      |- _helpers.yaml
-      |- configmap.yaml
-      |- deployment.yaml
-      |- volume.yaml
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+To install the chart with the release name `catools`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install catools bevel/fabric-catools
 ```
 
-- `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
-- `helpers.tpl`: Contains custom label definitions used in other templates.
-- `configmap.yaml`: Contains definitions for six different configmaps. These configmaps will be used by the main and store-vault containers through volume mounting to support their respective tasks.
-- `deployment.yaml`: The init-container generates the cryptographic material for the Fabric CA server and checks if the cryptographic material already exists in Vault. If it does, the init-container will skip the generation process. The main container runs the Fabric CA server, issues certificates to clients in the organization, and has a liveness probe that checks if the Fabric CA server is running. The store-vault container stores the cryptographic material in Vault, Checks if any certificates have not been stored correctly.
-- `volume.yaml`: Defines 2 persistent volume to store the data. 
-- `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
-- `README.md`: Provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the Helm chart.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
+> **Tip**: List all releases using `helm list`
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-catools/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+## Uninstalling the Chart
 
-### Metadata
+To uninstall/delete the `catools` deployment:
 
-| Name                  | Description                                       | Default Value       |
-| ----------------------| --------------------------------------------------| ------------------- |
-| namespace             | Namespace for CA deployment                       | org1-net         |
-| name                  | Name for CA server deployment                     | ca-tools            |
-| component_type        | Organization's type (orderer or peer)             | orderer             |
-| org_name              | Organization's name in lowercase                  | org1                |
-| proxy                 | Proxy/ingress provider (haproxy or none)          | haproxy             |
+```bash
+helm uninstall catools
+```
 
-### Replica
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
-| Name                  | Description                 | Default Value  |
-| ----------------------| --------------------------- | ---------------|
-| replicaCount          | Number of replica pods      | 1              |
+## Parameters
+
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws`, `azure` and `minikube` are tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.vault.tls` | Name of the Kubernetes secret which has certs to connect to TLS enabled Vault   | `false`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `haproxy` | `haproxy` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Fabric GRPC services will be available | `test.blockchaincloudpoc.com` |
 
 ### Image
 
-| Name          | Description                                                             | Default Value                                       |
-| --------------| ------------------------------------------------------------------------| ----------------------------------------------------|
-| repository    | Image name for the server container                                     | ghcr.io/hyperledger/bevel-fabric-ca-tools:1.2.1                         |
-| pullPolicy    | Image pull policy                                                       | IfNotPresent                                        |
-| alpineutils   | Valid image name and version to read certificates from the vault server | ghcr.io/hyperledger/bevel-alpine:latest             |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.caTools`  | Fabric CA Tools image repository and tag  | `ghcr.io/hyperledger/bevel-fabric-ca:latest` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
+| `image.pullPolicy`    | Image pull policy | `IfNotPresent`            |
 
+### OrgData
 
-### Annotations
-
-| Name           | Description                           | Default Value   |
-| ---------------| --------------------------------------|-----------------|
-| pvc            | Extra annotations for PVC             | ""              |
-| deployment     | Extra annotations for Deployment      | ""              |
-
-### Storage
-
-| Name                  | Description                 | Default Value       |
-| ----------------------| --------------------------- | ------------------- |
-| storageclassname      | Storage class name          | aws-storageclass         |
-| storagesize           | Storage size for CA         | 512Mi               |
-
-### Vault
-
-| Name                  | Description                                                       | Default Value                     |
-| ----------------------| ------------------------------------------------------------------|-----------------------------------|
-| role                  | Vault role for an organization                                    | vault-role                   |
-| address               | Vault server address                                              | ""                                |
-| authpath              | Kubernetes auth backend configured in vault for an organization   | devorg1-net-auth      |
-| secretusers             | Path configured in vault for users certificates                 | secretsv2/data/crypto/ordererOrganizations/org1-net/users                |
-| secretorderer         | Path configured in vault for orderers                             | secretsv2/data/crypto/ordererOrganizations/org1-net/orderers             |
-| secretpeerorderertls  | Path configured in vault for peer orderer TLS                     | secretsv2/data/crypto/peerOrganizations/org1-net/orderer/tls      |
-| secretcert            | Path configured in vault for CA server certificate                | secretsv2/data/crypto/ordererOrganizations/org1-net/ca?ca.org1-net-cert.pem                |
-| secretkey             | Path configured in vault for CA server private key                | secretsv2/data/crypto/ordererOrganizations/org1-net/ca?org1-net-CA.key                 |
-| secretconfigfile      | Path configured in vault for MSP config.yaml file                 | secretsv2/data/crypto/ordererOrganizations/org1-net/msp/config          |
-| secretcouchdb         | Path configured in vault for CouchDB credentials                  | secretsv2/data/credentials/org1-net/couchdb/org1             |
-| serviceaccountname    | Service account name for Vault                                    | vault-auth                        |
-| type        | Provide the type of vault    | hashicorp    |
-| imagesecretname       | Image secret name for Vault                                       | ""                                |
-
-### HealthCheck
-
-| Name                  | Description                                                               | Default Value  |
-| ----------------------| --------------------------------------------------------------------------| ---------------|
-| retries               | Number of times to retry fetching from/writing to Vault before giving up  | 10             |
-| sleepTimeAfterError   | Time in seconds to wait after an error occurs when interacting with Vault | 15             |
-
-### Org_data
-
-| Name                  | Description                       | Default Value   |
-| ----------------------| ----------------------------------| ----------------|
-| external_url_suffix   | External URL of the organization  | org1proxy.blockchaincloudpoc.com              |
-| component_subject     | Organization's subject            | ""              |
-| cert_subject          | Organization's subject            | ""              |
-| component_country     | Organization's country            | UK              |
-| component_state       | Organization's state              | London          |
-| component_location    | Organization's location           | London          |
-| ca_url                | Organization's CA URL             | ""              |
-
-### Orderers
-
-| Name           | Description                           | Default Value  |
-| ---------------| --------------------------------------| ---------------|
-| name           | Orderer's name                        | orderer1       |
-| orderers_info  | Orderer's names and CA certificates   | ""             |
-
-### Peers
-
-| Name          | Description                 | Default Value    |
-| --------------| --------------------------- | -----------------|
-| name          | Peer's name                 | peer1            |
-| peer_count    | Total number of peers       | 4                |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `orgData.caAddress` | Address of the CA Server without https | `""` |
+| `orgData.caAdminUser` | CA Admin Username  | `supplychain-admin` |
+| `orgData.caAdminPassword` | CA Admin Password  | `supplychain-adminpw` |
+| `orgData.orgName` | Organization Name  | `supplychain` |
+| `orgData.type` | Type of certificate to generate, choosed from `orderer` or `peer` | `orderer` |
+| `orgData.componentSubject` | X.509 subject for the organization  | `"O=Orderer,L=51.50/-0.13/London,C=GB"` |
 
 ### Users
 
-| Name                  | Description                   | Default Value   |
-| ----------------------| ---------------------------   | ----------------|
-| users_list            | Base64 encoded list of users  | ""              |
-| users_identities      | List of user identities       | ""              |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `users.usersList` | Array of Users with their attributes  | `- identity: user1`<br/>`attributes:`<br/>`- key: "hf.Revoker"`<br/>`value: "true"` |
+| `users.usersListAnsible` | Base64 encoded list of Users generally passed from Ansible  | `""` |
 
-### Checks
+### Settings
 
-| Name                  | Description                 | Default Value       |
-| ----------------------| --------------------------- | ------------------- |
-| refresh_cert_value    | Refresh user certificates   | false                  |
-| add_peer_value        | Add a peer to an existing network    | false                  |
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `settings.createConfigMaps` | Flag to create configmaps. Must be set to `false` for additional orderers/peers in the same organization. | `true` |
+| `settings.refreshCertValue` | Flag to refresh User certificates  | `false` |
+| `settings.addPeerValue` | Flag to be used when adding a new peer to the organization  | `false` |
+| `settings.removeCertsOnDelete` | Flag to delete the user and peer certificates on uninstall  | `false` |
+| `settings.removeOrdererTlsOnDelete` | Flag to delete the orderer TLS certificates on uninstall | `false` |
 
+### Labels
 
-<a name = "deployment"></a>
-## Deployment
----
+| Name   | Description      | Default Value |
+| ----------------| ----------- | ------------- |
+| `labels.service` | Array of Labels for service object  | `[]` |
+| `labels.pvc` | Array of Labels for PVC object  | `[]` |
+| `labels.deployment` | Array of Labels for deployment or statefulset object  | `[]` |
 
-To deploy the fabric-catools Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-catools/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./fabric-catools
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the fabric-catools node to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
-```
-$ kubectl get deployments -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the deployment was created. The command will display information about the deployment, including the number of replicas and their current status.
-
-
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
-
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-catools/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./fabric-catools
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the fabric-catools node is up to date.
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [CA Tools Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-catools), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

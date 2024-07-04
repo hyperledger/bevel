@@ -14,21 +14,57 @@
   vars:
     component_type: "Job"
     namespace: "{{ participant.name | lower}}-net"
-    component_name: "createchannel-{{ channel_name }}"
+    component_name: "{{ channel_name }}"
     kubernetes: "{{ org.k8s }}"
   when:
     - participant.type == 'creator' and ('2.2.' in network.version or '1.4.' in network.version)
     - participant.org_status is not defined or participant.org_status == 'new'
 
+# Get anchortx file from configmap obtener los datos del ordener en un task a aprte y despeus ahcer esto
+- name: Get anchortx file from config map 
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ orderer_kubeconfig }}"
+    kind: ConfigMap
+    name: "{{ channel_name }}-{{ participant.name | lower }}-anchortx"
+    namespace: "{{ orderer_namespace}}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: ordererorg
+  vars:
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"
+    orderer_kubeconfig: "{{ ordererorg.k8s.config_file }}"
+    orderer_context: "{{ ordererorg.k8s.context }}"
+  register: anchortx_data
+  when:
+  - (participant.org_status is not defined or participant.org_status == 'new') and ('2.2.' in network.version or '1.4.' in network.version)
+
+# Create the certs directory if it does not existt
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{playbook_dir}}/../../../{{ charts_dir }}/fabric-channel-join/files"
+    state: directory
+  when:
+  - (participant.org_status is not defined or participant.org_status == 'new') and ('2.2.' in network.version or '1.4.' in network.version)
+
+- name: Save anchortx file locally for {{ channel_name }}
+  shell: |
+     echo '{{ anchortx_data.results[0].resources[0].data[field_name ~ "-anchortx_base64"] | to_nice_json }}' > {{ files_loc }}/anchortx.json
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/fabric-channel-join/files"
+    field_name: "{{ channel_name }}-{{ participant.name | lower}}"
+  when:
+  - (participant.org_status is not defined or participant.org_status == 'new') and ('2.2.' in network.version or '1.4.' in network.version)
+
 # Create the join channel value file for each participating peer
 - name: "join channel {{ channel_name }}"
   include_role:
-    name: helm_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
   vars:
     name: "{{ participant.name }}"
     type: "join_channel_job"    
-    component_name: "join-{{ channel_name }}-{{ participant.name }}-{{ peer.name }}"
+    component_name: "{{ channel_name }}-{{ participant.name }}-{{ peer.name }}"
     peer_name: "{{ peer.name }}"
+    peer_type: "{{ peer.type }}"
     component_ns: "{{ participant.name | lower}}-net"
     git_protocol: "{{ org.gitops.git_protocol }}"
     git_url: "{{ org.gitops.git_url }}"

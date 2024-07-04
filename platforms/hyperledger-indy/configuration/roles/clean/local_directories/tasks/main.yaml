@@ -1,0 +1,33 @@
+# Find and delete .json files in platforms/hyperledger-indy/charts/indy-genesis/files directory
+- name: "Find .json files in indy-genesis files directory"
+  find:
+    paths: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-genesis/files"
+    patterns: "*.json"
+  register: genesis_files_to_delete
+
+# Delete .json files in indy-genesis files directory
+- name: "Delete .json files in indy-genesis files directory"
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ genesis_files_to_delete.files }}"
+
+# Find and delete .json files in platforms/hyperledger-indy/charts/indy-register-identity/files directory
+- name: "Find .json files in indy-register-identity files directory"
+  find:
+    paths: "{{ playbook_dir }}/../../hyperledger-indy/charts/indy-register-identity/files"
+    patterns: "*.json"
+  register: register_files_to_delete
+
+# Delete .json files in indy-register-identity files directory
+- name: "Delete .json files in indy-register-identity files directory"
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ register_files_to_delete.files }}"
+
+# Delete the build directory in platforms/hyperledger-indy/configuration
+- name: "Remove build directory from configuration"
+  file:
+    path: "{{ playbook_dir }}/../../hyperledger-indy/configuration/build"
+    state: absent

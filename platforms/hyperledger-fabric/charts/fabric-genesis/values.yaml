@@ -1,0 +1,109 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+# The following are for overriding global values
+global:
+  # HLF Network Version
+  #Eg. version: 2.5.4
+  version: 2.5.4
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
+
+  vault:
+    #Provide the type of vault
+    #Eg. type: hashicorp
+    type: hashicorp
+    #Provide the vaultrole for an organization
+    #Eg. vaultrole: org1-vault-role
+    role: vault-role
+    #Provide the network type
+    network: fabric
+    #Provide the vault server address
+    #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+    address:
+    #Provide the kubernetes auth backed configured in vault for an organization
+    #Eg. authpath: supplychain
+    authPath: supplychain
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/supplychain"
+
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "haproxy" or "none"
+    #Eg. provider: "haproxy"
+    provider: haproxy
+    #This field specifies the external url for the organization
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+
+image:
+  #Provide the valid image repository for fabric tools
+  #Eg. fabricTools: hyperledger/fabric-tools
+  fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
+  #Provide the valid image name and version to read certificates from vault server
+  #Eg.alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+  alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret:
+
+# Allows specification of one or many organizations that will be connecting to a network.
+organizations:
+  # Specification for the 1st organization.
+  - name: supplychain
+    orderers:
+      - name: orderer1
+        ordererAddress: orderer1.supplychain-net:7050 # Internal/External URI of the orderer
+      - name: orderer2
+        ordererAddress: orderer2.supplychain-net:7050
+      - name: orderer3
+        ordererAddress: orderer3.supplychain-net:7050
+    peers:
+      - name: peer0
+        peerAddress: peer0.supplychain-net:7051 # Internal/External URI of the peer
+      - name: peer1
+        peerAddress: peer1.supplychain-net:7051
+
+  # Specification for the 2nd organization.
+  - name: carrier
+    peers:
+      - name: peer0
+        peerAddress: peer0.carrier-net:7051 # Internal/External URI of the peer
+
+#Provide name of the consensus. Currently support raft and kafka
+#Eg. consensus: raft
+consensus: raft
+# kafka is only valid for consensus: kafka
+#Provide the kafka broker list
+kafka:
+  #Eg.  brokers:
+  #       - kafka-0.broker.example-com.svc.cluster.local:9092
+  #       - kafka-1.broker.example-com.svc.cluster.local:9092
+  #       - kafka-2.broker.example-com.svc.cluster.local:9092
+  #       - kafka-3.broker.example-com.svc.cluster.local:9092
+  brokers:
+
+# The channels defined for a network with participating peers in each channel
+channels:
+  - name: allchannel
+    consortium: SupplyChainConsortium
+    orderers:
+      - supplychain  
+    participants:
+      - supplychain
+      - carrier
+
+settings:
+  # Flag to generate the genesis file for Fabrix 2.2.x
+  generateGenesis: true
+  # Flag to ensure the genesis configmap is removed on helm uninstall
+  removeConfigMapOnDelete: true

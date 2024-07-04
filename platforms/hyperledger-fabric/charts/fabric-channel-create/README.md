@@ -3,189 +3,98 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "create-channel-hyperledger-fabric-deployment"></a>
-# Create Channel Hyperledger Fabric Deployment
+# fabric-channel-create
 
-- [Create Channel Hyperledger Fabric Deployment Helm Chart](#create-channel-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The fabric-channel-create chart deploys a Kubernetes job to create a channel. This chart should be executed after the [fabric-genesis](../fabric-genesis/README.md) chart and the channeltx should be present in `files`. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "create-channel-hyperledger-fabric-deployment-helm-chart"></a>
-## Create Channel Hyperledger Fabric Deployment Helm Chart
----
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-channel-create) to create a channel.
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install allchannel bevel/fabric-channel-create
+```
 
-
-<a name = "prerequisites"></a>
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+Also, [fabric-genesis](../fabric-genesis/README.md) chart should be installed. Then you can get the channeltx with following commands:
 
-```
-fabric-channel-create/
-  |- templates/
-      |- _helpers.yaml
-      |- configmap.yaml
-      |- create_channel.yaml
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+```bash
+cd ./fabric-channel-create/files
+kubectl --namespace supplychain-net get configmap allchannel-channeltx -o jsonpath='{.data.allchannel-channeltx_base64}' > channeltx.json
 ```
 
-- `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
-- `helpers.tpl`: Contains custom label definitions used in other templates.
-- `configmap.yaml`: Store configuration data that can be consumed by containers. The first ConfigMap stores various configuration data as key-value pairs and the second ConfigMap stores the base64-encoded content of the channel configuration file (channel.tx.base64). 
-- `create_channel.yaml`: The certificates-init fetches TLS certificates from a Vault server and stores them in a local directory. The createchannel fetches the channel configuration file from a local directory and checks to see if the channel already exists. If the channel does not exist, the createchannel creates the channel.
-- `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
-- `README.md`: Provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the Helm chart.
+## Installing the Chart
 
+To install the chart with the release name `allchannel`:
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-channel-create/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install allchannel bevel/fabric-channel-create
+```
 
-### Metadata
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
-| Name                  | Description                                                           | Default Value                                     |
-| ----------------------| ----------------------------------------------------------------------|---------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
-| images.fabrictools    | Valid image name and version for fabric tools                         | ghcr.io/hyperledger/bevel-fabric-tools:2.2.2                    |
-| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
-| labels                | Custom labels (other than specified)                                  | ""                                                |
+> **Tip**: List all releases using `helm list`
 
+## Uninstalling the Chart
 
-### Deployment
+To uninstall/delete the `allchannel` deployment:
 
-| Name         | Description                                 | Default Value  |
-| ------------ | ------------------------------------------- | -------------- |
-| annotations  | Deployment annotations                      | ""             |
+```bash
+helm uninstall allchannel
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
+
+## Parameters
+
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.version` | Fabric Version. This chart is only used for `2.2.x` | `2.2.2` |
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws`, `azure` and `minikube` are tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.network`  | Network type that is being deployed | `fabric`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `carrier`            |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/carrier`  |
+| `global.vault.tls` | Name of the Kubernetes secret which has certs to connect to TLS enabled Vault   | `false`  |
+
+### Image
+
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.fabricTools`  | Fabric Tools image repository  | `ghcr.io/hyperledger/bevel-fabric-tools` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
 ### Peer
 
-| Name          | Description                                   | Default Value                 |
-| --------------| ----------------------------------------------| ------------------------------|
-| name          | Name of the peer as per deployment yaml       | peer0                         |
-| address       | Address of the peer and grpc cluster IP port  | peer0.org1-net:7051   |
-| localmspid    | Local MSP ID for organization                 | Org1MSP                       |
-| loglevel      | Log level for organization's peer             | debug                         |
-| tlsstatus     | True or False for organization's peer         | true                          |
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `peer.name` | Name of the Peer that is creating the channel | `peer0` |
+| `peer.address` | Peer Internal or External Address with port | `peer0.carrier-net:7051` |
+| `peer.localMspId` | Peer MSP ID   | `carrierMSP` |
+| `peer.logLevel` | Peer Log Level  | `debug` |
+| `peer.tlsStatus` | TLS status of the peer  | `true` |
+| `peer.ordererAddress` | Orderer Internal or External Address with port for Peer to connect  | `orderer1.supplychain-net:7050` |
 
-### Vault
-
-| Name                | Description                                                         | Default Value                 |
-| ------------------- | --------------------------------------------------------------------| ------------------------------|
-| role                | Vault role for the organization                                     | vault-role                    |
-| address             | Vault server address                                                | ""                            |
-| authpath            | Kubernetes auth backend configured in vault for the organization    | devorg1-net-auth  |
-| adminsecretprefix   | Vault secret prefix for admin                                       | secretsv2/data/crypto/peerOrganizations/org1-net/users/admin     |
-| orderersecretprefix | Vault secret prefix for orderer                                     | secretsv2/data/crypto/peerOrganizations/org1-net/orderer   |
-| serviceaccountname  | Service account name for vault                                      | vault-auth                    |
-| type                | Provide the type of vault                                           | hashicorp    |
-| imagesecretname     | Image secret name for vault                                         | ""                            |
-| tls                 | Vault ca.cert Kubernetes secret                                     | ""                            |
-
-### Channel
-
-| Name   | Description                       | Default Value  |
-| ------ | --------------------------------- | -------------- |
-| name   | Name of the channel               | mychannel      |
-
-### Orderer
-
-| Name    | Description                 | Default Value             |
-| ------- | ----------------------------| --------------------------|
-| address | Address for the orderer     | orderer1.org1proxy.blockchaincloudpoc.com:443  |
-
-### Other
-
-| Name       | Description                                  | Default Value   |
-| ---------- | ---------------------------------------------| --------------- |
-| channeltx  | Base64 encoded file contents for channeltx   | ""              |
-
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the fabric-channel-create Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-channel-create/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./fabric-channel-create
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the fabric-channel-create node to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
-```
-$ kubectl get jobs -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
-
-
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
-
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-channel-create/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./fabric-channel-create
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the fabric-channel-create node is up to date.
-
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Create Channel Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-channel-create), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

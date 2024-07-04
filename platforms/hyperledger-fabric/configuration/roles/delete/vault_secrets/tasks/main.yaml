@@ -17,7 +17,7 @@
     state: absent
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
-  ignore_errors: yes
+  ignore_errors: true
 
 # Delete vault auth
 - name: Delete vault-auth path
@@ -39,19 +39,18 @@
 # Delete crypto materials from vault
 - name: Delete Crypto for orderers
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/ca
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/orderers/{{orderer.name}}.{{ component_name }}/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/users/admin/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/ca/{{ org_name }}
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/ca
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/orderers/{{ orderer.name | lower }}-tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/orderers/{{ orderer.name | lower }}-msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/admin-tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/admin-msp
   loop: "{{ services.orderers }}"
   loop_control:
     loop_var: orderer
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'orderer'
+  when: item.services.orderers is defined and item.services.orderers | length > 0
 
 # Delete crypto materials from extternalchaincode
 - name: Delete Crypto for peers
@@ -69,33 +68,26 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer'
+  when: 
+    - item.services.peers is defined and item.services.peers | length > 0
+    - peer.chaincodes is defined
 
 # Delete crypto materials from vault
 - name: Delete Crypto for peers
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/ca
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/admin/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/admin/msp
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/orderer/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/msp/config
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/ca
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/admin-tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/admin-msp
     {% for peer in peers %}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/peers/{{peer.name}}.{{ component_name }}/msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/peers/{{peer.name}}-tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/peers//{{peer.name}}-msp
     {% endfor %}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/ca/{{ org_name }}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/couchdb/{{ org_name }}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/credentials/{{ component_name }}/git
-    target_path={{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/endorsers/{{ org_name }}/users;
-    for key in $(vault kv list -format=json "$target_path" | jq -r '.[]'); do
-      vault kv delete "$target_path/$key/msp"; 
-    done
   vars:
     peers: "{{ services.peers }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer'
+  when: item.services.peers is defined and item.services.peers | length > 0
 
 # Remove all endorsers
 - name: Remove all endorsers
@@ -109,37 +101,23 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  ignore_errors: yes
-
-# Delete genesis block to Vault
-- name: "Delete genesis block to Vault"  
-  shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/ordererOrganizations/{{ component_name }}/{{ channel.channel_name | lower }}
-  environment:
-    VAULT_ADDR: "{{ item.vault.url }}"
-    VAULT_TOKEN: "{{ item.vault.root_token }}"
-  loop: "{{ network['channels'] }}"
-  loop_control:
-    loop_var: channel
+  ignore_errors: true
 
 # Delete crypto materials from vault
 - name: Delete Crypto for users
   shell: |
     {% for user in users %}
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/tls
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users/{{ user.identity }}/msp
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/{{ user.identity }}-tls
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/users/{{ user.identity }}-msp
     {% endfor %}
-    target_path={{ item.vault.secret_path | default('secret') }}/{{ item.name | lower }}/peerOrganizations/{{ component_name }}/users;
-    for key in $(vault kv list -format=json "$target_path" | jq -r '.[]'); do
-      vault kv delete "$target_path/$key/msp"; 
-      vault kv delete "$target_path/$key/tls"; 
-    done
   vars:
     users: "{{ item.users }}"
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  when: component_type == 'peer' and item.users is defined
+  when: 
+    - item.services.peers is defined and item.services.peers | length > 0
+    - item.users is defined
 
 # Delete policy
 - name: Delete policy
@@ -148,4 +126,4 @@
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
-  ignore_errors: yes
+  ignore_errors: true

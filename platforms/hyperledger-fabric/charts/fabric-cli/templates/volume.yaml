@@ -8,12 +8,18 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: {{ $.Values.peer.name }}-cli-pvc
-  namespace: {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}-cli-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{ include "labels.pvc" . | nindent 4 }}
 spec:
-  storageClassName: {{ $.Values.storage.class }}
+  {{- if .Values.storageClass }}
+  storageClassName: {{ .Values.storageClass }}
+  {{- else }}
+  storageClassName: storage-{{ .Release.Name }}
+  {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ $.Values.storage.size }}
+      storage: {{ .Values.storageSize }}

@@ -8,7 +8,7 @@
 To create a Production DLT/Blockchain network, ensure you have the following:
 
 1. One running Kubernetes Cluster and the Config file (default ~/.kube.config) per Organization.
-1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](../getting-started/configure-prerequisites.md#vaultunseal).
+1. One running Hashicorp Vault server per Organization. Unsealed and configured as per [guidance here](../getting-started/configure-prerequisites.md#unseal-hashicorp-vault).
 1. Domain Name(s) configured as per [tutorial here](../tutorials/dns-settings.md).
 1. Git user details per Organization as per [pre-requisites](../getting-started/configure-prerequisites.md#gitops-authentication).
 1. Ansible controller configured as per [guidance here](../getting-started/prerequisites-machine.md).

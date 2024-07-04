@@ -8,128 +8,108 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Values.nodeName }}-job
-  namespace: {{ .Values.metadata.namespace }}
+  name: {{ template "gateway.fullname" . }}-job
+  namespace: {{ .Release.Namespace }}  
   labels:
-    app: {{ .Values.nodeName }}-job
-    app.kubernetes.io/name: {{ .Values.nodeName }}-job
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app: {{ include "gateway.fullname" . }}-job
+    app.kubernetes.io/name: gateway-job
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: {{ include "gateway.fullname" . }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
   annotations:
     helm.sh/hook-weight: "5"
 spec:
   backoffLimit: {{ .Values.backoffLimit }}
   template:
     spec:
-    {{- with .Values.image.imagePullSecrets }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
       initContainers:
-        - name: {{ .Chart.Name }}-check-gateway
-          securityContext:
-            {{- toYaml .Values.config.securityContext | nindent 12 }}
-          image: "{{ .Values.image.gatewayContainerName }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: init-check-gateway
+          image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+          imagePullPolicy: IfNotPresent
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            echo Probing gateway port {{ .Values.cenmServices.gatewayPort }}
-            until nc -w 5 -vz {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} {{ .Values.cenmServices.gatewayPort }} > /dev/null 2>&1
+            echo Probing gateway.{{ .Release.Namespace }} port {{ .Values.global.cenm.gateway.port }}
+            until nc -w 5 -vz gateway.{{ .Release.Namespace }} {{ .Values.global.cenm.gateway.port }} > /dev/null 2>&1
             do
-              echo "Connect to {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.gatewayPort }} (tcp) failed: Connection refused"
+              echo "Connect to gateway.{{ .Release.Namespace }} port {{ .Values.global.cenm.gateway.port }} (tcp) failed: Connection refused"
             done
-            echo "Connection {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.gatewayPort }} successful"
-          resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
-        - name: {{ .Chart.Name }}-check-auth
-          securityContext:
-            {{- toYaml .Values.config.securityContext | nindent 12 }}
-          image: "{{ .Values.image.gatewayContainerName }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+            echo "Connection gateway.{{ .Release.Namespace }} port {{ .Values.global.cenm.gateway.port }} successful"
+        - name: init-check-auth
+          image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+          imagePullPolicy: IfNotPresent
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            echo Probing {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }}
-            until nc -w 5 -vz {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} {{ .Values.cenmServices.authPort }} > /dev/null 2>&1
+            echo Probing  auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }}
+            until nc -w 5 -vz auth.{{ .Release.Namespace }} {{ .Values.global.cenm.auth.port }} > /dev/null 2>&1
             do
-              echo "Connect to {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }} (tcp) failed: Connection refused"
+              echo "Connect to auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }} (tcp) failed: Connection refused"
             done
-            echo "Connection {{ .Values.cenmServices.authName }}.{{ .Values.metadata.namespace }} port {{ .Values.cenmServices.authPort }} successful"
-          resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+            echo "Connection auth.{{ .Release.Namespace }} port {{ .Values.global.cenm.auth.port }} successful"
       containers:
         - name: main
-          securityContext:
-            {{- toYaml .Values.config.securityContext | nindent 12 }}
-          image: "{{ .Values.image.gatewayContainerName }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.image.gateway.repository }}:{{ .Values.image.gateway.tag }}
+          imagePullPolicy: IfNotPresent
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            pwd
-            cd {{ .Values.config.volume.baseDir }}/CM-FILES/
-            ls -alR
-            ./setupAuth.sh {{ .Values.nodeName }}.{{ .Values.metadata.namespace }} {{ .Values.cenmServices.gatewayPort }}
-          resources:
-            {{- toYaml .Values.config.pod.resources | nindent 12 }}
+            # run the auth users setup
+            cd /opt/cenm/CM-FILES
+            ./setupAuth.sh gateway.{{ .Release.Namespace }} {{ .Values.global.cenm.gateway.port }}
           volumeMounts:
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/setupAuth.sh
+            mountPath: /opt/cenm/CM-FILES/setupAuth.sh
             subPath: setupAuth.sh
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/configuration-maintainers.json
+            mountPath: /opt/cenm/CM-FILES/g/configuration-maintainers.json
             subPath: configuration-maintainers.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-maintainers.json
+            mountPath: /opt/cenm/CM-FILES/g/network-maintainers.json
             subPath: network-maintainers.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-operation-readers.json
+            mountPath: /opt/cenm/CM-FILES/g/network-operation-readers.json
             subPath: network-operation-readers.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/g/network-operators.json
+            mountPath: /opt/cenm/CM-FILES/g/network-operators.json
             subPath: network-operators.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/ConfigurationMaintainer.json
+            mountPath: /opt/cenm/CM-FILES/r/ConfigurationMaintainer.json
             subPath: ConfigurationMaintainer.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkMaintainer.json
+            mountPath: /opt/cenm/CM-FILES/r/NetworkMaintainer.json
             subPath: NetworkMaintainer.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkOperationsReader.json
+            mountPath: /opt/cenm/CM-FILES/r/NetworkOperationsReader.json
             subPath: NetworkOperationsReader.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/r/NetworkOperator.json
+            mountPath: /opt/cenm/CM-FILES/r/NetworkOperator.json
             subPath: NetworkOperator.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/business-reader.json
+            mountPath: /opt/cenm/CM-FILES/u/business-reader.json
             subPath: business-reader.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/config-maintainer.json
+            mountPath: /opt/cenm/CM-FILES/u/config-maintainer.json
             subPath: config-maintainer.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/network-maintainer.json
+            mountPath: /opt/cenm/CM-FILES/u/network-maintainer.json
             subPath: network-maintainer.json
           - name: gateway-conf
-            mountPath: {{ .Values.config.volume.baseDir }}/CM-FILES/u/network-operator.json
+            mountPath: /opt/cenm/CM-FILES/u/network-operator.json
             subPath: network-operator.json
       restartPolicy: OnFailure
       volumes:
         - name: gateway-conf
           configMap:
-            name: {{ .Values.prefix }}-gateway-conf
+            name: {{ include "gateway.fullname" . }}-conf
             defaultMode: 0777
-      {{- with .Values.config.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-    {{- with .Values.config.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.config.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}

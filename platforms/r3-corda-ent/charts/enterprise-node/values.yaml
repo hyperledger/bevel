@@ -1,0 +1,105 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for enterprise-node chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: 
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "ambassador" or "none"
+    #Eg. provider: "ambassador"
+    provider: "ambassador"
+    #This field contains the external URL of the node
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+
+storage:
+  size: 1Gi
+  dbSize: 5Gi
+  allowedTopologies:
+    enabled: false
+
+image: 
+  #Provide the docker secret name in the namespace
+  #Eg. pullSecret: regcred
+  pullSecret:
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent
+  #Provide a valid image and version for enterprise-node service
+  node:
+    repository: corda/corda-enterprise
+    tag: 4.10.3-zulu-openjdk8-alpine
+  #Provide a valid image and version for enterprise-gateway service
+  bevelAlpine:
+    repository: ghcr.io/hyperledger/bevel-alpine
+    tag: latest
+
+network:
+  creds:
+    truststore: password
+
+dataSourceProperties:
+  dataSource:
+    user: node-db-user
+    password: node-db-password
+    url: "jdbc:h2:file:./h2/node-persistence;DB_CLOSE_ON_EXIT=FALSE;WRITE_DELAY=0;LOCK_TIMEOUT=10000"
+    dataSourceClassName: org.h2.jdbcx.JdbcDataSource
+
+nodeConf:
+  creds:
+    truststore: cordacadevpass
+    keystore: trustpass
+  crlCheckSoftFail: true
+  tlsCertCrlDistPoint: ""
+  tlsCertCrlIssuer: ""
+  devMode: false
+  monitoring:
+    enabled: true
+    port: 8090
+  allowDevCorDapps:
+    enabled: true
+  p2pPort: 10002
+  rpc:
+    port: 10003
+    adminPort: 10005
+    users:
+    - name: node
+      password: nodeP
+      permissions: ALL
+  ssh:
+    enabled: true
+    sshdPort: 2222
+  removeKeysOnDelete: false
+  legalName: "O=Node,OU=Node,L=London,C=GB"
+firewall:
+  enabled: false
+
+cordApps: 
+  #Provide if you want to provide jars in cordApps
+  #Eg. getCordApps: true or false
+  getCordApps: false
+  jars:
+    #Provide url to download the jar using wget cmd
+    #Eg. url: https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases/net/corda/corda-finance/3.3-corda/corda-finance-3.3-corda.jar 
+    - url: https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-supply-chain/4.9/cordapp-supply-chain-4.9.jar
+    - url: https://maven.pkg.github.com/hyperledger/bevel/com.supplychain.bcc.cordapp-contracts-states/4.9/cordapp-contracts-states-4.9.jar
+
+# Sleep time (in seconds) after an error occured
+sleepTimeAfterError: 180
+# path to base dir
+baseDir: /opt/corda

@@ -29,6 +29,15 @@ If you want to create the JSON files automatically by using our ansible playbook
 
 A Sample configuration file for deploying Operations Console is available [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2-raft.yaml). Main change being addition of a new key `organization.fabric_console` which when `enabled` will deploy the operations console for the organization.
 
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:151:166"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:340:350"
+      ..
+      ..
+```
+
 For generic instructions on the Fabric configuration file, refer [this guide](../networkyaml-fabric.md).
 
 <a name = "run-playbook"></a>

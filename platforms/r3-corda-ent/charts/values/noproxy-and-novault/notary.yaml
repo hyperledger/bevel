@@ -1,0 +1,37 @@
+---
+#helm install notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node 
+#helm upgrade notary -f values/noproxy-and-novault/notary.yaml -n supplychain-ns corda-node
+global:
+  serviceAccountName: bevel-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+  vault:
+    type: kubernetes
+  proxy:
+    provider: none
+    externalUrlSuffix: svc.cluster.local
+
+image:
+  notary:
+    repository: corda/corda-enterprise
+    tag: 4.10.3-zulu-openjdk8-alpine
+
+network:
+  creds:
+    truststore: password
+
+tls:
+  enabled: false
+
+nodeConf:
+  legalName: "O=Notary,OU=Notary,L=London,C=GB"
+  notary:
+    validating: true
+    serviceLegalName: "O=Notary,OU=Notary Service,L=London,C=GB"
+  doormanPort: 10000
+  networkMapPort: 10000
+  doormanDomain: idman.supplychain-ent
+  networkMapDomain: cenm-networkmap.supplychain-ent
+  networkMapURL: http://cenm-networkmap.supplychain-ent:10000
+  doormanURL: http://idman.supplychain-ent:10000

@@ -1,10 +1,10 @@
 # Bevel Sequence Diagram
 
-It is important to understand the sequence and flow for Bevel as this will determine how you confgure your networking. 
+When using Ansible automation in Bevel, it is important to understand the sequence and flow as this will determine how you confgure your networking. 
 
 !!! tip
 
-    Do not use 127.0.0.1 or localhost to configure any services like Kubernetes or Vault
+    Do not use 127.0.0.1 or localhost to configure any services like Kubernetes or Vault.
 
 ``` mermaid
 sequenceDiagram

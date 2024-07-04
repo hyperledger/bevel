@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: {{ component_name | replace('_','-') }}
@@ -60,10 +60,12 @@ spec:
 {% endif %}
       tessera:
         removeKeysOnDelete: true
+{% if org.type == 'member' or org.type is not defined %}
         peerNodes: 
 {% for tm_node in network.config.tm_nodes %}
           - url: {{ tm_node | quote }}
 {% endfor %}
+{% endif %}
         resources:
           cpuLimit: 0.25
           cpuRequest: 0.05
@@ -105,7 +107,7 @@ spec:
         tag: {{ network.version }}
     node:
       removeKeysOnDelete: false
-      isBootnode: {{ peer.bootnode | default(false) }}
+      isBootnode: false
       usesBootnodes: false
       besu:
         identity: {{ peer.subject | quote }}

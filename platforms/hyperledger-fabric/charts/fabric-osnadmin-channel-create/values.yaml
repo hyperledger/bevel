@@ -3,64 +3,64 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
-
-metadata:
-  #Provide the namespace for organization's peer
-  #Eg. namespace: org1-net
-  namespace: org1-net 
-  #Provide Fabric version
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+# The following are for overriding global values
+global:
+  # HLF Network Version
   #Eg. version: 2.5.4
-  network:
-    version: 2.5.4
-  images:
-    #Provide the valid image name and version for fabric tools
-    #Eg. fabrictools: hyperledger/fabric-tools:2.2.2
-    fabrictools: ghcr.io/hyperledger/bevel-fabric-tools:2.5.4
-    #Provide the valid image name and version to read certificates from vault server
-    #Eg. alpineutils: hyperledgerlabs/alpine-utils:1.0
-    alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
-  #Provide the custom labels
-  #NOTE: Provide labels other than name, release name , release service, chart version , chart name , app.
-  #Eg. labels:
-  #      role: create_channel
-  labels:
+  version: 2.5.4
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth  
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented
+  vault:
+    #Provide the type of vault
+    #Eg. type: hashicorp
+    type: hashicorp
+    #Provide the vaultrole for an organization
+    #Eg. vaultrole: org1-vault-role
+    role: vault-role
+    #Provide the network type
+    network: fabric
+    #Provide the vault server address
+    #Eg. vaultaddress: http://Vault-884963190.eu-west-1.elb.amazonaws.com
+    address:
+    #Provide the kubernetes auth backed configured in vault for an organization
+    #Eg. authpath: supplychain
+    authPath: supplychain
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/supplychain"
+    #Enable or disable TLS for vault communication
+    #Eg. tls: true
+    tls: 
 
-deployment:
-  annotations:
+image:
+  #Provide the valid image name and version for fabric tools
+  #Eg. fabricTools: hyperledger/fabric-tools
+  fabricTools: ghcr.io/hyperledger/bevel-fabric-tools
+  #Provide the valid image name and version to read certificates from vault server
+  #Eg. alpineUtils: hyperledgerlabs/alpine-utils:1.0
+  alpineUtils: ghcr.io/hyperledger/bevel-alpine:latest
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret: 
 
-vault:
-  #Provide the vaultrole for an organization
-  #Eg. vaultrole: vault-role
-  role: vault-role
-  #Provide the vault server address
-  #Eg. vaultaddress: http://vault.internal.example.com:9000
-  address: 
-  #Provide the kubernetes auth backed configured in vault for an organization
-  #Eg. authpath: devorg1-net-auth
-  authpath: devorg1-net-auth
-  #Provide the value for vault secretprefix
-  #Provide the value for vault secretprefix where orderers certificates are stored.
-  #Eg. orderersecretprefix: secretsv2/crypto/ordererOrganizations/org1-net/orderers
-  orderersecretprefix: secretsv2/crypto/ordererOrganizations/org1-net/orderers
-  #Provide the serviceaccountname for vault
-  #Eg. serviceaccountname: vault-auth
-  serviceaccountname: vault-auth
-  #Provide the type of vault
-  #Eg. type: hashicorp
-  type: hashicorp
-  #Provide the imagesecretname for vault
-  #Eg. imagesecretname: regcred
-  imagesecretname: ""
-
-channel:
-  #Provide the name of the channel
-  #Eg. name: mychannel
-  name: mychannel
+#Provide orderer details
+orderers:
+  - name: orderer1
+    adminAddress: orderer1.supplychain-net:7055 # Internal URI of the orderer ONS Admin service
+  - name: orderer2
+    adminAddress: orderer2.supplychain-net:7055
+  - name: orderer3
+    adminAddress: orderer3.supplychain-net:7055
 
 orderer:
-  #Provide orderer's names
-  #Eg. address: orderer1*orderer2*orderer3
-  orderer_info: orderer1
-
-#Provide the base64 encoded genesis file 
-genesis:
+  addOrderer: false
+  name: neworderer
+  localMspId: newordererMSP
+  ordererAddress: neworderer.neworg-net:7050

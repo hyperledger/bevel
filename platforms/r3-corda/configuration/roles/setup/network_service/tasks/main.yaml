@@ -1,0 +1,41 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Create deployment file for network services
+- name: Create helm release file for network service
+  include_role:
+    name: create/helm_component
+  vars:
+    component_name: "{{ name }}"
+    type: "network_service"
+    doorman: "{{ org.services.doorman }}"
+    nms: "{{ org.services.nms }}"
+
+# Git Push : Pushes the above generated files to git
+- name: Git Push
+  include_role: 
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
+  vars:
+    GIT_DIR: "{{ playbook_dir }}/../../../"
+    msg: "[ci skip] Pushing network-service files"
+  tags:
+    - notest
+
+# Wait for the NMS be running
+- name: "Wait for the NMS to run"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
+  vars:
+    label_selectors:
+      - app.kubernetes.io/component = nms
+    component_type: "Pod"
+    component_name: "nms"
+    namespace: "{{ component_ns }}"
+
+# Get the doorman and nms certs
+- name: Get doorman and nms certs
+  include_role: 
+    name: get/certs

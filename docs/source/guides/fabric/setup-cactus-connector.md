@@ -7,8 +7,8 @@
 # Deploy Fabric Cactus connector
 
 - [Prerequisites](#prerequisites)
-- [Modifying configuration file](#create_config_file)
-- [Running playbook to deploy Hyperledger Fabric network](#run_network)
+- [Modifying Configuration File](#modifying-configuration-file)
+- [Run playbook](#run-playbook)
 
 
 <a name = "prerequisites"></a>
@@ -27,31 +27,17 @@ Refer [this guide](../networkyaml-fabric.md) for details on editing the configur
 
 While modifying the configuration file(`network.yaml`)to deploy the cactus connector, all peers in member organizations should have `cactus_connector` tag as `enabled` e.g.
 
-    network:
-      organizations:
-        - organization:
-          type: peer
+```yaml
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:242:248"
+      ..
+      ..
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:297:297"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:304:312"
           ..
           ..
-          services:
-            peers:
-            - peer:
-              ..
-              ..
-              cactus_connector: enabled  # set to enabled to create a cactus connector for Fabric
-              
-        - organization:
-          type: peer
-          ..
-          ..
-          services:
-            peers:
-            - peer:
-              ..
-              ..
-              cactus_connector: enabled  # set to enabled to create a cactus connector for Fabric
+```
 
-For reference, see `network-fabricv2.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples).
+For reference, see `network-fabricv2.yaml` file [here](https://github.com/hyperledger/bevel/tree/main/platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml).
 
 
 <a name = "run_network"></a>

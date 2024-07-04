@@ -100,40 +100,91 @@ network:
         private_key: "path_to_private_key"          # Path to private key file which has write-access to the git repo (Optional for https; Required for ssh)
       # The participating nodes are named as peers
       services:
-        peers:
-        - peer:
-          name: carrier
-          subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: member         # value can be validator or member, only applicable if consensus = 'ibft'
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
+        validators:
+        - validator:
+          name: validator-1
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
           p2p:
             port: 21000
             ambassador: 15010       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
             port: 8546
-          transaction_manager:
-            port: 443
-            ambassador: 443
-            clientport: 8888
-          raft:                     # Only used if consensus = 'raft'
-            port: 50401
-            ambassador: 15013
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
+          metrics:
+            enabled: true      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545         # Specify the port that Prometheus will use to collect metrics for this node. 
+        - validator:
+          name: validator-2
+          bootnode: true          # true if the validator node is used also a bootnode for the network
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
+          p2p:
+            port: 21000
+            ambassador: 15011       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
+            port: 8546
+          metrics:
+            enabled: true      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545         # Specify the port that Prometheus will use to collect metrics for this node. 
+        - validator:
+          name: validator-3
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 21000
+            ambassador: 15012       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
+            port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
+        - validator:
+          name: validator-4
+          bootnode: false          # true if the validator node is used also a bootnode for the network
+          p2p:
+            port: 21000
+            ambassador: 15013       #Port exposed on ambassador service (use one port per org if using single cluster)
+          rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
+            port: 8546
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node. 
+        peers:
         - peer:
-          name: validator1
-          subject: "O=Validator1,OU=Validator1,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
+          name: supplychain
+          subject: "O=SupplyChain,OU=ValidatorOrg,L=51.50/-0.13/London,C=GB" # This is the node subject. L=lat/long is mandatory for supplychain sample app
           geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
+          lock: true        # Sets Besu node to lock or unlock mode. Can be true or false
+          cactus_connector: disabled  # set to enabled to create a cactus connector for Besu
           p2p:
             port: 21000
             ambassador: 15014       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
+            port: 8545
+            ambassador: 80       # Will only support port 80
+          ws:
             port: 8546
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
+          db:
+            port: 3306        # Only applicable for tessra where mysql db is used
+          tm_nodeport:
+            port: 443             # Port exposed on ambassador service must be same
+            ambassador: 443
+          tm_clientport:
+            port: 8888
+          metrics:
+            enabled: false      # Set this to true to enable Prometheus monitoring for this node, or false to disable it.
+            port: 9545          # Specify the port that Prometheus will use to collect metrics for this node.
+
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -180,7 +231,7 @@ network:
           lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
           p2p:
             port: 21000
-            ambassador: 15020       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15015       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
           transaction_manager:
@@ -190,19 +241,6 @@ network:
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15023
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
-        - peer:
-          name: validator2
-          subject: "O=Validator2,OU=Validator2,L=47.38/8.54/Zurich,C=CH" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
-          p2p:
-            port: 21000
-            ambassador: 15024       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8546
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
 
@@ -249,7 +287,7 @@ network:
           lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
           p2p:
             port: 21000
-            ambassador: 15030       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15016       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
           transaction_manager:
@@ -259,19 +297,6 @@ network:
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15033
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
-        - peer:
-          name: validator3
-          subject: "O=Validator3,OU=Validator3,L=40.73/-74/New York,C=US" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
-          p2p:
-            port: 21000
-            ambassador: 15034       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8546
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306
 
@@ -318,7 +343,7 @@ network:
           lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
           p2p:
             port: 21000
-            ambassador: 15040       #Port exposed on ambassador service (use one port per org if using single cluster)
+            ambassador: 15017       #Port exposed on ambassador service (use one port per org if using single cluster)
           rpc:
             port: 8546
           transaction_manager:
@@ -328,18 +353,5 @@ network:
           raft:                     # Only used if consensus = 'raft'
             port: 50401
             ambassador: 15043
-          db:                       # Only used if transaction_manager = "tessera"
-            port: 3306
-        - peer:
-          name: validator4
-          subject: "O=Validator4,OU=Validator4,L=42.36/-71.06/Boston,C=US" # This is the node subject. L=lat/long is mandatory for supplychain sample app
-          type: validator         # value can be validator or member, only applicable if consensus = 'ibft'
-          geth_passphrase: "12345"  # Passphrase to be used to generate geth account
-          lock: false        # true or false: corresponds to, **geth --allow-insecure-unlock**, while starting up the node
-          p2p:
-            port: 21000
-            ambassador: 15044       #Port exposed on ambassador service (use one port per org if using single cluster)
-          rpc:
-            port: 8546
           db:                       # Only used if transaction_manager = "tessera"
             port: 3306

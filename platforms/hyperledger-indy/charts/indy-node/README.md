@@ -3,238 +3,100 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "indy-node"></a>
 # indy-node
 
-- [indy-node Helm Chart](#indy-node-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The indy-node chart deploys a Hyperledger Indy node as a steward. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for more details.
 
-<a name = "indy-node-helm-chart"></a>
-## indy-node Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/tree/develop/platforms/hyperledger-indy/charts/indy-node) helps to deploy indy node job.
+## TL;DR
 
-<a name = "prerequisites"></a>
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install university-steward-1 bevel/indy-node
+```
+
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-```
-indy-node/
-    |- templates/
-            |- _helpers.tpl
-            |- job.yaml
-    |- Chart.yaml
-    |- README.md
-    |- values.yaml
+> **Important**: Ensure the `indy-key-mgmt` and `indy-genesis` charts has been installed correctly before installing this.
+
+## Installing the Chart
+
+To install the chart with the release name `university-steward-1`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install university-steward-1 bevel/indy-node
 ```
 
-- `templates/`: This directory contains the template files for generating Kubernetes resources.
-- `helpers.tpl`:  Contains custom label definitions used in other templates.
-- `job.yaml`:  This file provides information about the kubernetes job 
-- `Chart.yaml`: Provides metadata about the chart, such as its name, version, and description.
-- `README.md`: This file provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the chart. It includes configuration for the metadata, image, node, Vault, etc.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-node/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+> **Tip**: List all releases using `helm list`
+
+## Uninstalling the Chart
+
+To uninstall/delete the `university-steward-1` deployment:
+
+```bash
+helm uninstall university-steward-1
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
-### metadata
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `ambassador` | `ambassador` |
 
-| Name            | Description                                     | Default Value |
-| ----------------| ----------------------------------------------- | ------------- |
-| namespace       | Provide the namespace for organization's peer   | bevel       |
-| name            | Provide the name for indy-node release      |   indy-node          |
+### Storage
 
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.keys` | Size of the PVC needed storing the formatted keys  | `512Mi` |
+| `storage.data` | Size of the PVC needed storing the node data  | `4Gi` |
+| `storage.reclaimPolicy` | Reclaim policy for the PVC. Choose from: `Delete` or `Retain` | `Delete` |
+| `storage.volumeBindingMode` | Volume binding mode for the PVC. Choose from: `Immediate` or `WaitForFirstConsumer` | `Immediate` |
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
-### replicas
+### Image
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
+| `image.initContainer`   | Init-container image repository and tag  | `ghcr.io/hyperledger/bevel-alpine-ext:latest`|
+| `image.cli`   | Indy-cli indy-ledger-txn image repository and tag | `ghcr.io/hyperledger/bevel-indy-ledger-txn:latest`|
+| `image.indyNode.repository`  | Indy Node image repository  | `ghcr.io/hyperledger/bevel-indy-node` |
+| `image.indyNode.tag`  | Indy Node image tag/version  | `1.12.6` |
 
-| Name      | Description                              | Default Value |
-| --------- | ---------------------------------------- | ------------- |
-| replicas  | Provide the number of indy-node replicas |  1           |
+### Settings
 
-### network
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `settings.network` | Network Name for Indy  | `bevel` |
+| `settings.addOrg` | Flag to denote if this is a new Node for existing Indy network  | `false` |
+| `settings.serviceType` | Choose between `ClusterIP` or `NodePort`; `NodePort` must be used for no-proxy  | `ClusterIP` |
+| `settings.node.ip` | Internal IP of the Indy node service  | `0.0.0.0` |
+| `settings.node.publicIp` | External IP of the Indy node service, use same IP from genesis  | `""` |
+| `settings.node.port` | Internal Port of the Indy node service  | `9711` |
+| `settings.node.externalPort` | External IP of the Indy node service, use same port from genesis  | `15011` |
+| `settings.client.ip` | Internal IP of the Indy client service  | `0.0.0.0` |
+| `settings.client.publicIp` | External IP of the Indy client service, use same IP from genesis  | `""` |
+| `settings.client.port` | Internal Port of the Indy client service  | `9712` |
+| `settings.client.externalPort` | External IP of the Indy client service, use same port from genesis  | `15012` |
 
-| Name    | Description                  | Default Value |
-| ------- | ---------------------------- | ------------- |
-| name    | Provide the name for network |  bevel           |
-
-
-### organization
- 
-| Name              | Description                          | Default Value |
-| --------          | -----------------------------------  | ------------- |
-| name              | Provide the name for organization    | provider            |
-
-# add_new_org is true when adding new validator node to existing network
-add_new_org: false
-
-
-
-### image
-
-| Name          | Description                                                    | Default Value |
-| ------------  | -------------------------------------------------------------- | ------------- |
-| initContainer | 
-|    name       | Provide the image name for the indy-node init container        | indy-node      |
-|    repository | provide the image repository for the indy-node init            | alpine:3.9.4   | 
-| cli           |                                                                |             |
-|    name       | Provide the image name for the indy-ledger-txn container       | indy-ledger-txn            |
-|    repository | Provide the image repository for the indy-ledger-txn container | alpine:3.9.4            |
-| indyNode      |                                                                |             |
-|    name       |   Provide the name for the indy node                           | indy-node            |
-| repository    | Provide the image name for the indy-node  container            | alpine:3.9.4            |
-| pullSecret    |  Provide the image pull secret of image                        | regcred            |
-     
-    
-
-### node
-
-| Name             | Description              | Default Value |
-| -----------------| -------------------------| ------------- |
-| name             |  Provide the  node name  | indy-node            |
-| ip               |  Provide the  node ip    | 0.0.0.0            |
-| publicIp         |  Provide the  node ip    | 0.0.0.0            |
-| port             |  Provide the  node port  | 9752            |
-| ambassadorPort   |  Provide the  node port  | 15911            |
-
-### client
-
-| Name             | Description              | Default Value |
-| -----------------| -------------------------| ------------- |
-| ip               |  Provide the  node ip    | 0.0.0.0            |
-| publicIp         |  Provide the  node ip    | 0.0.0.0            |
-| port             |  Provide the  node port  | 9752            |
-| ambassadorPort   |  Provide the  node port  | 15912            |
-
-#### service
-| Name                 | Description                                  | Default Value |
-| -------------------- | ---------------------------------------------| ------------- |
-| type                 | Provide type of service (NodePort/ClusterIp) | NodePort            |
-| ports                |                                              |             |
-|   nodePort           | Provide the service node port                | 9711          |
-|   nodeTargetPort     | Provide the service node target port         | 9711          |
-|   clientPort Provide | the service client port                      | 9712          |
-|   clientTargetPort   | Provide the service client target port       | 9712          |
-
-### configmap
-
-| Name                 | Description                                  | Default Value |
-| -------------------- | ---------------------------------------------| ------------- |
-| domainGenesis        | Provide the domain genesis                   | ""            |
-| poolGenesis          | Provide the pool genesis                     | ""            |
- 
-   
-
-### ambassador
-
-### vault
-
-| Name                 | Description                                  | Default Value |
-| -------------------- | ---------------------------------------------| ------------- |
-| address              | Provide the vault server address             | http://54.226.163.39:8200            |
-| serviceAccountName   | Provide the service account name for vault   |vault-auth-provider-agent-app""            |
-| keyPath              | Provide the key path for vault               | /keys/udisp/keys/indy-node            |
-| auth_path            | Provide the authpath                         | kubernetes-bevel-provider-steward-1-auth            |
-| nodeId               | Provide the indy-node node Id                | indy-node            |
-| role                 | Provide the indy-node role                   | ro|
- 
-
-### storage
-
-| Name                 | Description                                        |  Default Value |
-| -------------------- | -------------------------------------------------- | -------------  |
-| keys                 |                                                    |              |
-|   storagesize        |  Provide the storage size for storage for keys     | 512Mi             |
-|   storageClassName   |  Provide the storageClassName for storage for keys | ebs             |
-| data                 |                                                    |              |
-|   storagesize        |  Provide the storage size for storage for data     | 5Gi|
-|   storageClassName   |  Provide the storageClassName for storage for data | ebs             |
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the indy-node Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-node/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./indy-node
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the indy auth job to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the jobs, we can use the following command:
-```
-$ kubectl get jobs -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the job was created. The command will display information about the jobs.
-
-
-<a name = "updating-the-job"></a>
-## Updating the job
----
-
-If we need to update the job with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-indy/charts/indy-node/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./indy-node
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the job , ensuring the job  is up to date.
-
-
-<a name = "deletion"></a>
-## Deletion
----
-
-To delete the jobs and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the  [INDY  authorization job Helm Chart](https://github.com/hyperledger/bevel/tree/develop/platforms/hyperledger-indy/charts/indy-node), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

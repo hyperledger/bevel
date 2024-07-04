@@ -1,0 +1,226 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "corda-network-service.fullname" . }}-pre-install-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  labels:
+    app.kubernetes.io/name: pre-install-hook
+    app.kubernetes.io/component: certgen
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-install-hook
+        app.kubernetes.io/component: certgen
+        app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: corda-certgen
+          image: {{ .Values.image.hooks.repository }}:{{ .Values.image.hooks.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: generated-config
+              mountPath: /home
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+            - name: openssl-conf
+              mountPath: /home/openssl.conf
+              subPath: openssl.conf
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+          env:
+          - name: VAULT_ADDR
+            value: "{{ .Values.global.vault.address }}"
+          - name: VAULT_SECRET_ENGINE
+            value: "{{ .Values.global.vault.secretEngine }}"
+          - name: VAULT_SECRET_PREFIX
+            value: "{{ .Values.global.vault.secretPrefix }}"
+          - name: KUBERNETES_AUTH_PATH
+            value: "{{ .Values.global.vault.authPath }}"
+          - name: VAULT_APP_ROLE
+            value: "{{ .Values.global.vault.role }}"
+          - name: VAULT_TYPE
+            value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+{{- if (eq .Values.global.vault.type "hashicorp") }}
+              . /scripts/bevel-vault.sh
+              echo "Getting vault Token..."
+              vaultBevelFunc "init"
+              #Read if secret exists in Vault
+              vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/{{ .Release.Name }}-certs"
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                if [ "$SECRETS_AVAILABLE" == "yes" ]
+                then
+                  # Get secret from Vault and create the k8s secret if it does not exist
+                  kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                  if [ $? -ne 0 ]; then
+                    NMS_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["nmskeystore_base64"]')
+                    DOORMAN_KEYS=$(echo ${VAULT_SECRET} | jq -r '.["doormankeystore_base64"]')
+                    ROOT_CA=$(echo ${VAULT_SECRET} | jq -r '.["rootcakeystore_base64"]')
+                    CA_CERTS=$(echo ${VAULT_SECRET} | jq -r '.["rootcacert_base64"]' | base64 -d)
+                    CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootcakey_base64"]' | base64 -d)
+                    MONGO_CERT=$(echo ${VAULT_SECRET} | jq -r '.["dbcert_base64"]')
+                    MONGO_CACERT=$(echo ${VAULT_SECRET} | jq -r '.["dbcacert_base64"]')
+                    echo $NMS_KEYS | base64 -d > /tmp/nmsKeys.jks
+                    echo $DOORMAN_KEYS | base64 -d > /tmp/doormankeys.jks
+                    echo $ROOT_CA | base64 -d > /tmp/rootkeys.jks
+                    echo $CA_CERTS > /tmp/rootca.pem
+                    echo $CA_KEY > /tmp/rootca.key
+                    echo $MONGO_CERT > /tmp/mongodb.pem
+                    echo $MONGO_CACERT > /tmp/mongoca.pem
+                    kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                      --from-file=nmskeystore=/tmp/nmsKeys.jks --from-file=doormankeystore=/tmp/doormankeys.jks \
+                      --from-file=rootcakeystore=/tmp/rootkeys.jks \
+                      --from-file=rootcacert=/tmp/rootca.pem --from-file=rootcakey=/tmp/rootca.key \
+                      --from-file=mongodb.pem=/tmp/mongodb.pem --from-file=mongoCA.crt=/tmp/mongoca.pem
+                  fi
+                else
+                  # Save Certs to Vault
+                  # Use -w0 to get single line base64 -w0
+                  NMS_KEYS=$(cat ${fpath}/nms/keys.jks | base64 -w0)
+                  DOORMAN_KEYS=$(cat ${fpath}/doorman/keys.jks | base64 -w0)
+                  ROOT_CA=$(cat ${fpath}/rootca/keys.jks | base64 -w0)
+                  CA_CERTS=$(cat ${fpath}/rootca/cordarootca.pem | base64 -w0)
+                  CA_KEY=$(cat ${fpath}/rootca/cordarootca.key | base64 -w0)
+                  MONGO_CERT=$(cat ${fpath}/mongodb/mongodb.pem | base64 -w0)
+                  MONGO_CACERT=$(cat ${fpath}/mongodb/mongoCA.crt | base64 -w0)
+                  # create a JSON file for the data related to node crypto
+                  echo "
+                  {
+                    \"data\":
+                      {
+                        \"nmskeystore_base64\": \"${NMS_KEYS}\",
+                        \"doormankeystore_base64\": \"${DOORMAN_KEYS}\",
+                        \"rootcakeystore_base64\": \"${ROOT_CA}\",
+                        \"rootcacert_base64\": \"${CA_CERTS}\",
+                        \"rootcakey_base64\": \"${CA_KEY}\",
+                        \"dbcert_base64\": \"${MONGO_CERT}\",
+                        \"dbcacert_base64\": \"${MONGO_CACERT}\"
+                      }
+                  }" > payload.json
+                  vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-certs" 'payload.json'
+                  rm payload.json
+                  # Also create the k8s secret
+                  kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                    --from-file=nmskeystore=${fpath}/nms/keys.jks --from-file=doormankeystore=${fpath}/doorman/keys.jks \
+                    --from-file=rootcakeystore=${fpath}/rootca/keys.jks \
+                    --from-file=rootcacert=${fpath}/rootca/cordarootca.pem --from-file=rootcakey=${fpath}/rootca/cordarootca.key \
+                    --from-literal=mongodb.pem=${MONGO_CERT} --from-literal=mongoCA.crt=${MONGO_CACERT}
+                fi
+              }
+{{- else }}
+              function safeWriteSecret {
+                key=$1
+                fpath=$2
+                kubectl get secret ${key}-certs --namespace {{ .Release.Namespace }} -o json > /dev/null 2>&1
+                if [ $? -ne 0 ]; then
+                  kubectl create secret generic ${key}-certs --namespace {{ .Release.Namespace }} \
+                    --from-file=nmskeystore=${fpath}/nms/keys.jks --from-file=doormankeystore=${fpath}/doorman/keys.jks \
+                    --from-file=rootcakeystore=${fpath}/rootca/keys.jks \
+                    --from-file=rootcacert=${fpath}/rootca/cordarootca.pem --from-file=rootcakey=${fpath}/rootca/cordarootca.key \
+                    --from-file=mongodb.pem=<(base64 -w0 ${fpath}/mongodb/mongodb.pem) --from-file=mongoCA.crt=<(base64 -w0 ${fpath}/mongodb/mongoCA.crt)
+                fi
+              }
+{{- end }}
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                echo "Certificates found for {{ .Release.Name }} ..."
+              else
+                echo "Creating certificates for {{ .Release.Name }} ..."
+                ROOTCA_PATH=/home/certificates/rootca
+                DBCA_PATH=/home/certificates/mongodb
+                DOORMAN_CERTS=/home/certificates/doorman
+                NMS_CERTS=/home/certificates/nms
+                mkdir -p ${ROOTCA_PATH}
+                mkdir -p ${DBCA_PATH}
+                mkdir -p ${DOORMAN_CERTS}
+                mkdir -p ${NMS_CERTS}
+                # Do not change keystore_pass as it is hardcoded as default in doorman/networkmap app
+                KEYSTORE_PASS='changeme'
+
+                cd ${ROOTCA_PATH}
+                keytool -genkey -keyalg RSA -alias key -dname "{{ .Values.settings.rootSubject }}" -keystore keys.jks -storepass $KEYSTORE_PASS -keypass $KEYSTORE_PASS
+                openssl ecparam -name prime256v1 -genkey -noout -out cordarootca.key
+                openssl req -x509 -config /home/openssl.conf -new -nodes -key cordarootca.key -days 1024 -out cordarootca.pem -extensions v3_ca -subj '/{{ .Values.settings.rootSubject | replace "," "/" }}'
+                openssl pkcs12 -export -name cert -inkey cordarootca.key -in cordarootca.pem -out cordarootcacert.pkcs12 -cacerts -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                openssl pkcs12 -export -name key -inkey cordarootca.key -in cordarootca.pem -out cordarootcakey.pkcs12 -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                eval "yes | keytool -importkeystore -srckeystore cordarootcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+                eval "yes | keytool -importkeystore -srckeystore cordarootcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+                
+                cd ${DBCA_PATH}
+                openssl genrsa -out mongoCA.key 3072
+                openssl req -x509 -config /home/openssl.conf -new -extensions v3_ca -key mongoCA.key -days 365 -out mongoCA.crt -subj '/{{ .Values.settings.mongoSubject | replace "," "/" }}'
+                openssl req -new -nodes -newkey rsa:4096 -keyout mongodb.key -out mongodb.csr -subj '/{{ .Values.settings.mongoSubject | replace "," "/" }}'
+                openssl x509 -CA mongoCA.crt -CAkey mongoCA.key -CAcreateserial -CAserial serial -req -days 365 -in mongodb.csr -out mongodb.crt
+                cat mongodb.key mongodb.crt > mongodb.pem
+                
+                cd ${DOORMAN_CERTS}
+                keytool -genkey -keyalg RSA -alias key -dname "{{ .Values.doorman.subject }}" -keystore keys.jks -storepass $KEYSTORE_PASS -keypass $KEYSTORE_PASS
+                openssl ecparam -name prime256v1 -genkey -noout -out cordadoormanca.key
+                openssl req -new -nodes -key cordadoormanca.key -out cordadoormanca.csr -subj '/{{ .Values.doorman.subject | replace "," "/" }}'
+                openssl x509  -req -days 1000 -in cordadoormanca.csr -CA ${ROOTCA_PATH}/cordarootca.pem -CAkey ${ROOTCA_PATH}/cordarootca.key -out cordadoormanca.pem -CAcreateserial \
+                  -CAserial serial -extfile /home/openssl.conf -extensions doorman
+                openssl pkcs12 -export -name cert -inkey cordadoormanca.key -in cordadoormanca.pem -out cordadoormancacert.pkcs12 -cacerts -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                openssl pkcs12 -export -name key -inkey cordadoormanca.key -in cordadoormanca.pem -out cordadoormancakey.pkcs12 -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                eval "yes | keytool -importkeystore -srckeystore cordadoormancacert.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+                eval "yes | keytool -importkeystore -srckeystore cordadoormancakey.pkcs12 -srcstoretype PKCS12 -srcstorepass $KEYSTORE_PASS -destkeystore keys.jks -deststorepass $KEYSTORE_PASS"
+
+                cd ${NMS_CERTS}
+                keytool -genkey -keyalg RSA -alias key -dname "{{ .Values.nms.subject }}" -keystore keys.jks -storepass $KEYSTORE_PASS -keypass $KEYSTORE_PASS
+                openssl ecparam -name prime256v1 -genkey -noout -out cordanetworkmap.key
+                openssl req -new -nodes -key cordanetworkmap.key -out cordanetworkmap.csr -subj '/{{ .Values.nms.subject | replace "," "/" }}'
+                openssl x509  -req -days 1000 -in cordanetworkmap.csr -CA ${ROOTCA_PATH}/cordarootca.pem -CAkey ${ROOTCA_PATH}/cordarootca.key -out cordanetworkmap.pem -CAcreateserial \
+                  -CAserial serial -extfile /home/openssl.conf -extensions networkMap
+                openssl pkcs12 -export -name cert -inkey cordanetworkmap.key -in cordanetworkmap.pem -out cordanetworkmapcacert.pkcs12 -cacerts -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                openssl pkcs12 -export -name key -inkey cordanetworkmap.key -in cordanetworkmap.pem -out cordanetworkmapcakey.pkcs12 -passin pass:${KEYSTORE_PASS} -passout pass:${KEYSTORE_PASS}
+                eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcacert.pkcs12 -srcstoretype PKCS12 -srcstorepass ${KEYSTORE_PASS} -destkeystore keys.jks -deststorepass ${KEYSTORE_PASS}"
+                eval "yes | keytool -importkeystore -srckeystore cordanetworkmapcakey.pkcs12 -srcstoretype PKCS12 -srcstorepass ${KEYSTORE_PASS} -destkeystore keys.jks -deststorepass ${KEYSTORE_PASS}"
+              fi;  
+              echo "Creating {{ .Release.Name }}-certs secrets in k8s ..."
+{{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+              safeWriteSecret {{ .Release.Name }}-nmskeystore $NMS_CERTS/keys.jks
+              safeWriteSecret {{ .Release.Name }}-doormankeystore $DOORMAN_CERTS/keys.jks
+              safeWriteSecret {{ .Release.Name }}-rootcakeystore $ROOTCA_PATH/keys.jks
+              safeWriteSecret {{ .Release.Name }}-rootcacert $ROOTCA_PATH/cordarootca.pem
+              safeWriteSecret {{ .Release.Name }}-rootcakey $ROOTCA_PATH/cordarootca.key
+              safeWriteSecret {{ .Release.Name }}-dbcert $DBCA_PATH/mongodb.pem
+              safeWriteSecret {{ .Release.Name }}-dbcacert $DBCA_PATH/mongoCA.crt
+{{- else }}
+              safeWriteSecret {{ .Release.Name }} /home/certificates
+{{- end }}
+              echo "Completed ..."
+      volumes:
+      - name: generated-config
+        emptyDir: {}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      - name: openssl-conf
+        configMap:
+          name: openssl-conf

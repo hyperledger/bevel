@@ -1,0 +1,82 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for nodechart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # set to true to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure)
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: 
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+  proxy:
+    #This will be the proxy/ingress provider. Can have values "ambassador" or "none"
+    #Eg. provider: "ambassador"
+    provider: "ambassador"
+    #This field contains the external URL of the node
+    #Eg. externalUrlSuffix: test.blockchaincloudpoc.com
+    externalUrlSuffix: test.blockchaincloudpoc.com
+
+storage:
+  #Provide the size for PVC
+  #Eg. size: 4Gi
+  size: 1Gi
+  dbSize: 1Gi
+  allowedTopologies:
+    enabled: false
+
+tls:
+  enabled: false
+  settings:
+    networkServices: true
+
+image: 
+  #Provide the docker secret name in the namespace
+  #Eg. pullSecret: regcred
+  pullSecret:
+  #Pull policy to be used for the Docker image
+  #Eg. pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent
+  #Provide a valid image and version for mongodb
+  mongo: 
+    repository: mongo
+    tag: 3.6.6
+  hooks:
+    repository: ghcr.io/hyperledger/bevel-build
+    tag: jdk8-stable
+  doorman: ghcr.io/hyperledger/bevel-doorman-linuxkit:latest
+  nms: ghcr.io/hyperledger/bevel-networkmap-linuxkit:latest
+
+settings:
+  removeKeysOnDelete: true
+  rootSubject: "CN=DLT Root CA,OU=DLT,O=DLT,L=New York,C=US"
+  mongoSubject: "C=US,ST=New York,L=New York,O=Lite,OU=DBA,CN=mongoDB"
+  #Provide the tcp node port for database 
+  #Eg. dbPort: 27017
+  dbPort: 27017
+
+doorman:
+  subject: "CN=Corda Doorman CA,OU=DOORMAN,O=DOORMAN,L=New York,C=US"
+  username: doorman
+  authPassword: admin
+  dbPassword: newdbnm
+  #Provide the tcp port for node 
+  #Eg. port: 8080
+  port: 8080
+
+nms:
+  subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
+  username: networkmap
+  authPassword: admin
+  dbPassword: newdbnm
+  port: 8080

@@ -1,0 +1,292 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "fabric-ca-server.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/component: fabric-ca-statefulset
+    app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+    {{- include "labels.deployment" . | nindent 4 }}
+spec:
+  serviceName: {{ .Release.Name }}
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/component: fabric-ca-statefulset
+      app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: helm
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/component: fabric-ca-statefulset
+        app.kubernetes.io/part-of: {{ include "fabric-ca-server.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: helm
+        {{- include "labels.deployment" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      initContainers:
+      - name: ca-certs-init
+        image: {{ .Values.image.alpineUtils }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: certificates
+          mountPath: /secret
+        {{ if .Values.global.vault.tls  }}
+        - name: vaultca
+          mountPath: "/etc/ssl/certs/"
+          readOnly: true
+        {{ end }}
+        - name: package-manager
+          mountPath: /scripts/package-manager.sh
+          subPath: package-manager.sh
+        - name: openssl-config
+          mountPath: /openssl/openssl.conf
+          subPath: openssl.conf
+        {{- if eq .Values.global.vault.type "hashicorp" }}
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+        {{- end }}
+        env:
+        - name: CA_URL
+          value: {{ include "fabric-ca-server.serverURL" . }}
+        - name: CA_SUBJECT
+          value: "{{ .Values.server.subject }}/CN={{ include "fabric-ca-server.serverURL" . }}"
+        - name: COMPONENT_NAME
+          value: {{ .Release.Namespace }}
+        {{- if eq .Values.global.vault.type "hashicorp" }}
+        - name: VAULT_ADDR
+          value: "{{ .Values.global.vault.address }}"
+        - name: VAULT_APP_ROLE
+          value: "{{ .Values.global.vault.role }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: "{{ .Values.global.vault.authPath }}"
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ .Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ .Values.global.vault.secretPrefix }}"
+        - name: VAULT_TYPE
+          value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+
+          . /scripts/package-manager.sh
+          # Define the packages to install
+          packages_to_install="jq curl openssl kubectl"
+          install_packages "$packages_to_install"
+
+          formatCertificate () {
+            NAME="${1##*/}"
+            while IFS= read -r line
+            do
+              echo "$line\n"
+            done < ${1} > ${2}/${NAME}.txt
+          }
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          . /scripts/bevel-vault.sh
+          echo "Getting vault Token..."
+          # Calling a function to retrieve the vault token.
+          vaultBevelFunc "init"
+          function safeWriteSecret {
+            path=$1
+            key=$2
+            # Check if certs already exist in Vault
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/ca"
+            if [ "$SECRETS_AVAILABLE" == "yes" ]
+            then
+              # Create the Kubernetes Secret with data from Vault
+              echo "Secret found in Vault, only creating k8s secrets"
+              ca_cert=$(echo ${VAULT_SECRET} | jq -r ".[\"rootca_pem\"]")
+              echo "${ca_cert}" > ${path}/server.crt
+
+              ca_key=$(echo ${VAULT_SECRET} | jq -r ".[\"rootca_key\"]")
+              echo "${ca_key}" > ${path}/server.key
+            else
+              echo "Secret to be created on Vault and k8s"
+              # Store the value in Vault
+              FORMAT_CERTIFICATE_PATH="${path}/formatcertificate"
+              mkdir -p ${FORMAT_CERTIFICATE_PATH}
+              formatCertificate "${path}/server.key" "${FORMAT_CERTIFICATE_PATH}"
+              formatCertificate "${path}/server.crt" "${FORMAT_CERTIFICATE_PATH}"
+
+              PEM_CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/server.crt.txt)
+              KEY_CERTIFICATE=$(cat ${FORMAT_CERTIFICATE_PATH}/server.key.txt)
+
+              # create a JSON file for the data related to node crypto 
+              echo "
+                {
+                  \"data\": 
+                    {
+                      \"rootca_pem\": \"${PEM_CERTIFICATE}\",
+                      \"rootca_key\": \"${KEY_CERTIFICATE}\"
+                    }  
+                }" > payload.json
+
+              # Calling a function to write secrets to the vault.
+              vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/ca" 'payload.json'
+              rm payload.json
+              
+            fi
+            # Create the Kubernetes Secret using kubectl after secrets ae stored in Vault
+            kubectl create secret tls ${key} --namespace ${COMPONENT_NAME} \
+              --cert=${path}/server.crt \
+              --key=${path}/server.key
+          }
+
+{{- else }}
+
+          function safeWriteSecret {
+            path=$1
+            key=$2
+            # Create the Kubernetes Secret using kubectl
+            kubectl create secret tls ${key} --namespace ${COMPONENT_NAME} \
+              --cert=${path}/server.crt \
+              --key=${path}/server.key
+          }
+{{- end }}
+          kubectl get secret --namespace {{ .Release.Namespace }} {{ include "fabric-ca-server.name" . }}-certs -o json > /dev/null 2>&1
+          if [ $? -ne 0 ]; then
+            echo "Generating CA certs ..."
+            # this commands generate the CA certificate
+            cd /secret
+            openssl ecparam -name prime256v1 -genkey -noout -out server.key
+            openssl req -x509 -config "/openssl/openssl.conf" -new -nodes -key server.key \
+              -days 1024 -out server.crt -extensions v3_req -subj "${CA_SUBJECT}" -addext "subjectAltName = DNS:${CA_URL}"
+            safeWriteSecret /secret {{ include "fabric-ca-server.name" . }}-certs
+          else
+            echo "CA certs already present."
+            KUBENETES_SECRET=$(kubectl get secret {{ include "fabric-ca-server.name" . }}-certs --namespace ${COMPONENT_NAME} -o json)
+            if  [ "$KUBENETES_SECRET" = "" ]; then
+              echo "Certficates absent in Kubernetes secrets"
+              exit 1
+            else
+              CA_KEY=$(echo "$KUBENETES_SECRET" | jq -r ".data.\"tls.key\""  | base64 -d)
+              CA_CERT=$(echo "$KUBENETES_SECRET" | jq -r ".data.\"tls.crt\""  | base64 -d)
+              echo "${CA_KEY}" > /secret/server.key
+              echo "${CA_CERT}" > /secret/server.crt
+            fi
+          fi
+      containers:
+      - name: ca
+        image: {{ .Values.image.ca }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [[ -d /custom-config/ ]] && [[ -f /custom-config/fabric-ca-server-config.yaml ]]; then
+            cp /custom-config/fabric-ca-server-config.yaml $FABRIC_CA_HOME/fabric-ca-server-config.yaml
+            fabric-ca-server start --config $FABRIC_CA_HOME/fabric-ca-server-config.yaml -d
+          else
+            sleep 1 && fabric-ca-server start -b {{ .Values.server.adminUsername }}:{{ .Values.server.adminPassword }} -d
+          fi
+        ports:
+        - containerPort: 7054
+        - containerPort: 9443
+        env:
+        - name: FABRIC_CA_HOME
+          value: /etc/hyperledger/fabric-ca-server
+        - name: FABRIC_CA_SERVER_CA_NAME
+          value: "{{ .Release.Name }}.{{ .Release.Namespace }}"
+        - name: FABRIC_CA_SERVER_CA_CERTFILE
+          value:  /etc/hyperledger/fabric-ca-server-config/server.crt
+        - name: FABRIC_CA_SERVER_CA_KEYFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.key
+        - name: FABRIC_CA_SERVER_TLS_ENABLED
+          value: "{{ .Values.server.tlsStatus }}"
+        - name: FABRIC_CA_SERVER_DEBUG
+          value: "true"
+        - name: FABRIC_CA_SERVER_TLS_CERTFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.crt
+        - name: FABRIC_CA_SERVER_TLS_KEYFILE
+          value: /etc/hyperledger/fabric-ca-server-config/server.key
+        - name: FABRIC_CA_SERVER_DB_DATASOURCE
+          value: /var/hyperledger/fabric-ca-server/db/fabric-ca-server.db
+        - name: FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS
+          value: 0.0.0.0:9443
+        volumeMounts:
+        - name: certificates
+          mountPath: /etc/hyperledger/fabric-ca-server-config
+          readOnly: true
+        - name: ca-server-db-pvc
+          mountPath: /var/hyperledger/fabric-ca-server/db/
+        {{- if (not (empty .Values.server.configPath)) }}
+        - name: {{ .Release.Name }}-config-volume
+          mountPath: /custom-config/
+        {{- end }}
+      volumes:
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      {{- if (not (empty .Values.server.configPath)) }}
+      - name: {{ .Release.Name }}-config-volume
+        configMap:
+          name: {{ .Release.Name }}-config
+          items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}        
+      {{ if .Values.global.vault.tls }}
+      - name: vaultca
+        secret:
+          secretName: "{{ .Values.global.vault.tls }}"
+          items:
+          - key: ca-crt.pem
+            path: ca-certificates.crt
+      {{- end  }}
+      {{- if eq .Values.global.vault.type "hashicorp" }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      {{- end }}
+      - name: package-manager
+        configMap:
+          name: package-manager
+          defaultMode: 0777
+      - name: openssl-config
+        configMap:
+          name: openssl-config-file
+          defaultMode: 0775
+          items:
+            - key: openssl.conf
+              path: openssl.conf
+  volumeClaimTemplates:
+  - metadata:
+      name: ca-server-db-pvc
+      labels:
+        {{- include "labels.pvc" . | nindent 8 }}
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: storage-{{ .Release.Name }}
+      resources:
+        requests:
+          storage: "{{ .Values.storage.size }}"

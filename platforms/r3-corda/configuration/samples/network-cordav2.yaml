@@ -15,15 +15,16 @@ network:
   frontend: enabled   #Flag for frontend to enabled for nodes/peers
   #Environment section for Kubernetes setup
   env:
-    type: "dev"         # tag for the environment. Important to run multiple flux on single cluster
+    type: corda         # tag for the environment. Important to run multiple flux on single cluster
     proxy: ambassador   # value has to be 'ambassador' as 'haproxy' has not been implemented for Corda
+    proxy_namespace: "ambassador"
     ambassadorPorts:    # Any additional Ambassador ports can be given here, this is valid only if proxy='ambassador'
       portRange:        # For a range of ports 
         from: 15010 
         to: 15020
     # ports: 15020,15021      # For specific ports
     loadBalancerSourceRanges: '0.0.0.0/0' # comma-separated list without spaces of IP adresses for proxy='ambassador' allowed access
-    retry_count: 20                 # Retry count for the checks
+    retry_count: 40                 # Retry count for the checks
     external_dns: enabled           # Should be enabled if using external-dns for automatic route configuration
   # Docker registry details where images are stored. This will be used to create k8s secrets
   # Please ensure all required images are built and stored in this registry. 
@@ -36,12 +37,10 @@ network:
   network_services:
     - service:
       type: doorman
-      uri: https://doorman.test.corda.blockchaincloudpoc.com
-      certificate: home_dir/platforms/r3-corda/configuration/build/corda/doorman/tls/ambassador.crt
+      uri: https://supplychain-doorman.test.corda.blockchaincloudpoc.com
     - service:
       type: networkmap
-      uri: https://networkmap.test.corda.blockchaincloudpoc.com
-      certificate: home_dir/platforms/r3-corda/configuration/build/corda/networkmap/tls/ambassador.crt
+      uri: https://supplychain-nms.test.corda.blockchaincloudpoc.com
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
   # then these services should be listed in this section as well.
@@ -52,7 +51,7 @@ network:
       state: London
       location: London
       subject: "CN=DLT Root CA,OU=DLT,O=DLT,L=London,C=GB"
-      type: doorman-nms-notary
+      type: network-service
       external_url_suffix: test.corda.blockchaincloudpoc.com
       cloud_provider: aws   # Options: aws, azure, gcp
       aws:
@@ -68,6 +67,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
       gitops:
@@ -100,21 +100,19 @@ network:
         doorman:
           name: doorman
           subject: "CN=Corda Doorman CA,OU=DLT,O=DLT,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
+          db_subject: "C=US,ST=California,L=San Francisco,O=DB,OU=DBA,CN=mongoDB"
           type: doorman
           ports:
             servicePort: 8080
             targetPort: 8080
-          tls: "on"                      # off/on based on TLS mode off/on for doorman
         nms:
           name: networkmap
           subject: "CN=Network Map,OU=FRA,O=FRA,L=Berlin,C=DE"
-          db_subject: "/C=US/ST=California/L=San Francisco/O=My Company Ltd/OU=DBA/CN=mongoDB"
+          db_subject: "C=US,ST=California,L=San Francisco,O=DB,OU=DBA,CN=mongoDB"
           type: networkmap
           ports:
             servicePort: 8080
             targetPort: 8080
-          tls: "on"                       # off/on based on TLS mode off/on for nms
         # Currently only supporting a single notary cluster, but may want to expand in the future
         notary:
           name: notary
@@ -165,6 +163,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
@@ -247,6 +246,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
@@ -328,6 +328,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token
@@ -409,6 +410,7 @@ network:
       vault:
         url: "vault_addr"
         root_token: "vault_root_token"
+        secret_path: "secretsv2"
         
       # Git Repo details which will be used by GitOps/Flux.
       # Do not check-in git_access_token

@@ -1,0 +1,621 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "corda-node.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/name: node-statefulset
+    app.kubernetes.io/component: corda
+    app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "corda-node.fullname" . }}
+      app.kubernetes.io/name: node-statefulset
+      app.kubernetes.io/component: corda
+      app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "corda-node.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: node-volume
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "corda-node.fullname" . }}
+        app.kubernetes.io/name: node-statefulset
+        app.kubernetes.io/component: corda
+        app.kubernetes.io/part-of: {{ include "corda-node.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      - name: db-healthcheck
+        image: {{ .Values.image.initContainer }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          COUNTER=1
+          FLAG=true
+          # Check if db is up and running before starting corda node
+          while [ "$COUNTER" -le 10 ]
+          do
+            DB_NODE={{ .Release.Name }}-db:{{ .Values.nodeConf.dbPort }}
+            STATUS=$(nc -vz $DB_NODE 2>&1 | grep -c open )
+            if [ "$STATUS" == 0 ]
+            then
+              FLAG=false
+            else
+              FLAG=true
+              echo "DB up and running"
+            fi
+            if [ "$FLAG" == false ]
+            then
+              echo "Retry attempted $COUNTER times, retrying after 5 seconds"
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep 5
+            else
+              echo "SUCCESS!"
+              echo "DB up and running!"
+              exit 0
+              break
+            fi
+          done
+          if [ "$COUNTER" -gt 10 ] || [ "$FLAG" == false ]
+          then
+            echo "Retry attempted $COUNTER times, no DB up and running. Giving up!"
+            exit 1
+            break
+          fi
+      - name: init-nodeconf
+        image : {{ .Values.image.initContainer }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: BASE_DIR
+          value: "/base/corda"
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+        - name: VAULT_ADDR
+          value: {{ .Values.global.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ .Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ .Values.global.vault.secretPrefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.global.vault.authPath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.global.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+        command: ["/bin/sh","-c"]
+        args:
+          - |-
+            #!/bin/bash
+            {{- if (eq .Values.global.vault.type "hashicorp") }}
+            . /scripts/bevel-vault.sh
+            echo "Getting vault Token..."
+            vaultBevelFunc "init"
+            #Read if secret exists in Vault
+            function checkSecret {
+              key=$1
+              fpath=$2
+              mkdir -p ${fpath}
+              vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-registrationcerts"
+              if [ "$SECRETS_AVAILABLE" == "yes" ]
+              then
+                # Get secret from Vault and store in fpath
+                SSL_STORE=$(echo ${VAULT_SECRET} | jq -r '.["sslkeystore_base64"]')
+                SSL_TRUST=$(echo ${VAULT_SECRET} | jq -r '.["ssltruststore_base64"]')
+                NODE_STORE=$(echo ${VAULT_SECRET} | jq -r '.["nodekeystore_base64"]')
+                echo $SSL_STORE | base64 -d > ${fpath}/sslkeystore.jks
+                echo $SSL_TRUST | base64 -d > ${fpath}/truststore.jks
+                echo $NODE_STORE | base64 -d > ${fpath}/nodekeystore.jks
+              fi
+            }
+            {{- else }}
+            function checkSecret {
+              key=$1
+              fpath=$2
+              #Do nothing as certs are not stored as k8s secrets as of now
+            }
+            {{- end }}
+            # delete previously created node.conf, and create a new node.conf
+            rm -f ${BASE_DIR}/node.conf;
+            touch ${BASE_DIR}/node.conf;
+
+            #For more information for node.Conf fields please refer to: https://docs.corda.r3.com/releases/4.0/corda-configuration-file.html
+            cat << 'EOF' > ${BASE_DIR}/node.conf
+            p2pAddress : "{{ .Release.Name }}.{{ .Release.Namespace }}:{{ .Values.nodeConf.p2pPort }}"
+            myLegalName : {{ .Values.nodeConf.legalName | quote }}
+            keyStorePassword : ${CONF_KEYSTOREPASSWORD}
+            trustStorePassword : ${CONF_TRUSTSTOREPASSWORD}
+            transactionCacheSizeMegaBytes : {{ .Values.nodeConf.transactionCacheSizeMegaBytes }}
+            attachmentContentCacheSizeMegaBytes : {{ .Values.nodeConf.attachmentContentCacheSizeMegaBytes }}
+            {{- if .Values.nodeConf.notary.enabled }}
+            notary : {
+              serviceLegalName : "{{ .Values.nodeConf.notary.serviceLegalName }}"
+              validating : {{ .Values.nodeConf.notary.validating }}
+            }
+            {{- end }}
+            detectPublicIp = {{ .Values.nodeConf.detectPublicIp }}
+            additionalP2PAddresses = ["{{ .Release.Name }}.{{ .Values.global.proxy.externalUrlSuffix }}:{{ .Values.global.proxy.p2p }}"]
+            devMode : {{ .Values.nodeConf.devMode }}
+            dataSourceProperties = {
+              dataSourceClassName = "{{ .Values.nodeConf.dataSourceClassName }}"
+              dataSource.url = "jdbc:h2:tcp://{{ .Release.Name }}-db:{{ .Values.nodeConf.dbPort }}/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+              dataSource.user = {{ .Values.nodeConf.dataSourceUser }}
+              dataSource.password = ${CONF_DATASOURCEPASSWORD}
+            }
+            database = {
+              exportHibernateJMXStatistics = {{ .Values.nodeConf.database.exportHibernateJMXStatistics }}
+            }
+            jarDirs = [{{ .Values.nodeConf.jarPath }}]
+            networkServices = {
+              doormanURL = "{{ .Values.nodeConf.doormanURL }}"
+              networkMapURL = "{{ .Values.nodeConf.networkMapURL }}"
+            }
+            EOF
+
+            if [ -z "{{ .Values.nodeConf.jvmArgs }}" ]
+            then
+                echo 'jvmArgs is not configured'
+            else
+                echo 'jvmArgs = "{{ .Values.nodeConf.jvmArgs }}" ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.sshd.port }}" ]
+            then
+                echo 'sshd port is not configured'
+            else
+                echo 'sshd { port = {{ .Values.nodeConf.sshd.port }} } ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.systemProperties }}" ]
+            then
+                echo 'systemProperties is not configured'
+            else
+                echo 'systemProperties = {{ .Values.nodeConf.systemProperties }} ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.exportJMXTo }}" ]
+            then
+                echo 'exportJMXTo is not configured'
+            else
+                echo 'exportJMXTo = {{ .Values.nodeConf.exportJMXTo }} ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.messagingServerAddress }}" ]
+            then
+                echo 'The address of the ArtemisMQ broker instance is not configured'
+            else
+                echo 'messagingServerAddress : "{{ .Values.nodeConf.messagingServerAddress }}" ' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ -z "{{ .Values.nodeConf.rpcUser }}" ]
+            then
+                echo 'rpc user is not configured'
+            else
+                echo 'rpcUsers : [' >> ${BASE_DIR}/node.conf
+                {{- range $.Values.nodeConf.rpcUser }}
+                echo '{ username={{ .name }} ,permissions={{ .permissions }}, ' >> ${BASE_DIR}/node.conf
+                echo " password={{ .password }} }" >> ${BASE_DIR}/node.conf
+                {{- end }}
+                echo ']' >> ${BASE_DIR}/node.conf
+            fi
+
+            if [ "{{ .Values.nodeConf.rpcSettings.useSsl }}" == true ]
+            then
+                echo 'rpcSettings {
+                standAloneBroker = {{ .Values.nodeConf.rpcSettings.standAloneBroker }}
+                address = "{{ .Values.nodeConf.rpcSettings.address }}"
+                adminAddress = "{{ .Values.nodeConf.rpcSettings.adminAddress }}"
+                useSsl = {{ .Values.nodeConf.rpcSettings.useSsl }}
+                ssl = {
+                  keyStorePassword = {{ .Values.nodeConf.sslkeyStorePassword }}
+                  trustStorePassword = {{ .Values.nodeConf.ssltrustStorePassword }}
+                  certificatesDirectory = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}
+                  sslKeystore = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.sslKeystoreFileName }}
+                  trustStoreFile = ${BASE_DIR}/{{ .Values.nodeConf.rpcSettings.ssl.certificatesDirectory }}/{{ .Values.nodeConf.rpcSettings.ssl.trustStoreFileName }}
+                }
+              }' >> ${BASE_DIR}/node.conf
+            else
+                echo 'rpcSettings {
+                standAloneBroker = {{ .Values.nodeConf.rpcSettings.standAloneBroker }}
+                address = "{{ .Values.nodeConf.rpcSettings.address }}"
+                adminAddress = "{{ .Values.nodeConf.rpcSettings.adminAddress }}"
+              }' >> ${BASE_DIR}/node.conf
+            fi
+            echo "node.conf created in ${BASE_DIR}"
+            checkSecret {{ .Release.Name }} ${BASE_DIR}/certificates
+        volumeMounts:
+        - name: nodeconf
+          mountPath: "/base/corda"
+          readOnly: false
+        - name: certificates
+          mountPath: "/base/corda/certificates"
+          readOnly: false
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      - name: init-registration
+        image: {{ .Values.image.corda.repository }}:{{ .Values.image.corda.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+          - name: node-volume
+            mountPath: "/base/corda"
+            readOnly: false
+          - name: certificates
+            mountPath: "/base/corda/certificates"
+            readOnly: false
+          - name: node-certs
+            mountPath: "/opt/corda/certificates"
+          - name: nodeconf
+            mountPath: "/base/corda/node.conf"
+            subPath: "node.conf"
+            readOnly: false
+        {{- if .Values.tls.enabled }}
+          - name: nms-certs
+            mountPath: "/certs/nms"
+          - name: doorman-certs
+            mountPath: "/certs/doorman"
+        {{- end }}
+        env:
+        - name: BASE_DIR
+          value: /base/corda
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: JAVA_OPTIONS
+          value: {{ .Values.nodeConf.javaOptions | quote }}
+        - name: CONF_KEYSTOREPASSWORD
+          value: {{ .Values.nodeConf.defaultKeystorePassword }}
+        - name: CONF_TRUSTSTOREPASSWORD
+          value: {{ .Values.nodeConf.defaultTruststorePassword }}
+        - name: CONF_DATASOURCEPASSWORD
+          value: {{ .Values.nodeConf.dataSourcePassword }}
+        - name: KEYSTORE_PASSWORD
+          value: {{ .Values.nodeConf.keystorePassword }}
+        - name: TRUSTSTORE_PASSWORD
+          value: {{ .Values.nodeConf.truststorePassword }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          if [ -e /opt/corda/certificates/truststore.jks ]
+          then
+            cp /opt/corda/certificates/* ${BASE_DIR}/certificates/
+            echo "Initial Registration already complete for {{ .Release.Name }} ..."
+          else
+            echo "Initial registration start ..."
+            cp /opt/corda/certificates/* ${BASE_DIR}/certificates/
+            chmod +w ${BASE_DIR}/certificates/nodekeystore.jks
+
+            # import self signed tls certificate of doorman and networkmap, since java only trusts certificate signed by well known CA  
+            {{- if .Values.tls.enabled }}
+            eval "yes | keytool -importcert -file /certs/nms/tls.crt -storepass changeit -alias {{ include "corda-node.nmsDomain" . }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts"
+            eval "yes | keytool -importcert -file /certs/doorman/tls.crt -storepass changeit -alias {{ include "corda-node.doormanDomain" . }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts"
+            {{- end }}
+
+            # command to run corda jar and perform initial-registration            
+            java $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar initial-registration --network-root-truststore-password ${CONF_TRUSTSTOREPASSWORD} --network-root-truststore ${BASE_DIR}/certificates/network-map-truststore.jks --base-directory=${BASE_DIR}
+            
+            #changing password of keystore.
+            keytool -storepasswd -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${CONF_KEYSTOREPASSWORD}
+            if [ $? -ne 0 ]; then
+              echo "Error in initial-registration"
+              exit 1
+            fi
+            keytool -storepasswd -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/sslkeystore.jks -storepass ${CONF_KEYSTOREPASSWORD}
+            keytool -storepasswd -new ${TRUSTSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/truststore.jks -storepass ${CONF_TRUSTSTOREPASSWORD}
+
+            #changing password of nodekeystore.jks certificate.
+            keytool -keypasswd -alias cordaclientca -keypass ${CONF_KEYSTOREPASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            keytool -keypasswd -alias identity-private-key -keypass ${CONF_KEYSTOREPASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            {{- if .Values.nodeConf.notary.enabled }}
+            keytool -keypasswd -alias distributed-notary-private-key -keypass ${CONF_KEYSTOREPASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/nodekeystore.jks -storepass ${KEYSTORE_PASSWORD}
+            {{- end }}
+            #changing password of sslkeystore.jks certificate.
+            keytool -keypasswd -alias cordaclienttls -keypass ${CONF_KEYSTOREPASSWORD} -new ${KEYSTORE_PASSWORD} -keystore ${BASE_DIR}/certificates/sslkeystore.jks -storepass ${KEYSTORE_PASSWORD}
+
+            echo "Initial Registration Complete"
+          fi;
+      - name: init-cordapps
+        image: {{ .Values.image.initContainer }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        args:
+        - |-
+          # crearting cordapps dir in volume to keep jars
+          mkdir -p /base/corda/cordapps
+          {{- if .Values.cordApps.getCordApps }}
+            mkdir -p /tmp/downloaded-jars                      
+            REPO_USER_PASS=$(cat /secret/password)
+            REPO_USER=$(cat /secret/username)
+            
+            # Downloading official corda provided jars using curl 
+            {{- range .Values.cordApps.jars }}
+              cd /tmp/downloaded-jars && curl -u  $REPO_USER:$REPO_USER_PASS -O -L {{ .jar.url }}
+            {{- end }}
+            cp -ar /tmp/downloaded-jars/* /base/corda/cordapps
+          {{- end }}  
+        volumeMounts:
+        - name: node-volume
+          mountPath: "/base/corda"
+        - name: maven-secrets
+          mountPath: "/secret"
+      containers:
+      - name: node
+        image: {{ .Values.image.corda.repository }}:{{ .Values.image.corda.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: BASE_DIR
+          value: /base/corda
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: JAVA_OPTIONS
+          value: {{ .Values.nodeConf.javaOptions | quote }}
+        - name: CONF_KEYSTOREPASSWORD
+          value: {{ .Values.nodeConf.keystorePassword }}
+        - name: CONF_TRUSTSTOREPASSWORD
+          value: {{ .Values.nodeConf.truststorePassword }}
+        - name: CONF_DATASOURCEPASSWORD
+          value: {{ .Values.nodeConf.dataSourcePassword }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+
+          # import self signed tls certificate of doorman and networkmap, since java only trusts certificate signed by well known CA  
+          {{- if .Values.tls.enabled }}
+          eval "yes | keytool -importcert -file /certs/nms/tls.crt -storepass changeit -alias {{ include "corda-node.nmsDomain" . }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts"
+          eval "yes | keytool -importcert -file /certs/doorman/tls.crt -storepass changeit -alias {{ include "corda-node.doormanDomain" . }} -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts"
+          {{- end }}
+
+          # to clean network-parameters on every restart
+          rm -rf ${BASE_DIR}/network-parameters
+          # Run schema migration scripts for corDApps
+          java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=$CONF_KEYSTOREPASSWORD $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar run-migration-scripts --core-schemas --app-schemas --base-directory=${BASE_DIR}
+          
+          # command to run corda jar, we are setting javax.net.ssl.keyStore as ${BASE_DIR}/certificates/sslkeystore.jks since keystore gets reset when using h2 ssl 
+          java -Djavax.net.ssl.keyStore=${BASE_DIR}/certificates/sslkeystore.jks -Djavax.net.ssl.keyStorePassword=$CONF_KEYSTOREPASSWORD $JAVA_OPTIONS -jar ${CORDA_HOME}/corda.jar --base-directory=${BASE_DIR}
+        resources:
+          limits:
+            memory: {{ .Values.resources.node.memLimit }}
+          requests:
+            memory: {{ .Values.resources.node.memRequest }}
+        ports:
+        - containerPort: {{ .Values.nodeConf.p2pPort }}
+          name: p2p
+        - containerPort: {{ .Values.nodeConf.rpcPort }}
+          name: rpc
+        - containerPort: {{ .Values.nodeConf.rpcadminPort }}
+          name: rpcadmin
+        volumeMounts:
+        - name: node-volume
+          mountPath: "/base/corda"
+          readOnly: false
+        - name: certificates
+          mountPath: "/base/corda/certificates"
+          readOnly: false
+        - name: nodeconf
+          mountPath: "/base/corda/node.conf"
+          subPath: "node.conf"
+          readOnly: false
+        {{- if .Values.tls.enabled }}
+        - name: nms-certs
+          mountPath: "/certs/nms"
+        - name: doorman-certs
+          mountPath: "/certs/doorman"
+        {{- end }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.nodeConf.p2pPort }}
+          initialDelaySeconds: 65
+          periodSeconds: 30        
+      - name: corda-logs
+        image: {{ .Values.image.initContainer }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: BASE_DIR
+          value: /base/corda
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: JAVA_OPTIONS
+          value: {{ .Values.nodeConf.javaOptions | quote }}
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+        - name: VAULT_ADDR
+          value: {{ .Values.global.vault.address }}
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ .Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ .Values.global.vault.secretPrefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: {{ .Values.global.vault.authPath }}
+        - name: VAULT_APP_ROLE
+          value: {{ .Values.global.vault.role }}
+        - name: VAULT_TYPE
+          value: "{{ .Values.global.vault.type }}"
+        {{- end }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+        {{- if (eq .Values.global.vault.type "hashicorp") }}
+          . /scripts/bevel-vault.sh
+          echo "Getting vault Token..."
+          vaultBevelFunc "init"
+          function safeWriteSecret {
+            key=$1
+            fpath=$2
+            #Read if secret exists in Vault
+            vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-registrationcerts"
+            if [ "$SECRETS_AVAILABLE" == "yes" ]
+            then
+              echo "Registration Secrets already stored on Vault"
+            else
+              # Save secrets to Vault
+              # Use -w0 to get single line base64 -w0
+              NODE_STORE=$(cat ${fpath}/nodekeystore.jks | base64 -w0)
+              SSL_STORE=$(cat ${fpath}/sslkeystore.jks | base64 -w0)
+              SSL_TRUST=$(cat ${fpath}/truststore.jks | base64 -w0)
+              # create a JSON file for the data related to node crypto
+              echo "
+              {
+                \"data\":
+                  {
+                    \"nodekeystore_base64\": \"${NODE_STORE}\",
+                    \"sslkeystore_base64\": \"${SSL_STORE}\",
+                    \"ssltruststore_base64\": \"${SSL_TRUST}\"
+                  }
+              }" > payload.json
+              vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}-registrationcerts" 'payload.json'
+              kubectl patch secret ${key}-certs -p "{\"data\":{\"nodekeystore.jks\":\"$NODE_STORE\", \"sslkeystore.jks\":\"$SSL_STORE\", \"truststore.jks\":\"$SSL_TRUST\" }}"
+              rm payload.json
+            fi
+          }
+        {{- else }}
+          function safeWriteSecret {
+            key=$1
+            fpath=$2
+            # Use -w0 to get single line base64 -w0
+            NODE_STORE=$(cat ${fpath}/nodekeystore.jks | base64 -w0)
+            SSL_STORE=$(cat ${fpath}/sslkeystore.jks | base64 -w0)
+            SSL_TRUST=$(cat ${fpath}/truststore.jks | base64 -w0)
+            kubectl patch secret ${key}-certs -p "{\"data\":{\"nodekeystore.jks\":\"$NODE_STORE\", \"sslkeystore.jks\":\"$SSL_STORE\", \"truststore.jks\":\"$SSL_TRUST\" }}"
+          }
+        {{- end }}
+        {{- if .Values.nodeConf.notary.enabled }}
+          if [ -e ${BASE_DIR}/notaryregistered ]
+          then
+            echo "Notary already registered"
+          else
+          NMS_USER_ID={{ .Values.nodeConf.dataSourceUser }}
+          NMS_USER_PASSWORD={{ .Values.nodeConf.dataSourcePassword }}
+                      
+          STATUS=0
+          while [ "$STATUS" -ne 1 ]
+          do
+            # get node-info file name 
+            cd ${BASE_DIR}               
+            NOTARYNODEINFOFILENAME=$(ls ${BASE_DIR}/ | grep nodeInfo | awk '{print $1}');
+            echo "NOTARYNODEINFOFILENAME=$NOTARYNODEINFOFILENAME"                
+            if [ -z $NOTARYNODEINFOFILENAME ]
+            then
+              echo "node-info file not ready, sleeping for 10s"
+              sleep 10
+              STATUS=0
+            else
+              # get url for registration
+              url={{ .Values.nodeConf.networkMapURL }}
+              # check if notary type is validating or non validating, and form url accordingly
+              if [ {{ .Values.nodeConf.notary.validating }} == "true" ]
+              then
+                  section=/admin/api/notaries/validating
+              else
+                  section=/admin/api/notaries/nonValidating
+              fi
+              
+              # get one time login token from networkmap                    
+              token=$(curl -k --silent --show-error -X POST "$url/admin/api/login" -H "accept: text/plain" -H "Content-Type: application/json" -d "{ \"user\": \"${NMS_USER_ID}\", \"password\": \"${NMS_USER_PASSWORD}\"}" | awk '{print $1}');
+              # curl command to register notary, if resonse is okay then registration is sucessfull
+              cd ${BASE_DIR}    
+              response=$(curl -k --silent --show-error -X POST -H "Authorization: Bearer ${token}" -H "accept: text/plain" -H "Content-Type: application/octet-stream" --data-binary @${NOTARYNODEINFOFILENAME} ${url}${section} | awk '{print $1}')
+              echo "responsevar=$response"
+              if [ $response = "OK" ]
+              then
+                echo "Response is OK";
+                echo "Registered notary with Networkmap successfully"
+                touch ${BASE_DIR}/notaryregistered
+              else
+                echo "Response from NMS is not ok";
+                echo "Something went wrong"
+              fi
+              STATUS=1
+              break
+            fi
+          done
+          fi
+        {{- end }}
+        {{- if and (ne .Values.global.cluster.provider "minikube") (.Values.global.cluster.cloudNativeServices) }}
+          safeWriteSecret {{ .Release.Name }}-sslkeystore ${BASE_DIR}/certificates/sslkeystore.jks
+          safeWriteSecret {{ .Release.Name }}-ssltruststore ${BASE_DIR}/certificates/truststore.jks
+          safeWriteSecret {{ .Release.Name }}-nodekeystore ${BASE_DIR}/certificates/nodekeystore.jks
+        {{- else }}
+          safeWriteSecret {{ .Release.Name }} ${BASE_DIR}/certificates
+        {{- end }}
+          echo "Completed ..."
+          if [ -e ${BASE_DIR}/logs/node-{{ include "corda-node.fullname" . }}-0.log ]
+          then
+            tail -f ${BASE_DIR}/logs/node-{{ include "corda-node.fullname" . }}-0.log
+          else
+            echo "waiting for corda to generate log, sleeping for 10s"
+            sleep 10
+          fi
+        volumeMounts:
+        - name: node-volume
+          mountPath: "/base/corda"
+          readOnly: false
+        - name: certificates
+          mountPath: "/base/corda/certificates"
+          readOnly: false
+        - name: scripts-volume
+          mountPath: /scripts/bevel-vault.sh
+          subPath: bevel-vault.sh
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      - name: nodeconf
+        emptyDir:
+          medium: Memory
+      - name: certificates
+        emptyDir:
+          medium: Memory
+      - name: node-certs
+        secret:
+          secretName: {{ .Release.Name }}-certs
+{{- if .Values.tls.enabled }}
+      - name: nms-certs
+        secret:
+          secretName: nms-tls-certs
+      - name: doorman-certs
+        secret:
+          secretName: doorman-tls-certs
+{{- end }}
+{{- if .Values.cordApps.mavenSecret }}
+      - name: maven-secrets
+        secret:
+          secretName: {{ .Values.cordApps.mavenSecret }}
+{{- end }}

@@ -4,7 +4,7 @@ USER root
 
 ARG ROCKS_DB_VERSION=5.8.8
 ARG LIBINDY_CRYPTO_VERSION=0.4.5
-ARG INDY_NODE_VERSION=1.12.1
+ARG INDY_NODE_VERSION=1.12.6
 
 ENV VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3 \
     WORKON_HOME=$HOME/.virtualenvs \
@@ -45,7 +45,7 @@ RUN apt-get update && \
 
 RUN add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu xenial main universe" && \
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CE7709D068DB5E88 && \
-    add-apt-repository "deb https://repo.sovrin.org/deb xenial master" && \
+    add-apt-repository "deb https://repo.sovrin.org/deb xenial stable" && \
     add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable" && \
     apt-get update
 
@@ -66,7 +66,7 @@ RUN apt-get install -y libindy libindy-crypto=${LIBINDY_CRYPTO_VERSION}
 RUN mkdir -p ${INDY_HOME}
 WORKDIR ${INDY_HOME}
 COPY config/indy_config.py ${INDY_CONFIG_DIR}
-RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NETWORK_NAME}; workon ${NETWORK_NAME}; pip3 install Cython==0.29.36"
+RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; mkvirtualenv ${NETWORK_NAME}; workon ${NETWORK_NAME}; pip3 install Cython==0.29.36 certifi==2021.10.8 pyzmq"
 RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install indy-node==${INDY_NODE_VERSION}"   
 RUN /bin/bash -c "source /usr/local/bin/virtualenvwrapper.sh; workon ${NETWORK_NAME}; pip3 install flake8 requests"
 

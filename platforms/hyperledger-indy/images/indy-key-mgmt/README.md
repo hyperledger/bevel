@@ -17,12 +17,12 @@ docker build -t <docker_url>/bevel-indy-key-mgmt:1.12.1 .
 When you would like to use older version, then override build arguments.<br>
 Example for use version 1.11.0:
 ```bash
-docker build --build-arg INDY_NODE_VERSION=v1.9.2 -t <docker_url>/bevel-indy-key-mgmt:1.9.2 .
+docker build --build-arg INDY_NODE_VERSION=1.12.6 -t <docker_url>/bevel-indy-key-mgmt:1.12.6 .
 ```
 #### Build arguments with default values
  - ROCKS_DB_VERSION=5.8.8
  - LIBINDY_CRYPTO_VERSION=0.4.5
- - INDY_NODE_VERSION=1.12.1
+ - INDY_NODE_VERSION=1.12.6
 
 ## How to use
 
@@ -45,12 +45,12 @@ docker run -it --rm -e VAULT_TOKEN=<your_token> <docker_url>/bevel-indy-key-mgmt
 
 Insert to vault:
 ```bash
-docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.1 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
+docker run -it --rm -e VAULT_TOKEN="s.ev8ehHRFYgluTkVDYFH7X5vE" ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6 generate_identity my-identity provider.stewards vault http://host.docker.internal:8200
 ```
 
 Print on console:
 ```bash
-docker run -it --rm  ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.1 bash -c "generate_identity my-identity provider.stewards | jq"
+docker run -it --rm  ghcr.io/hyperledger/bevel-indy-key-mgmt:1.12.6 bash -c "generate_identity my-identity provider.stewards | jq"
 ```
 > You could use `| jq` for smooth printing of JSON
 

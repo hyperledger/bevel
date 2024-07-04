@@ -13,7 +13,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install my-storageclass bevel/bevel-storageclass
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+

@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-propose-validator.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: quorum-propose-validator-job
+    app.kubernetes.io/component: propose-validator-job
+    app.kubernetes.io/part-of: {{ include "quorum-propose-validator.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: quorum-propose-validator-job
+        app.kubernetes.io/component: propose-validator-job
+        app.kubernetes.io/part-of: {{ include "quorum-propose-validator.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      restartPolicy: "OnFailure"
+      containers:
+      - name: propose-validator
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+            runAsUser: 0
+        env:
+          - name: EXISTING_VALIDATOR_URLS
+            value: "{{- .Values.validators.existingValidators | join " " -}}"
+          - name: PROPOSE_VALIDATOR_ADDRS
+            value: "{{- .Values.validators.proposeValidatorsAddr | join " " -}}"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+
+            for propose_val_addr in $PROPOSE_VALIDATOR_ADDRS; do
+              for existing_val_url in $EXISTING_VALIDATOR_URLS; do
+                # Send proposal to the existing validator
+                proposal_response=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"{{ .Values.validators.consensusMethod}}","params":["'"$propose_val_addr"'",{{ .Values.validators.auth }}],"id":1}' "$existing_val_url")
+                
+                # Check if proposal was successful or not
+                result_count=$(echo "$proposal_response" | grep -c "result")
+                if [ "$result_count" = 1 ]; then
+                    echo "Node proposed successfully."
+                else
+                    echo "$proposal_response" | jq -r '.error'
+                fi
+              done
+            done
+            echo "COMPLETED"

@@ -43,13 +43,13 @@ network:
       name: orderer1
       org_name: supplychain                 # org_name should match one organization definition below in organizations: key            
       uri: orderer1.supplychain-net:7050    # Internal URI for orderer which should be reachable by all peers
-      certificate: /home/bevel/build/orderer1.crt   # the directory should be writable
 
   # The channels defined for a network with participating peers in each channel
   channels:
   - channel:
     consortium: SupplyChainConsortium
     channel_name: AllChannel
+    channel_status: new
     chaincodes:
       - "chaincode_name"
     orderers:
@@ -91,8 +91,6 @@ network:
         name: peer0
         corepeerAddress: peer0.manufacturer-net:7051
         certificate: "/home/bevel/build/manufacturer/server.crt" # certificate path for peer
-    genesis:
-      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -106,12 +104,10 @@ network:
       state: London
       location: London
       subject: "O=Orderer,L=51.50/-0.13/London,C=GB"
-      type: orderer
       external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
       fabric_console: enabled
       ca_data:
-        url: ca.supplychain-net:7054
         certificate: /home/bevel/build/supplychain/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp
@@ -179,12 +175,10 @@ network:
       state: Zurich
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-      type: peer
       external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.manufacturer-net:7054
         certificate: /home/bevel/build/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp
@@ -242,7 +236,6 @@ network:
           type: anchor                                          # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051        # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
           peerAddress: peer0.manufacturer-net:7051              # Internal URI of the peer
-          certificate: /home/bevel/build/manufacturer/peer0.crt # Path to peer Certificate
           cli: enabled                                          # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: enabled                             # set to enabled to create a cactus connector for Fabric
           grpc:
@@ -279,12 +272,10 @@ network:
       state: London
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      type: peer
       external_url_suffix: develop.local.com   # Ignore for proxy none
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
-        url: ca.carrier-net:7054
         certificate: /home/bevel/build/carrier/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp
@@ -340,7 +331,6 @@ network:
           type: anchor                                      # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051         # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer  
           peerAddress: peer0.carrier-net:7051               # Internal URI of the peer
-          certificate: /home/bevel/build/carrier/peer0.crt  # Path to peer Certificate
           cli: disabled                                     # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: disabled                        # set to enabled to create a cactus connector for Fabric
           grpc:

@@ -1,0 +1,49 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+- name: Read static-nodes file
+  slurp:
+    src: "{{ files_loc }}/static-nodes.json"
+  register: staticnodes_file_content
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/quorum-genesis/files"
+
+- name: Get Node enode URL from static-nodes
+  set_fact:
+    enode_url: "{{ (staticnodes_file_content.content | b64decode | from_json) | json_query('[?contains(@, `' + peer.name + '`)]') }}"
+
+- name: Get Node enode URL from static-nodes
+  set_fact:
+    enode: "{{ enode_url[0].split('@')[0] }}"
+
+#Get IP Address using getent for ubuntu/linux
+- name: Get host ip
+  shell: |
+    getent hosts {{ peer.name }}.{{ org.external_url_suffix }} | awk '{ print $1 }'
+  register: host_details
+
+# Use host IP because admin_addPeer function does not accept DNS for host address
+- name: Get host_ip
+  set_fact:
+    host_ip: "{{ host_details.stdout.split('\n') | first }}"
+
+# Add a new node to the existing network using admin_addPeer API
+- name: Add a new node to the existing network
+  uri:
+    url: "{{ node }}"
+    method: POST
+    validate_certs: no
+    return_content: yes
+    body_format: json
+    body: '{"jsonrpc":"2.0","method":"admin_addPeer","params":["{{ enode }}@{{ host_ip }}:{{ peer.p2p.ambassador }}"],"id":1}'
+    headers:
+      Content-Type: "application/json"
+  loop: "{{ network.config.tm_nodes }}"
+  loop_control:
+    loop_var: node
+  register: peer_id
+  until: peer_id.status == 200
+  retries: "{{ network.env.retry_count }}"
+  delay: 20

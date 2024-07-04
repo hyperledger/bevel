@@ -6,6 +6,7 @@ import string
 import ujson as json
 import base58
 import re
+import html
 
 from crypto.bls.bls_crypto import BlsGroupParamsLoader
 from crypto.bls.bls_factory import BlsFactoryCrypto
@@ -286,28 +287,27 @@ class VaultUploader:
             return paths
         return path_iteration(dictionary, '')
 
+def prevent_injections(input_string):
+    # Regex pattern to prevent SQL injection
+    sql_injection_pattern = re.compile(r"\b(?:SELECT|INSERT|UPDATE|DELETE|DROP|UNION|CREATE|ALTER|EXEC|--)\b", re.IGNORECASE)
+
+    # Regex pattern to prevent HTML injection
+    html_injection_pattern = re.compile(r"<[a-z][\s\S]*>", re.IGNORECASE)
+
+    # Check for SQL injection
+    if sql_injection_pattern.search(input_string):
+        raise ValueError("Invalid input. Detected potential SQL injection attempt.")
+
+    # Check for HTML injection
+    if html_injection_pattern.search(input_string):
+        raise ValueError("Invalid input. Detected potential HTML injection attempt.")
+
+    # HTML escape the input
+    escaped_string = html.escape(input_string)
+
+    return escaped_string
 
 class IdentityCreatorV2:
-    
-    def prevent_injections(input_string):
-        # Regex pattern to prevent SQL injection
-        sql_injection_pattern = re.compile(r"\b(?:SELECT|INSERT|UPDATE|DELETE|DROP|UNION|CREATE|ALTER|EXEC|--)\b", re.IGNORECASE)
-
-        # Regex pattern to prevent HTML injection
-        html_injection_pattern = re.compile(r"<[a-z][\s\S]*>", re.IGNORECASE)
-
-        # Check for SQL injection
-        if sql_injection_pattern.search(input_string):
-            raise ValueError("Invalid input. Detected potential SQL injection attempt.")
-
-        # Check for HTML injection
-        if html_injection_pattern.search(input_string):
-            raise ValueError("Invalid input. Detected potential HTML injection attempt.")
-
-        # HTML escape the input
-        escaped_string = html.escape(input_string)
-
-        return escaped_string
 
     @classmethod
     def process(cls):

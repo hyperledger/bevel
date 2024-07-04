@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: {{ component_name }}
@@ -17,6 +17,16 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/dscp-ipfs-node
   values:
+    global:
+        serviceAccountName: vault-auth
+        vault:
+          type: hashicorp
+          role: vault-role
+          network: substrate
+          address: {{ vault.url }}
+          authPath: {{ network.env.type }}
+          secretEngine: {{ vault.secret_path | default("secretsv2") }}
+          secretPrefix: "data/{{ network.env.type }}{{ vault_key }}"
     fullnameOverride: {{ peer.name }}-ipfs
     namespace: {{ component_ns }}
     config:
@@ -66,9 +76,3 @@ spec:
       external_url: {{ peer.name }}-ipfs-swarm.{{ external_url }}
       port: {{ peer.ipfs.ambassador }}
       certSecret: {{ org.name | lower }}-ambassador-certs
-    vault:
-      address: {{ vault.url }}
-      role: vault-role
-      authpath: {{ network.env.type }}{{ name }}
-      serviceaccountname: vault-auth
-      certsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ name }}/{{ peer.name }}

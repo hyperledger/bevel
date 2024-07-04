@@ -3,88 +3,37 @@
 #
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
+# Gather Kubernetes cluster information
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
 
-##############################################################################################
-# This role sets up all cenm services
-##############################################################################################
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server: "{{ cluster_info.connection.host }}"
 
-# Wait for namespace creation
-- name: "Wait for namespace creation for {{ organisation }}"
+# Install init node
+- name: "Install init node"
   include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars: 
+    type: "corda_ent_cenm"
+    cloud_provider: "{{ org.cloud_provider | lower }}"
+    root_ca: "{{ org.subject }}"
+    subordinate_ca: "{{ org.subordinate_ca_subject }}"
+    auth_subject: "{{ org_services.auth.subject }}"
+    signer_subject: "{{ org_services.signer.subject }}"
+    idman_subject: "{{ org_services.idman.subject }}"
+    idman_crlissuer_subject: "{{ org_services.idman.crlissuer_subject }}"
+    networkmap_subject: "{{ org_services.networkmap.subject }}"
+    secondaryInit: false
+
+# Check if the job is completed
+- name: "Check if {{ component_name }} job is completed in the {{ org_name }} organization"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
-    component_type: "Namespace"
-    component_name: "{{ component_ns }}"
-    type: "retry"
-
-# Wait for vault-reviewer creation
-- name: "Wait for vault-reviewer creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-reviewer"
-    type: "retry"
-  tags:
-    - notest
-
-# Create vault access policies
-- name: "Setup vault access for cenm"
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    name: "{{ org.name | lower }}"
-    component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "{{ network.env.type }}{{ name }}"
-    component_type: "{{ org.type | lower }}"
-
-# Check if the certs are already created
-- name: Check if the root certs are already created
-  shell: |
-    vault kv get -field=corda-ssl-root-keys.jks {{ vault.secret_path | default('secretsv2') }}/{{ org.name | lower }}/root/certs
-  environment:
-    VAULT_ADDR: "{{ vault.url }}"
-    VAULT_TOKEN: "{{ vault.root_token }}"
-  register: root_certs
-  ignore_errors: yes
-
-# Generate crypto using pki-generator
-- name: "Generate crypto using pki-generator"   
-  include_role: 
-    name: "setup/pki-generator"
-  when: root_certs.failed
-  
-# Deploy Auth Service
-- name: "Deploy Auth Service"
-  include_role:
-    name: "setup/auth"
-
-# Deploy gateway service
-- name: Deploy gateway service
-  include_role:
-    name: setup/gateway
-
-# Deploy Zone service
-- name: Deploy Zone service
-  include_role:
-    name: setup/zone
-
-# Deploy Signer node
-- name: Deploy Signer service
-  include_role:
-    name: setup/signer
-
-# Deploy Idman service
-- name: Deploy Idman service
-  include_role:
-    name: setup/idman
-
-# Deploy networkmap service
-- name: Deploy networkmap service
-  include_role:
-    name: setup/nmap
-
-# Deploy notary service 
-- name: Deploy notary service
-  include_role:
-    name: setup/notary
+    component_type: Job
+    namespace: "{{ component_ns }}"

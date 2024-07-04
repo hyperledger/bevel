@@ -1,0 +1,138 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "corda-network-service.fullname" . }}-doorman
+  namespace: {{ .Release.Namespace }}  
+  labels:
+    app: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/name: doorman-statefulset
+    app.kubernetes.io/component: doorman
+    app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "corda-network-service.fullname" . }}
+      app.kubernetes.io/name: doorman-statefulset
+      app.kubernetes.io/component: doorman
+      app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "corda-network-service.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/name: doorman-statefulset
+        app.kubernetes.io/component: doorman
+        app.kubernetes.io/part-of: {{ include "corda-network-service.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: doorman
+        image: {{ .Values.image.doorman }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DOORMAN_PORT
+          value: "{{ .Values.doorman.port }}"
+        - name: DOORMAN_ROOT_CA_NAME
+          value: {{ .Values.doorman.subject }}
+        - name: DOORMAN_TLS
+          value: "{{ .Values.tls.enabled }}"
+        - name: DOORMAN_DB
+          value: /opt/doorman/db
+        - name: DOORMAN_AUTH_USERNAME
+          value: sa
+        - name: DB_URL
+          value: {{ .Release.Name }}-mongodb
+        - name: DB_PORT
+          value: "{{ .Values.settings.dbPort }}"
+        - name: DATABASE
+          value: admin
+        - name: DB_USERNAME
+          value: {{ .Values.doorman.username }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+
+          export DB_PASSWORD={{ .Values.doorman.dbPassword }}
+          export DOORMAN_AUTH_PASSWORD={{ .Values.doorman.authPassword }}
+          # Copy from read-only to read-write dirs
+          mkdir -p /opt/doorman/db/certs/root
+          mkdir -p /opt/doorman/db/certs/doorman
+
+          cp /certs/rootcakeystore /opt/doorman/db/certs/root/keys.jks
+          cp /certs/doormankeystore /opt/doorman/db/certs/doorman/keys.jks
+
+          if [ "$DOORMAN_TLS" = "true" ]; then
+            cat /certs/mongoCA.crt | base64 -d > /opt/doorman/mongoCA.crt
+            export DOORMAN_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}?ssl=true&sslInvalidHostNameAllowed=true&streamType=netty"
+
+            # tls certs are mounted via tls secrets
+            export DOORMAN_TLS_CERT_PATH="/secret/tls.crt"
+            export DOORMAN_TLS_KEY_PATH="/secret/tls.key"
+            
+            # import self signed tls certificate of mongodb, since java only trusts certificate signed by well known CA  
+            yes | keytool -importcert -file /opt/doorman/mongoCA.crt -storepass changeit -alias mongoca -keystore /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/cacerts
+          else
+            export DOORMAN_MONGO_CONNECTION_STRING="mongodb://${DB_USERNAME}:${DB_PASSWORD}@${DB_URL}:${DB_PORT}/${DATABASE}"
+          fi;
+          # command to run jar
+          java -jar /opt/doorman/doorman.jar 2>&1
+        ports:
+          - containerPort: {{ .Values.doorman.port }}
+        volumeMounts:
+          - name: data
+            mountPath: "/opt/doorman/db"
+            readOnly: false
+          - name: network-certs
+            mountPath: "/certs"
+{{- if .Values.tls.enabled }}
+          - name: doorman-certs
+            mountPath: "/secret"
+{{- end }}
+      volumes:
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+      - name: network-certs
+        secret:
+          secretName: {{ .Release.Name }}-certs
+{{- if .Values.tls.enabled }}
+      - name: doorman-certs
+        secret:
+          secretName: doorman-tls-certs
+{{- end }}

@@ -1,0 +1,27 @@
+#helm install carrier-ca -f values/proxy-and-vault/ca-server.yaml -n carrier-net fabric-ca-server
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+    kubernetesUrl: "https://yourkubernetes.com"
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: carrier
+    secretEngine: secretsv2
+    secretPrefix: "data/carrier"
+    tls: false
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+storage:
+  size: 512Mi
+server:
+  removeCertsOnDelete: true
+  tlsStatus: true
+  adminUsername: carrier-admin
+  adminPassword: carrier-adminpw
+  subject: /C=GB/ST=London/L=London/O=Carrier

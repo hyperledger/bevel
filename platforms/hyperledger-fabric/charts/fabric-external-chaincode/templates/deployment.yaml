@@ -17,6 +17,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- include "labels.custom" . | nindent 2 }}
+    {{- include "labels.deployment" . | nindent 2 }}
 spec:
   replicas: 1
   selector:
@@ -32,6 +33,7 @@ spec:
         app.kubernetes.io/name: cc-{{ $.Values.chaincode.name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "labels.deployment" . | nindent 6 }}
     spec:   
       serviceAccountName: {{ $.Values.vault.serviceaccountname }}
       {{- if .Values.vault.imagesecretname }}
@@ -108,7 +110,7 @@ spec:
         - name: scripts-volume
           mountPath: /scripts/bevel-vault.sh
           subPath: bevel-vault.sh
-    {{ end  }}
+    {{ end }}
       containers:
         - image: {{ $.Values.metadata.images.external_chaincode }}
           name: "{{ $.Values.chaincode.name }}-{{ $.Values.chaincode.version }}"

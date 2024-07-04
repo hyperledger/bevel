@@ -48,20 +48,17 @@ network:
       type: orderer
       name: orderer1
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer1.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: USER_DIRECTORY/build/orderer1.crt           # Ensure that the directory exists
+      uri: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
     - orderer:
       type: orderer
       name: orderer2
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer2.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: USER_DIRECTORY/build/orderer2.crt           # Ensure that the directory exists
+      uri: orderer2.supplychain-net.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
     - orderer:
       type: orderer
       name: orderer3
       org_name: supplychain               #org_name should match one organization definition below in organizations: key            
-      uri: orderer3.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
-      certificate: USER_DIRECTORY/build/orderer3.crt           # Ensure that the directory exists
+      uri: orderer3.supplychain-net.EXTERNAL_URL_SUFFIX:443   # Must include port, Can be external or internal URI for orderer which should be reachable by all peers
   
   # The channels defined for a network with participating peers in each channel
   channels:
@@ -84,7 +81,7 @@ network:
         name: peer0
         gossipAddress: peer0.carrier-net.EXTERNAL_URL_SUFFIX:443  # Must include port, External or internal URI of the gossip peer
         peerAddress: peer0.carrier-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.EXTERNAL_URL_SUFFIX:443             # Must include port, External or internal URI of the orderer
+      ordererAddress: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443             # Must include port, External or internal URI of the orderer
     - organization:
       name: store
       type: joiner        # joiner organization will only join the channel and install chaincode
@@ -94,7 +91,7 @@ network:
         name: peer0
         gossipAddress: peer0.store-net.EXTERNAL_URL_SUFFIX:443
         peerAddress: peer0.store-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.EXTERNAL_URL_SUFFIX:443
+      ordererAddress: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443
     - organization:
       name: warehouse
       type: joiner
@@ -104,7 +101,7 @@ network:
         name: peer0
         gossipAddress: peer0.warehouse-net.EXTERNAL_URL_SUFFIX:443
         peerAddress: peer0.warehouse-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.EXTERNAL_URL_SUFFIX:443
+      ordererAddress: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443
     - organization:
       name: manufacturer
       type: joiner
@@ -114,7 +111,7 @@ network:
         name: peer0
         gossipAddress: peer0.manufacturer-net.EXTERNAL_URL_SUFFIX:443
         peerAddress: peer0.manufacturer-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-      ordererAddress: orderer1.EXTERNAL_URL_SUFFIX:443
+      ordererAddress: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443
     endorsers:
     # Only one peer per org required for endorsement
     - organization:
@@ -145,8 +142,6 @@ network:
         name: peer0
         corepeerAddress: peer0.store-net.EXTERNAL_URL_SUFFIX:443
         certificate: "USER_DIRECTORY/store/server.crt" # certificate path for peer
-    genesis:
-      name: OrdererGenesis
 
   # Allows specification of one or many organizations that will be connecting to a network.
   # If an organization is also hosting the root of the network (e.g. doorman, membership service, etc),
@@ -160,12 +155,10 @@ network:
       state: London
       location: London
       subject: "O=Orderer,OU=Orderer,L=51.50/-0.13/London,C=GB"
-      type: orderer
       external_url_suffix: EXTERNAL_URL_SUFFIX
       org_status: new
       fabric_console: enabled               # To deploy Fabric console for this organization
       ca_data:
-        url: ca.supplychain-net.EXTERNAL_URL_SUFFIX
         certificate: USER_DIRECTORY/supplychain/server.crt        # Path where ca public cert will be stored (if new) or read from (if existing ca)
   
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -222,21 +215,21 @@ network:
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer1.EXTERNAL_URL_SUFFIX:443
+          ordererAddress: orderer1.supplychain-net.EXTERNAL_URL_SUFFIX:443
         - orderer:
           name: orderer2
           type: orderer
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer2.EXTERNAL_URL_SUFFIX:443
+          ordererAddress: orderer2.supplychain-net.EXTERNAL_URL_SUFFIX:443
         - orderer:
           name: orderer3
           type: orderer
           consensus: raft
           grpc:
             port: 7050
-          ordererAddress: orderer3.EXTERNAL_URL_SUFFIX:443
+          ordererAddress: orderer3.supplychain-net.EXTERNAL_URL_SUFFIX:443
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -245,13 +238,11 @@ network:
       state: Zurich
       location: Zurich
       subject: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
-      type: peer
       external_url_suffix: EXTERNAL_URL_SUFFIX
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: enabled               # To deploy Fabric console for this organization
       ca_data:
-        url: ca.manufacturer-net.EXTERNAL_URL_SUFFIX
         certificate: USER_DIRECTORY/manufacturer/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -307,7 +298,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.         
           gossippeeraddress: peer0.manufacturer-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.manufacturer-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer 
-          certificate: USER_DIRECTORY/manufacturer/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
           grpc:
@@ -343,13 +333,11 @@ network:
       state: London
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
-      type: peer
       external_url_suffix: EXTERNAL_URL_SUFFIX
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.carrier-net
         certificate: USER_DIRECTORY/carrier/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -403,7 +391,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer
           peerAddress: peer0.carrier-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-          certificate: USER_DIRECTORY/carrier/peer0.crt   # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
           grpc:
@@ -438,13 +425,11 @@ network:
       state: New York
       location: New York
       subject: "O=Store,OU=Store,L=40.73/-74/New York,C=US"
-      type: peer
       external_url_suffix: EXTERNAL_URL_SUFFIX
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.store-net
         certificate: USER_DIRECTORY/store/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -498,7 +483,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer. 
           gossippeeraddress: peer0.store-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.store-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer
-          certificate: USER_DIRECTORY/store/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
           grpc:
@@ -534,13 +518,11 @@ network:
       state: Massachusetts
       location: Boston
       subject: "O=Warehouse,OU=Warehouse,L=42.36/-71.06/Boston,C=US"
-      type: peer
       external_url_suffix: EXTERNAL_URL_SUFFIX
       org_status: new
       orderer_org: supplychain # Name of the organization that provides the ordering service
       fabric_console: disabled               # To not deploy Fabric console for this organization
       ca_data:
-        url: ca.warehouse-net
         certificate: USER_DIRECTORY/warehouse/server.crt
 
       cloud_provider: aws   # Options: aws, azure, gcp, digitalocean, minikube
@@ -594,7 +576,6 @@ network:
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.   
           gossippeeraddress: peer0.warehouse-net:7051 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer 
           peerAddress: peer0.warehouse-net.EXTERNAL_URL_SUFFIX:443 # Must include port, External URI of the peer 
-          certificate: USER_DIRECTORY/warehouse/peer0.crt # Path to peer Certificate
           cli: disabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.
           cactus_connector: disabled  # set to enabled to create a cactus connector for Fabric
           grpc:

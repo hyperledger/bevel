@@ -1,0 +1,121 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "auth.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "auth.fullname" . }}
+    app.kubernetes.io/name: auth-statefulset
+    app.kubernetes.io/component: auth
+    app.kubernetes.io/part-of: {{ include "auth.fullname" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ include "auth.fullname" . }}
+      app.kubernetes.io/name: auth-statefulset
+      app.kubernetes.io/component: auth
+      app.kubernetes.io/part-of: {{ include "auth.fullname" . }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      app.kubernetes.io/namespace: {{ .Release.Namespace }}
+      app.kubernetes.io/release: {{ .Release.Name }}
+  serviceName: {{ include "auth.fullname" . }}
+  volumeClaimTemplates:
+    - metadata:
+        name: auth-h2
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.dbSize }}
+    - metadata:
+        name: auth-logs
+      spec:
+        storageClassName: storage-{{ .Release.Name }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "auth.fullname" . }}
+        app.kubernetes.io/name: auth-statefulset
+        app.kubernetes.io/component: auth
+        app.kubernetes.io/part-of: {{ include "auth.fullname" . }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      hostname: {{ .Release.Name }}
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      containers:
+      - name: auth
+        image: {{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          # init-jwt
+          keytool -genkeypair -alias oauth-test-jwt -keyalg RSA -keypass password -keystore etc/jwt-store.jks -storepass password -dname "{{ .Values.subjects.auth }}"
+          # run the auth service
+          ./run.sh
+        volumeMounts:
+          - name: auth-conf
+            mountPath: /opt/cenm/authservice.conf
+            subPath: authservice.conf
+          - name: auth-conf
+            mountPath: /opt/cenm/run.sh
+            subPath: run.sh
+          - name: auth-etc
+            mountPath: /opt/cenm/etc
+          - name: auth-logs
+            mountPath: /opt/cenm/logs
+          - name: cenm-certs
+            mountPath: "/certs"
+      - name: logs
+        image: {{ .Values.image.auth.repository }}:{{ .Values.image.auth.tag }}
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - |-
+          cd /opt/cenm
+          while true; do tail -f logs/accounts-service/*.log 2>/dev/null; sleep 5; done
+          # in case sth went wrong just wait indefinitely ...
+          tail -f /dev/null
+        volumeMounts:
+          - name: auth-logs
+            mountPath: /opt/cenm/logs
+      volumes:
+      - name: cenm-certs
+        secret:
+          secretName: cenm-certs
+      - name: auth-conf
+        configMap:
+          name: {{ include "auth.fullname" . }}-conf
+          defaultMode: 0777
+      - name: auth-etc
+        emptyDir:
+          medium: Memory

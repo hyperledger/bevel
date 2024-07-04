@@ -1,0 +1,39 @@
+---
+#helm install manufacturer -f values/noproxy-and-novault/node.yaml -n manufacturer-ns corda-node 
+#helm upgrade manufacturer -f values/noproxy-and-novault/node.yaml -n manufacturer-ns corda-node
+global:
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: manufacturer
+    secretEngine: secretsv2
+    secretPrefix: "data/manufacturer"
+  proxy:
+    provider: "ambassador"
+    externalUrlSuffix: test.blockchaincloud.com
+    p2p: 15010
+
+storage:
+  size: "1Gi"
+  dbSize: 1Gi
+
+tls:
+  enabled: true
+
+image:
+  corda:
+    repository: ghcr.io/hyperledger/bevel-corda
+    tag: 4.9
+
+nodeConf:
+  removeKeysOnDelete: true
+  legalName: "O=Manufacturer,OU=Manufacturer,L=47.38/8.54/Zurich,C=CH"
+  notary:
+    enabled: false
+  networkMapURL: https://supplychain-nms.test.blockchaincloud.com
+  doormanURL: https://supplychain-doorman.test.blockchaincloud.com

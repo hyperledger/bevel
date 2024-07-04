@@ -96,6 +96,8 @@ spec:
       - name: {{ .Release.Name }}-besu
         image: {{ .Values.image.besu.repository }}:{{ .Values.image.besu.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          runAsUser: 0
         resources:
           requests:
             cpu: "{{ .Values.node.besu.resources.cpuRequest }}"
@@ -172,10 +174,9 @@ spec:
               --identity={{ .Values.node.besu.identity | quote }} --miner-enabled=false \
               --Xdns-enabled=true --Xdns-update-enabled=true --Xnat-kube-service-name={{ include "besu-node.fullname" . }} \
               --min-gas-price=0
-
         livenessProbe:
           httpGet:
-            path: /liveness
+            path: /
             port: 8545
           initialDelaySeconds: 180
           periodSeconds: 60

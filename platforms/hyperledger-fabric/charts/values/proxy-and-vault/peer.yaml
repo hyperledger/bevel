@@ -1,0 +1,55 @@
+#helm install pee0 -f values/proxy-and-vault/orderer.yaml -n carrier-net fabric-orderernode
+global:
+  version: 2.5.4
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+  vault:
+    type: hashicorp
+    role: vault-role
+    address: http://vault.url:8200
+    authPath: supplychain
+    secretEngine: secretsv2
+    secretPrefix: "data/supplychain"
+    tls: false
+  proxy:
+    provider: haproxy
+    externalUrlSuffix: test.yourdomain.com
+
+certs:
+  generateCertificates: true
+  orgData:
+    caAddress: ca.supplychain-net:7054
+    caAdminUser: supplychain-admin
+    caAdminPassword: supplychain-adminpw
+    orgName: supplychain
+    type: peer
+    componentSubject: "O=Orderer,L=51.50/-0.13/London,C=GB"
+  users: 
+    usersList:
+      - user:
+        identity: user1
+        attributes:
+        - key: "hf.Revoker"
+          value: "true"
+  settings:
+    #Flag to create configmaps for the organization. This flag must be set to true when installing the first orderer/peer in organization and false for others.
+    createConfigMaps: false
+    refreshCertValue: false
+    addPeerValue: false
+    removeCertsOnDelete: true
+    removeOrdererTlsOnDelete: true
+
+peer:
+  gossipPeerAddress: peer1.supplychain-net.test.yourdomain.com:443
+  logLevel: info
+  localMspId: supplychainMSP
+  tlsStatus: true
+  cliEnabled: false
+  ordererAddress: orderer1.supplychain-net.test.yourdomain.com:443
+  builder: hyperledger/fabric-ccenv
+  couchdb:
+    username: supplychain-user
+    password: supplychain-userpw
+  upgrade: false

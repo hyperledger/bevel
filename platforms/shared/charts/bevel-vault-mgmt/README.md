@@ -13,7 +13,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install my-release bevel/bevel-vault-mgmt
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - HashiCorp Vault Server 1.13.1+
@@ -58,8 +58,8 @@ These parameters are refered to as same in each parent or child chart
 | `global.vault.address`| URL of the Vault server.    | `""`            |
 | `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
 | `global.vault.network` | Network type which will determine the vault policy | `besu` |
-| `global.vault.secretEngine` | Provide the value for vault secret engine name   | `secretsv2`  |
-| `global.vault.secretPrefix` | Provide the value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
 | `global.vault.tls` | Enable or disable TLS for vault communication if value present or not | `""`  |
 
 ### Image
@@ -68,7 +68,7 @@ These parameters are refered to as same in each parent or child chart
 |------------|-----------|---------|
 | `image.repository`    | Docker image repo which will be used for this job | `ghcr.io/hyperledger/bevel-alpine`  |
 | `image.tag` |  Docker image tag which will be used for this job | `latest` |
-| `image.pullSecret` | Provide the docker secret name  | `""`  |
+| `image.pullSecret` | Secret name in the namespace containing private image registry credentials | `""`  |
 
 ### Common parameters
 

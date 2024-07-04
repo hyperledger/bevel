@@ -9,9 +9,9 @@
   include_role:
     name: create/helm_component
   vars:
-    component_name: "{{ name }}{{ peer.name }}validatornode"
+    component_name: "{{ peer.name }}"
     type: "node_substrate"
-    storageclass_name: "{{ name }}-bevel-storageclass"
+    storageclass_name: "{{ item.cloud_provider }}storageclass"
     external_url: "{{ item.external_url_suffix }}"
     vault: "{{ item.vault }}"
     git_url: "{{ item.gitops.git_url }}"
@@ -20,13 +20,13 @@
     docker_url: "{{ network.docker.url }}"
     charts_dir: "{{ item.gitops.chart_source }}"
     values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"    
-    bootnode_data: "{{ lookup('file', '{{ network.config.bootnodes }}').splitlines() }}"
     command: "{{ network.config.command }}"
     role: "validator"
+    isBootnode: "{{ false if peer.type == 'bootnode' else true }}"
   loop: "{{ peers }}"
   loop_control:
     loop_var: peer
-  when: peer.type == "validator"
+  when: peer.type in ['validator', 'bootnode']
 
 # Git Push : Push the above generated files to git directory 
 - name: Git Push

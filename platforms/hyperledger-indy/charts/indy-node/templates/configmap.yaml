@@ -7,13 +7,32 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $.Values.metadata.name }}-config
-  namespace: {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ $.Values.metadata.name }}-config
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name }}-config
+    app.kubernetes.io/component: config
+    app.kubernetes.io/part-of: {{ include "indy-node.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
 data:
   indy_config.py: |
-  {{ $.Values.configmap.indyConfig  | nindent 6 }}
+    NETWORK_NAME = '{{ .Values.settings.network }}'
+    # Enable stdout logging
+    enableStdOutLogging = True
+    logRotationBackupCount = 10
+    # Directory to store ledger.
+    LEDGER_DIR = '/var/lib/indy/data'
+    # Directory to store logs.
+    LOG_DIR = '/var/log/indy'
+    # Directory to store keys.
+    KEYS_DIR = '/var/lib/indy/keys'
+    # Directory to store genesis transactions files.
+    GENESIS_DIR = '/var/lib/indy/genesis'
+    # Directory to store backups.
+    BACKUP_DIR = '/var/lib/indy/backup'
+    # Directory to store plugins.
+    PLUGINS_DIR = '/var/lib/indy/plugins'
+    # Directory to store node info.
+    NODE_INFO_DIR = '/var/lib/indy/data'

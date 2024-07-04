@@ -1,0 +1,68 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Default values for indy-genesis.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+# The following are for overriding global values
+global:
+  #Provide the service account name which will be created.
+  serviceAccountName: vault-auth
+  cluster:
+    provider: aws  # choose from: minikube | aws | azure | gcp
+    cloudNativeServices: false # only 'false' is implemented now
+  vault:
+    #Provide the type of vault
+    type: kubernetes   # hashicorp | kubernetes
+    #Provide the vault role used.
+    role: vault-role
+    #Provide the network type
+    network: indy
+    #Provide the vault server address
+    address: 
+    #Provide the vault authPath configured to be used.
+    authPath: authority
+    #Provide the secret engine.
+    secretEngine: secretsv2
+    #Provide the vault path where the secrets will be stored
+    secretPrefix: "data/authority"
+
+image:
+  #Provide the image for the job container
+  #Eg. alpineutils: ghcr.io/hyperledger/bevel-alpine-ext:latest
+  alpineutils: ghcr.io/hyperledger/bevel-alpine-ext:latest
+  #Provide the secret to use if private repository
+  #Eg. pullSecret: regcred
+  pullSecret:
+
+settings:
+  # Flag to ensure the genesis configmaps are removed on helm uninstall
+  removeGenesisOnDelete: true
+  # Flag to copy domain and pool genesis from files for secondary members
+  secondaryGenesis: false
+  # Provide the steward details by following trustee tree as per example below
+  trustees:
+    - name: authority-trustee
+      stewards:
+        - name: university-steward-1  # Steward name
+          publicIp:                   # Steward public IP Address /Kubernetes API IP for noproxy
+          nodePort: 15011             # Node external port
+          clientPort: 15012           # Client external port
+        # - name: university-steward-2
+        #   publicIp: 
+        #   nodePort: 15021
+        #   clientPort: 15022
+    # - name: partner-trustee
+    #   stewards:
+    #     - name: partner-steward-1
+    #       publicIp: 
+    #       nodePort: 15031
+    #       clientPort: 15032
+    #     - name: partner-steward-2
+    #       publicIp: 
+    #       nodePort: 15041
+    #       clientPort: 15042

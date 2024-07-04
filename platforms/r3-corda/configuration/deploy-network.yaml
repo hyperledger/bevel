@@ -4,11 +4,21 @@
 #  SPDX-License-Identifier: Apache-2.0
 ##############################################################################################
 
-##############################################################################################
-# Playbook to create deployment files for namespaces, service account and clusterrolebinding
-# Playbook arguments: complete network.yaml
-##############################################################################################
+# This playbook deploys a DLT network on existing Kubernetes clusters
+# The Kubernetes clusters should already be created and the infomation to connect to the
+#  clusters be updated in the network.yaml file that is used as an input to this playbook
 
+##################################################################################################################
+
+# To Run this playbook from this directory, use the following command (network.yaml also in this directory)
+#  ansible-playbook deploy-network.yaml -e "@./network.yaml"
+
+##################################################################################################################
+
+# Note: Please ensure that the ../../shared/configuration playbooks have been run using the same network.yaml
+
+##################################################################################################################
+---
 - hosts: ansible_provisioners
   gather_facts: no
   no_log: "{{ no_ansible_log | default(false) }}"
@@ -23,67 +33,64 @@
   - name: "Create namespace"
     include_role: 
       name: create/namespace 
+    vars: 
+      component_name: "{{ org.name }}-ns"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
 
-  # Create Storageclass
-  - name: Create StorageClass
+  # Create necessary secrets
+  - name: "Create k8s secrets"
     include_role:
-      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"
+      name: create/secrets
     vars:
-      org_name: "{{ org.name | lower }}"
-      sc_name: "{{ org_name }}-bevel-storageclass" 
-      region: "{{ org.k8s.region | default('eu-west-1') }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
     loop: "{{ network['organizations'] }}"
     loop_control:
       loop_var: org
+    when: 
+    - org.org_status is not defined or org.org_status == 'new'
 
-  # Setup Vault-Kubernetes accesses
-  - name: "Setup vault Kubernetes accesses"
+  # Execute primary init for the network-service organization
+  - name: "Setup primary init with network-service org"
     include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+      name: init
     vars:
-      name: "{{ item.name | lower }}"
-      org_name: "{{ item.name | lower }}"
-      component_ns: "{{ item.name | lower }}-ns"
-      component_name: "{{ item.name | lower }}-vaultk8s-job"
-      component_auth: "{{ network.env.type }}{{ name }}"
-      component_type: "organization"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}"
+      build_path: "./build"
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      init_type: "primary_init"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "./build/{{ component_ns }}"
     loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+    - org.type == 'network-service'
+    - org.org_status is not defined or org.org_status == 'new'
 
-  # Deploy Doorman node
-  - name: Deploy Doorman service node
+  # Deploy Corda network services
+  - name: Deploy Network service
     include_role:
-      name: setup/doorman
+      name: setup/network_service
     vars:
-      services: "{{ item.services }}"
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}"     
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type.find('doorman') != -1
-
-  # Deploy NMS node
-  - name: Deploy Networkmap service node
-    include_role:
-      name: setup/nms      
-    vars:
-      services: "{{ item.services }}"
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type.find('nms') != -1
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'network-service'
+      - org.org_status is not defined or org.org_status == 'new'
   
   # Wait for network services to respond  
   - name: Check that network services uri are reachable
@@ -95,38 +102,44 @@
     loop: "{{ network['network_services'] }}"
     retries: "{{ network.env.retry_count}}"
     delay: 50
-    ignore_errors: yes
+    ignore_errors: true
     when: network.env.proxy != 'none'
 
   # Deploy notaries
-  - name: 'Deploy notary'
+  - name: Deploy notary service
     include_role:
       name: setup/notary
     vars:
-      services: "{{ item.services }}"
-      node: "{{ item.services.notary }}"
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      gitops: "{{ item.gitops }}" 
-      cordapps: "{{ item.cordapps | default() }}"
+      name: "{{ org.name | lower }}"
+      node: "{{ org.services.notary }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type.find('notary') != -1
+    loop_control:
+      loop_var: org
+    when: 
+      - org.services.notary is defined
+      - org.org_status is not defined or org.org_status == 'new'
 
   # Deploy all other nodes
-  - name: 'Deploy nodes'
+  - name: Deploy Corda nodes
     include_role:
       name: setup/node
     vars:
-      name: "{{ item.name | lower }}"
-      sc_name: "{{ name }}-bevel-storageclass"
-      component_ns: "{{ item.name | lower }}-ns"
-      services: "{{ item.services }}"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      cordapps: "{{ item.cordapps | default() }}"
-      gitops: "{{ item.gitops }}" 
-    loop: "{{ network['organizations'] }}"  
-    when: item.type == 'node'
+      name: "{{ org.name | lower }}"
+      component_ns: "{{ org.name | lower }}-ns"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      gitops: "{{ org.gitops }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ component_ns }}"
+    loop: "{{ network['organizations'] }}"
+    loop_control:
+      loop_var: org
+    when: 
+      - org.type == 'node'
+      - org.org_status is not defined or org.org_status == 'new'

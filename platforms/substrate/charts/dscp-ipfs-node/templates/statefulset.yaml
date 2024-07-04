@@ -1,3 +1,9 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
 {{ $fullname :=  include "dscp-ipfs.fullname" . }}
 apiVersion: apps/v1
 kind: StatefulSet
@@ -21,7 +27,7 @@ spec:
       labels:
         name: {{ include "dscp-ipfs.fullname" . }}
     spec:
-      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      serviceAccountName: {{ $.Values.global.serviceAccountName }}
       {{- include "dscp-ipfs.imagePullSecrets" . | indent 6 }}
       volumes:
         - name: package-manager
@@ -82,21 +88,24 @@ spec:
             - mountPath: {{ .Values.config.ipfsDataPath }}
               name: ipfs-data
         {{- end }}
-        {{- if eq .Values.vault.provider "hashicorp" }}
         - name: ipfs-init
           image: {{ .Values.initContainer.image }}
           imagePullPolicy: {{ .Values.initContainer.pullPolicy | quote }}
           env:
             - name: MOUNT_PATH
               value: {{ .Values.config.ipfsDataPath }}
+{{- if eq .Values.global.vault.type "hashicorp" }}
             - name: VAULT_ADDR
-              value: {{ $.Values.vault.address }}
+              value: {{ $.Values.global.vault.address }}
             - name: KUBERNETES_AUTH_PATH
-              value: {{ $.Values.vault.authpath }}
+              value: {{ $.Values.global.vault.authPath }}
             - name: VAULT_APP_ROLE
-              value: {{ $.Values.vault.role }}
-            - name: CERTS_SECRET_PREFIX
-              value: {{ .Values.vault.certsecretprefix }}   
+              value: {{ $.Values.global.vault.role }}
+            - name: VAULT_SECRET_ENGINE
+              value: {{ .Values.global.vault.secretEngine }}
+            - name: VAULT_SECRET_PREFIX
+              value: {{ .Values.global.vault.secretPrefix }}
+{{- end }}
           volumeMounts:
             - mountPath: {{ .Values.config.ipfsDataPath }}
               name: ipfs-data
@@ -107,7 +116,7 @@ spec:
           args:
             - |-
               #!/usr/bin/env bash
-
+{{- if eq .Values.global.vault.type "hashicorp" }}
               echo "validating vault response"
               validateVaultResponse () {
                 if echo ${2} | grep "errors"; then
@@ -130,6 +139,7 @@ spec:
                 fi
               }
               echo "done validating vault response"
+{{- end }}
 
               . /scripts/package-manager.sh
               # Define the packages to install
@@ -141,6 +151,7 @@ spec:
               peer_id=$(cat config | jq -r .Identity.PeerID)
               private_key=$(cat config | jq -r .Identity.PrivKey)
 
+{{- if eq .Values.global.vault.type "hashicorp" }}
               echo "
                 {
                   \"data\": {
@@ -158,7 +169,7 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
 
               validateVaultResponse 'vault login token' "${VAULT_CLIENT_TOKEN}"
-              vault_secret_key="${CERTS_SECRET_PREFIX}/ipfs"
+              vault_secret_key="${VAULT_SECRET_ENGINE}"/"${VAULT_SECRET_PREFIX}-ipfs-keys"
               # Save the generated keys to VAULT
               LOOKUP_SECRET_RESPONSE=$(curl -sS -H "X-Vault-Token: ${VAULT_CLIENT_TOKEN}" \
                 -H "Content-Type: application/json" \
@@ -168,7 +179,7 @@ spec:
                 jq -r 'if .errors then . else .auth.client_token end')
               validateVaultResponse " secret $vault_secret_key" "${LOOKUP_SECRET_RESPONSE}" "LOOKUPSECRETRESPONSE"
               echo "Done saving keys in vault"
-        {{- end }}    
+{{- end }}
       containers:
         - name: {{ include "dscp-ipfs.fullname" . }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -252,7 +263,7 @@ spec:
       spec:
         accessModes: [ "ReadWriteOnce" ]
         {{- if .Values.storage.storageClass }}
-        storageClassName: {{ .Values.storage.storageClass }}
+        storageClassName: substrate-storage-{{ .Release.Name }}
         {{- end }}
         resources:
           requests:

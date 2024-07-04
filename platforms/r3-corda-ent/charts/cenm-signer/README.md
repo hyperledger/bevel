@@ -3,196 +3,107 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "deploy signer"></a>
-# Signer Deployment
+# cenm signer-service
 
-- [Signer Deployment Helm Chart](#Signer-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The cenm-signer chart deploys a R3 Corda Enterprise identity manager. If enabled, the keys are then stored on the configured vault and stored as Kubernetes secrets. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
-<a name = "Signer-deployment-helm-chart"></a>
-## Signer Deployment Helm Chart
----
-This [Helm chart](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/charts/cenm-signer) Deploys and configure a signer service within a Kubernetes cluster.
+## TL;DR
 
-<a name = "prerequisites"></a>
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install signer bevel/cenm-signer
+```
+
 ## Prerequisites
----
-Before deploying the chart please ensure you have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm is installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-This chart has following structue:
-```
-  ├── signer
-  │   ├── Chart.yaml
-  │   ├── templates
-  │   │   ├── deployment.yaml
-  │   │   ├── _helpers.tpl
-  │   │   ├── service.yaml  
-  │   └── values.yaml
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
+
+> **Important**: Ensure the `enterprise-init` chart has been installed before installing this. Also check the dependent charts. Installing this chart seperately is not required as it is a dependent chart for cenm, and is installed with cenm chart.
+
+## Installing the Chart
+
+To install the chart with the release name `signer`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install signer bevel/cenm-signer
 ```
 
-Type of files used:
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
-- `templates`       : This directory contains the Kubernetes manifest templates that define the resources to be deployed.
-- `deployment.yaml` : Deploys an application using the kubernetes deployment resource, which ensures that a specified number of replica pods are running at all times. The container runs a signing keys and generating certificates and responsible for tailing and displaying log files from the signer service. 
-- `_helpers.tpl`    : A template file used for defining custom labels in the Helm chart.
-- `service.yaml`    : This file defines a Kubernetes Service with multiple ports for protocols and targets, and supports Ambassador proxy annotations for specific configurations when using the "ambassador" proxy provider.
-- `chart.yaml`      : Provides metadata about the chart, such as its name, version, and description.
-- `values.yaml`     : Contains the default configuration values for the chart. It includes configuration for the metadata, image, storage, Vault, etc.
+> **Tip**: List all releases using `helm list`
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/r3-corda-ent/charts/cenm-signer/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+## Uninstalling the Chart
+
+To uninstall/delete the `signer` deployment:
+
+```bash
+helm uninstall signer
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
 ## Parameters
----
 
-### Name
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.serviceAccountName` | The serviceaccount name that will be used for Vault Auth management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | The value for vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | The value for vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.proxy.provider` | The proxy or Ingress provider. Can be `none` or `ambassador` | `ambassador` |
+| `global.proxy.externalUrlSuffix` | The External URL suffix at which the Besu P2P and RPC service will be available | `test.blockchaincloudpoc.com` |
+| `global.cenm.sharedCreds.truststore` | The truststore password the pki created truststores | `password` |
+| `global.cenm.sharedCreds.keystore` | The truststore password the pki created ketstores | `password` |
+| `global.cenm.identityManager.port` | The port for identity manager issuance | `10000` |
+| `global.cenm.identityManager.revocation.port` | The port for identity manager revocation | `5053` |
+| `global.cenm.identityManager.internal.port` | The port for identity manager internal listener | `5052` |
+| `global.cenm.auth.port` | The port for auth api | `8081` |
+| `global.cenm.gateway.port` | The port for gateway api | `8080` |
+| `global.cenm.zone.enmPort` | The port for zone ENM | `25000` |
 
-| Name       | Description                                        | Default Value |
-| -----------| -------------------------------------------------- | ------------- |
-| nodeName   | Provide the name of the node                       |  signer       |
+### Storage
 
-### Metadata
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `storage.allowedTopologies.enabled` | Check [bevel-storageclass](../../../shared/charts/bevel-storageclass/README.md) for details  | `false`  |
 
-| Name            | Description                                                     | Default Value |
-| ----------------| ----------------------------------------------------------------| ------------- |
-| namespace       | Provide the namespace for the Corda Enterprise Signer           | cenm          |
-| labels          | Provide any additional labels for the Corda Enterprise Signer   | ""            |
 
 ### Image
-
-| Name                     | Description                                                                      | Default Value                                 |
-| ------------------------ | -------------------------------------------------------------------------------- | ----------------------------------------------|
-| initContainerName        | Information about the Docker container used for the init-containers              | ghcr.io/hyperledger                           |
-| signerContainer          | Provide the image for the main Signer container                                  | corda/enterprise-signer:1.2-zulu-openjdk8u242 |
-| ImagePullSecret          | Provide the K8s secret that has rights for pulling the image off the registry    | ""                                            |
-| pullPolicy               | Provide the pull policy for Docker images, either Always or IfNotPresent         | IfNotPresent                                  |
-
-### Vault
-
-| Name                      | Description                                                               | Default Value                     |
-| ------------------------- | --------------------------------------------------------------------------| --------------------------------- |
-| address                   | Address/URL of the Vault server                                           | ""                                |
-| role                      | Role used for authentication with Vault                                   | vault-role                        |
-| authpath                  | Authentication path for Vault                                             | entcordacenm                      |
-| serviceAccountName        | Provide the already created service account name autheticated to vault    | vault-auth                        |
-| certSecretPrefix          | Provide the vault path where the certificates are stored                  | secret/cenm-org-name/signer/certs |
-| retries                   | Amount of times to retry fetching from/writing to Vault before giving up  | 10                                |
-| sleepTimeAfterError       | Amount of time in seconds wait after an error occurs                      | 15                                |
-
-### Service
-
-| Name                  | Description                               | Default Value   |
-| --------------------- | ------------------------------------------| -------------   |
-| type                  | Provide the type of service               | clusterip       |
-| port                  | provide the port for service              | 6000            |
-
-### CenmServices
-
-| Name           | Description                               | Default Value |
-| ---------------| ------------------------------------------| ------------- |
-| idmanName      | Provide the name of the idman             | idman         |
-| authName       | Name of the auth service                  | ""            |
-| authPort       | Auth Service port                         | ""            |
-
-### ServiceLocations
-
-| Name                     | Description                                                                           | Default Value   |
-| ------------------------ | --------------------------------------------------------------------------------------| --------------- |
-| identityManager          | Provide the idman service address                                                     | ""              |
-| host                     | The internal hostname for the Idman service, inside the K8s cluster                   | idman.namespace |
-| publicIp                 | The public IP of the Idman service, accessible outside of the K8s cluster             | ""              |
-| port                     | Port at which idman service is accessible, inside the K8s cluster                     | 5052            |
-| publicPort               | Public port at which the Idman service is accessible outside the K8s cluster          | 443             |
-| networkMap               | networkmap service details                                                            | ""              |
-| revocation port          | Details of service where certificate revocation list will be published by idman       | 5053            |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
+| `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
+| `image.signer.repository`   | CENM idman image repository  | `corda/enterprise-singer`|
+| `image.signer.tag`   | CENM idman image tag as per version | `1.5.9-zulu-openjdk8u382`|
+| `image.enterpriseCli.repository`   | CENM idman image repository  | `corda/enterprise-cli`|
+| `image.enterpriseCli.tag`   | CENM idman image tag as per version | `1.5.9-zulu-openjdk8u382`|
 
 ### Signers
-
-| Name              | Description                                               | Default Value |
-| ---------------   | ----------------------------------------------------------| ------------- |
-| CSR               | For checking Certificate Signing Request (CSR) schedule   | 1m            |
-| CRL               | For checking Certificate Revocation List (CRL) schedule   | 1d            |
-| NetworkMap        | For checking with NetworkMap (NMS)                        | 1d            |
-| NetworkParameters | For checking network parameters interval                  | 1m            |
-
-### Config
-
-| Name                     | Description                                                                   | Default Value   |
-| ------------------------ | ----------------------------------------------------------------------------- | --------------- |
-| baseDir                  | Provide volume related specifications                                         | /opt/corda      |
-| jarPath                  | Provide the path where the CENM Signer .jar-file is stored                    | "bin"           |
-| configPath               | Provide the path where the CENM Service configuration files are stored        | "etc"           |
-| cordaJar                 | Provide configuration of the .jar files used in the Node                      | ""              |
-| deployment               | Provide any extra annotations for the deployment                              | "vaule"         |
-| pod                      | Set memory limits of pod                                                      | ""              |
-| replicas                 | Provide the number of replicas for your pods                                  | "1"             |
-
-### Healthcheck
-
-| Name                        | Description                                                   | Default Value |
-| ----------------------------| --------------------------------------------------------------| ------------- |
-| nodePort                    | Health Check node port set to get rid of logs pollution       | 0             |
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `signers.CSR.schedule.interval`    | Certificate sigining request interval  | `"1m"`            |
+| `signers.CRL.schedule.interval`    | Certificate revocation interval   | `"1d"`            |
+| `signers.NetworkMap.schedule.interval`    | NetworkMap sigining interval  | `"1m"`            |
+| `signers.NetworkParameters.schedule.interval`    | Network Parameters sigining interval  | `"1m"`            |
 
 
-<a name = "deployment"></a>
-## Deployment
----
-To deploy the Signer Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/r3-corda-ent/charts/cenm-signer/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install, upgrade, verify delete the chart:
-
-To install the chart:
-```bash
-helm repo add bevel https://hyperledger.github.io/bevel/
-helm install <release-name> ./cenm-signer
-```
-
-To upgrade the chart:
-```bash
-helm upgrade <release-name> ./cenm-signer
-```
-
-To verify the deployment:
-```bash
-kubectl get jobs -n <namespace>
-```
-Note : Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
-
-To delete the chart: 
-```bash
-helm uninstall <release-name>
-```
-Note : Replace `<release-name>` with the desired name for the release.
-
-
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Signer Deployment Helm Chart](https://github.com/hyperledger/bevel/tree/main/platforms/r3-corda-ent/charts/cenm-signer), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

@@ -15,7 +15,6 @@ metadata:
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "labels.custom" . | nindent 2 }}
 data:
   policies-config.json: |-
     {{ if eq .Values.global.vault.network "besu" -}}
@@ -51,7 +50,7 @@ data:
     {{ if eq .Values.global.vault.network "quorum" -}}
     {
       "policy": 
-        "path \"{{ .Values.global.vault.secretEngine }}/{{ .Values.global.vault.secretPrefix }}/crypto/*\" {
+        "path \"{{ .Values.global.vault.secretEngine }}/{{ .Values.global.vault.secretPrefix }}/*\" {
           capabilities = [\"list\", \"read\", \"create\", \"update\"]
         }
         path \"{{ .Values.global.vault.secretEngine }}/{{ .Values.global.vault.secretPrefix }}/smartContracts/*\" {
@@ -68,6 +67,14 @@ data:
     }
     {{ end }}
     {{ if eq .Values.global.vault.network "substrate" -}}
+    {
+      "policy": 
+        "path \"{{ .Values.global.vault.secretEngine }}/{{ .Values.global.vault.secretPrefix }}/*\" {
+          capabilities = [\"list\", \"read\", \"create\", \"update\"]
+        }"
+    }
+    {{ end }}
+    {{ if eq .Values.global.vault.network "indy" -}}
     {
       "policy": 
         "path \"{{ .Values.global.vault.secretEngine }}/{{ .Values.global.vault.secretPrefix }}/*\" {

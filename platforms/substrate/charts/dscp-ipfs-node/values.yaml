@@ -1,6 +1,36 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
 
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+global:
+  # Provide the service account name autheticated to vault.
+  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
+  # Eg. serviceAccountName: vault-auth
+  serviceAccountName: vault-auth
+  cluster:
+    provider: azure
+    cloudNativeServices: false
+# Vault section contains the vault provider configuration 
+  vault:
+    # Mention the vault provider. Currently hashicorp is supported
+    provider: kubernetes # kubernetes | hashicorp
+    # Provide the vault address
+    # Eg. address: http://vault.example.com:8200
+    address: ""
+    # Provide the vault role used.
+    # Eg. role: vault-role
+    role: vault-role
+    # Provide the authpath configured to be used.
+    authpath: ""
+    # Provide the vault path where the certificates are stored
+    # Eg. certsecretprefix: secret/cenm-org-name
+    certSecretPrefix: ""
+
 ## Provide a name to substitute for the full names of resources
 fullnameOverride: ""
 # This section contains the ipfs node config values
@@ -9,9 +39,9 @@ config:
   healthCheckPollPeriod: 30000
   healthCheckTimeout: 2000
   # External DSCP-Node hostname to query, this overrides dscpNode.enabled
-  nodeHost: ""
+  nodeHost: member-1-substrate-node
   # External DSCP-Node port to query
-  nodePort: ""
+  nodePort: 9944
   # Public key for the IPFS subsystem
   publicKey: ""
   # Private key for the IPFS subsystem
@@ -89,7 +119,7 @@ dscpNode:
 proxy:
   # Mention the proxy provider. Currently ambassador is supported
   # eg. provider: ambassador
-  provider: ambassador
+  provider: none # none | ambassador
   # url that will be added in DNS recordset
   # eg. external_url: test.substrate.example.com
   external_url: ""
@@ -99,23 +129,3 @@ proxy:
   port: 15010
   # Provide the secret name which contains the certificate
   certSecret: ""
-
-# Vault section contains the vault provider configuration 
-vault:
-  # Mention the vault provider. Currently hashicorp is supported
-  provider: hashicorp
-  # Provide the vault address
-  # Eg. address: http://vault.example.com:8200
-  address: ""
-  # Provide the vault role used.
-  # Eg. role: vault-role
-  role: vault-role
-  # Provide the authpath configured to be used.
-  authpath: ""
-  # Provide the service account name autheticated to vault.
-  # NOTE: Make sure that the service account is already created and authenticated to use the vault.
-  # Eg. serviceaccountname: vault-auth
-  serviceAccountName: vault-auth
-  # Provide the vault path where the certificates are stored
-  # Eg. certsecretprefix: secret/cenm-org-name
-  certSecretPrefix: ""

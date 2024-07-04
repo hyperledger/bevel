@@ -1,0 +1,59 @@
+  ##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configtx-yaml
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: configtx-yaml
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:
+  configtx.yaml: |-
+{{- if eq ($.Values.global.version | trunc 3) "2.5" }}
+    {{ tpl (.Files.Get "files/configtx_2_5.tpl") . | nindent 8 }}
+{{- else }}
+    {{ tpl (.Files.Get "files/configtx_2_2.tpl") . | nindent 8 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-admin-msp-certs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: admin-msp-certs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: {{ include "fabric-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+data:  
+{{- range $org := .Values.organizations }}
+{{- $file := $.Files.Get (printf "files/%s.json" $org.name) }}
+{{- if $file }}
+  {{ $org.name }}.json: |-
+    {{ $.Files.Get (printf "files/%s.json" $org.name) | nindent 4 }}
+{{- end }}
+{{- $file := $.Files.Get (printf "files/%s-config-file.json" $org.name) }}
+{{- if $file }}
+  {{ $org.name }}-config-file.json: |-
+    {{ $.Files.Get (printf "files/%s-config-file.json" $org.name) | nindent 4 }}
+{{- end }}
+{{- range $orderer := $org.orderers }}
+{{- $ordfile := $.Files.Get (printf "files/%s-orderer-tls.json" $orderer.name) }}
+{{- if $ordfile }}
+  {{ $orderer.name }}-orderer-tls.json: |-
+    {{ $.Files.Get (printf "files/%s-orderer-tls.json" $orderer.name) | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

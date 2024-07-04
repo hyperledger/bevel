@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "quorum-genesis.name" . }}-cleanup
+  labels:
+    app.kubernetes.io/name: quorum-genesis-job-cleanup
+    app.kubernetes.io/component: genesis-job-cleanup
+    app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/managed-by: helm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook-weight: "0"
+    helm.sh/hook: "pre-delete"
+    helm.sh/hook-delete-policy: "hook-succeeded"
+spec:
+  backoffLimit: 3
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: quorum-genesis-job-cleanup
+        app.kubernetes.io/component: genesis-job-cleanup
+        app.kubernetes.io/part-of: {{ include "quorum-genesis.fullname" . }}
+        app.kubernetes.io/namespace: {{ .Release.Namespace }}
+        app.kubernetes.io/managed-by: helm
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}      
+      restartPolicy: "Never"
+      containers:
+        - name: delete-genesis
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            runAsUser: 0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+
+{{- if .Values.settings.removeGenesisOnDelete }}
+              if kubectl get configmap --namespace {{ .Release.Namespace }} quorum-genesis &> /dev/null; then
+                echo "Deleting genesis configmap in k8s ..."
+                kubectl delete configmap --namespace {{ .Release.Namespace }} quorum-genesis
+              fi
+{{- end}}

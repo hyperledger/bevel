@@ -1,0 +1,244 @@
+
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-generate-keys
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+  labels:
+    app: genesis
+    app.kubernetes.io/name: pre-install-hook
+    app.kubernetes.io/component: keygen
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: helm
+spec:
+  backoffLimit: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pre-install-hook
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.global.serviceAccountName }}
+      restartPolicy: "OnFailure"
+      containers:
+        - name: generate-keys
+          image: {{ $.Values.node.image }}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: package-manager
+              mountPath: /scripts/package-manager.sh
+              subPath: package-manager.sh
+{{- if eq .Values.global.vault.type "hashicorp" }}
+            - name: scripts-volume
+              mountPath: /scripts/bevel-vault.sh
+              subPath: bevel-vault.sh
+          env:
+          - name: VAULT_ADDR
+            value: {{ $.Values.global.vault.address }}
+          - name: VAULT_SECRET_ENGINE
+            value: {{ .Values.global.vault.secretEngine }}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{ $.Values.global.vault.authPath }}
+          - name: VAULT_APP_ROLE
+            value: {{ $.Values.global.vault.role }}
+          - name: VAULT_SECRET_PREFIX
+            value: {{ .Values.global.vault.secretPrefix }}
+          - name: VAULT_TYPE
+            value: {{ $.Values.global.vault.type }}  
+{{- end }} 
+          command: ["bash", "-c"]
+          args:
+            - |
+
+                #!/usr/bin/env bash
+
+                echo "Step 1: Check if the node image is available and install necessary packages if needed."
+                {{- if ne $.Values.node.image "docker.io/paritytech/substrate-playground-template-node-template" }}
+                  # Install necessary packages using custom package manager script
+                  . /scripts/package-manager.sh
+                  packages_to_install="jq bc curl unzip base58 xxd"
+                  install_packages "$packages_to_install"
+                  
+                  # Check if jq is installed and download it if not installed
+                  if ! command -v jq &> /dev/null; then
+                    cd ~
+                    curl -k -L -o jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+                    chmod +x jq
+                    export PATH="$PATH:$HOME"
+                  else
+                    echo "jq is already installed via package-manager.sh script."
+                  fi   
+                {{- end }}
+                # Download and set up kubectl for Kubernetes management
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl /usr/local/bin/
+                kubectl version --client
+{{- if eq .Values.global.vault.type "hashicorp" }}
+                # Source the script containing vault-related functions
+                . /scripts/bevel-vault.sh
+
+                echo "Generate a customize token."
+                vaultBevelFunc "init"
+                
+                # Function to safely write keys
+                safeWriteSecret() {
+                  local key="$1"
+                  local payload_json="$2"
+                  
+                  # Read secret from vault
+                  vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}"
+                  # Check if secrets are available in the vault
+                  if [ "$SECRETS_AVAILABLE" == "yes" ]
+                    then
+                      # Extract secrets from JSON response
+                      local node_id=$(echo ${VAULT_SECRET} | jq -r '.["node_id"]')
+                      local node_key=$(echo ${VAULT_SECRET} | jq -r '.["node_key"]')
+                      local aura_seed=$(echo ${VAULT_SECRET} | jq -r '.["aura_seed"]')
+                      local aura_addr=$(echo ${VAULT_SECRET} | jq -r '.["aura_addr"]')
+                      local grandpa_seed=$(echo ${VAULT_SECRET} | jq -r '.["grandpa_seed"]')
+                      local grandpa_addr=$(echo ${VAULT_SECRET} | jq -r '.["grandpa_addr"]')
+                      local aura_file_b64=$(echo ${VAULT_SECRET} | jq -r '.["aura_file_b64"]' | base64 -d)
+                      local grandpa_file_b64=$(echo ${VAULT_SECRET} | jq -r '.["grandpa_file_b64"]' | base64 -d)
+                      
+                      # Check if Kubernetes secret exists, if not, create one
+                      if ! kubectl get secret substrate-node-validator-${i}-keys --namespace {{ .Release.Namespace }} &> /dev/null; then                      
+                        kubectl create secret generic substrate-node-validator-${i}-keys --namespace {{ .Release.Namespace }} \
+                        --from-literal=node_id=${node_id} \
+                        --from-literal=node_key=${node_key} \
+                        --from-literal=aura_seed=${aura_seed} \
+                        --from-literal=aura_addr=${aura_addr} \
+                        --from-literal=grandpa_seed=${grandpa_seed} \
+                        --from-literal=grandpa_addr=${grandpa_addr} \
+                        --from-literal=aura_file_b64=${aura_file_b64}
+                        --from-literal=grandpa_file_b64=${grandpa_file_b64}
+                      fi
+                  else
+                    # Push data to vault
+                    vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/${key}" "${payload_json}" #${key}" 
+                    #rm nodePayload.json
+                  fi
+                }
+{{- else }}
+                safeWriteSecret() {
+                  # Placeholder:
+                  # - Implement code to fetch the keys if using any cloud-native service or platform different from HashiCorp to store the keys
+                  # - After fetching the keys, create Kubernetes secrets from them
+                  # - For guidance, refer to the code written for HashiCorp Vault for the same purpose
+                  return 0
+                }
+{{- end }}
+
+                echo "Step 2: Define functions to generate keys."
+                generate_key() {
+                  local scheme="$1"
+                  local output_file="$2"
+                  $command key generate --scheme "$scheme" --output-type json >> "$output_file"
+                }
+
+                generate_nodekey() {
+                  local node_type="$1"
+                  local node_index="$2"
+                  local node_id="$($command key generate-node-key --file node_key 2>&1)"
+                  
+                  # Generate keys for aura and grandpa
+                  generate_key "Sr25519" "auraKeygenOutput_${node_type}${node_index}.json"
+                  AURA_SEED=$(jq -r '.secretSeed' "auraKeygenOutput_${node_type}${node_index}.json")
+                  AURA_ADDR=$(jq -r '.ss58Address' "auraKeygenOutput_${node_type}${node_index}.json")
+                  
+                  generate_key "Ed25519" "grandpaKeygenOutput_${node_type}${node_index}.json"
+                  GRANDPA_SEED=$(jq -r '.secretSeed' "grandpaKeygenOutput_${node_type}${node_index}.json")
+                  GRANDPA_ADDR=$(jq -r '.ss58Address' "grandpaKeygenOutput_${node_type}${node_index}.json")
+                  
+                  if [[ "$node_type" == "member" ]]; then
+                    # For member nodes, also generate account keys
+                    generate_key "Sr25519" "accKeygenOutput_${node_type}${node_index}.json"
+                    ACCOUNT_SEED=$(jq -r '.secretSeed' "accKeygenOutput_${node_type}${node_index}.json")
+                    ACCOUNT_ADDR=$(jq -r '.ss58Address' "accKeygenOutput_${node_type}${node_index}.json")
+                      
+                      echo "{
+                        \"data\": {
+                          \"node_id\": \"$node_id\",
+                          \"node_key\": \"$(cat node_key)\",
+                          \"aura_seed\": \"$AURA_SEED\",
+                          \"aura_addr\": \"$AURA_ADDR\",
+                          \"grandpa_seed\": \"$GRANDPA_SEED\",
+                          \"grandpa_addr\": \"$GRANDPA_ADDR\",
+                          \"account_seed\": \"$ACCOUNT_SEED\",
+                          \"account_addr\": \"$ACCOUNT_ADDR\",
+                          \"account_file_b64\": \"$(cat accKeygenOutput_${node_type}${node_index}.json | base64 -w 0)\",
+                          \"aura_file_b64\": \"$(cat auraKeygenOutput_${node_type}${node_index}.json | base64 -w 0)\",
+                          \"grandpa_file_b64\": \"$(cat grandpaKeygenOutput_${node_type}${node_index}.json | base64 -w 0)\"
+                        }
+                      }" > finalJSON.json
+                      secret_name="substrate-node-${node_type}-${node_index}-keys"
+                  else
+                    echo "{
+                      \"data\": {
+                        \"node_id\": \"$node_id\",
+                        \"node_key\": \"$(cat node_key)\",
+                        \"aura_seed\": \"$AURA_SEED\",
+                        \"aura_addr\": \"$AURA_ADDR\",
+                        \"grandpa_seed\": \"$GRANDPA_SEED\",
+                        \"grandpa_addr\": \"$GRANDPA_ADDR\",
+                        \"aura_file_b64\": \"$(cat auraKeygenOutput_${node_type}${node_index}.json | base64 -w 0)\",
+                        \"grandpa_file_b64\": \"$(cat grandpaKeygenOutput_${node_type}${node_index}.json | base64 -w 0)\"
+                      }
+                    }" > finalJSON.json
+                    secret_name="substrate-node-${node_type}-${node_index}-keys"
+                  fi
+                  
+                  # Create Kubernetes secret if it doesn't exist
+                  if ! kubectl get secret "${secret_name}" --namespace "{{ .Release.Namespace }}" &> /dev/null; then
+                    echo "creating secrets"
+                    kubectl create secret generic "${secret_name}" --namespace "{{ .Release.Namespace }}" --from-file="substrate-node-keys"="finalJSON.json"
+                  fi
+                }
+
+                echo "Step 3: Initiate key generation."
+                main() {
+                  command={{ $.Values.node.command }}
+                  # Generate keys for member nodes
+                  for ((i=1; i<= {{ $.Values.node.member.count }}; i++)); do
+                      if [[ $.Values.global.vault.type != "hashicorp" ]]; then
+                          echo "Generating nodekey for member-$i"
+                          generate_nodekey "member" "$i"
+                      fi
+                      echo "Writing secrets for member-$i"
+                      safeWriteSecret "substrate-node-member-$i-keys" "finalJSON.json"
+                  done
+                  # Generate keys for validator nodes
+                  for ((i=1; i<= {{ $.Values.node.validator.count }}; i++)); do
+                      if [[ $.Values.global.vault.type != "hashicorp" ]]; then
+                          echo "Generating nodekey for validator-$i"
+                          generate_nodekey "validator" "$i"
+                      fi
+                      echo "Writing secrets for validator-$i"
+                      safeWriteSecret "substrate-node-validator-$i-keys" "finalJSON.json"
+                  done
+                }
+                main
+      volumes:
+{{- if eq .Values.global.vault.type "hashicorp" }}
+        - name: scripts-volume
+          configMap:
+            name: bevel-vault-script
+            defaultMode: 0777
+{{- end }}
+        - name: package-manager
+          configMap:
+            name: package-manager

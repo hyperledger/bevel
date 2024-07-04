@@ -1,14 +1,18 @@
-{{- if $.Values.service.ports.metrics.enabled }}
+{{- if .Values.peer.ports.metrics.enabled }}
 {{- if $.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    app: {{ $.Values.peer.name }}
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Release.Name}}
+    app.kubernetes.io/component: fabric
+    app.kubernetes.io/part-of: {{ include "fabric-orderernode.fullname" . }}
+    app.kubernetes.io/namespace: {{ .Release.Namespace }}
+    app.kubernetes.io/release: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }} 
-  name: {{ $.Values.peer.name }}
-  namespace:  {{ $.Values.metadata.namespace }}
+  name: {{ .Release.Name }}
+  namespace:  {{ .Release.Namespace }}
 spec:
   jobLabel: {{ .Release.Name }}
   endpoints:
@@ -16,10 +20,10 @@ spec:
       port: operations
   namespaceSelector:
     matchNames:
-      -  {{ $.Values.metadata.namespace }}
+      -  {{ .Release.Namespace }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }} 
-      run: {{ $.Values.peer.name }}
+      run: {{ .Release.Name }}
 {{- end }} 
 {{- end }} 

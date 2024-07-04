@@ -1,0 +1,375 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ include "quorum-tlscert-gen.name" . }}"
+  namespace: "{{ .Release.Namespace }}"
+  annotations:
+    helm.sh/hook-delete-policy: "before-hook-creation"
+  labels:
+    app: "{{ include "quorum-tlscert-gen.name" . }}"
+    app.kubernetes.io/name: "{{ include "quorum-tlscert-gen.name" . }}"
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- if $.Values.labels }}
+    {{- range $key, $value := $.Values.labels.deployment }}
+    {{- range $k, $v := $value }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: "{{ include "quorum-tlscert-gen.name" . }}"
+        app.kubernetes.io/name: "{{ include "quorum-tlscert-gen.name" . }}"
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- if $.Values.labels }}
+        {{- range $key, $value := $.Values.labels.deployment }}
+        {{- range $k, $v := $value }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+      {{- if .Values.image.pullSecret }}
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+      volumes:
+      - name: certificates
+        emptyDir:
+          medium: Memory
+{{- if eq .Values.global.vault.type "hashicorp" }}
+      - name: scripts-volume
+        configMap:
+          name: bevel-vault-script
+          defaultMode: 0777
+{{- end }}
+      initContainers:
+      - name: init-check-certificates
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+{{- if eq .Values.global.vault.type "hashicorp" }}
+        env:
+        - name: VAULT_ADDR
+          value: "{{ $.Values.global.vault.address }}"
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ $.Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ $.Values.global.vault.secretPrefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: "{{ $.Values.global.vault.authPath }}"
+        - name: VAULT_APP_ROLE
+          value: "{{ $.Values.global.vault.role }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.global.vault.type }}"
+{{- end }}
+        command: ["sh", "-c"]
+        args:
+        - |-
+
+          # Source the bevel-vault.sh script to perform the Vault-CURD operations
+          . /scripts/bevel-vault.sh
+
+          # Get the Vault token
+          echo "Getting vault Token..."
+          vaultBevelFunc "init"
+
+          # Set the output path.
+          OUTPUT_PATH=/certificates/check_certs
+          mkdir -p ${OUTPUT_PATH}
+
+          # Obtain the ambassador TLS certificates from Vault if exists
+          vault_secret_key="${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/tlscerts"
+          echo "Checking certs in vault at path: ${vault_secret_key}"
+          vaultBevelFunc "readJson" ${vault_secret_key}
+
+          # Get the ambassador TLS data info from Vault
+          cert=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
+
+          # If the cert is null, empty, or contains a parse error, then the certificates do not exist in Vault
+          if [ "$cert" == "null" ] || [[ "$cert" = *"error"* ]] || [ "$cert" = "" ]; then
+            # Create a file to indicate that the ambassador TLS certificates are absent
+            echo "Certficates absent in vault. Ignore error warning"
+            touch ${OUTPUT_PATH}/ambassadortls_absent.txt
+          else
+            # Create a file to indicate that the ambassador TLS certificates are present
+            echo "Certificates present in vault"
+            touch ${OUTPUT_PATH}/ambassadortls_present.txt
+            AMBASSADORTLS_PATH=/certificates/ambassadortls
+            mkdir -p ${AMBASSADORTLS_PATH}
+            cert=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]' | base64 -d )
+            key=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]' | base64 -d )
+            echo "${cert}" > ${AMBASSADORTLS_PATH}/certchain.pem
+            echo "${key}" > ${AMBASSADORTLS_PATH}/node.key
+          fi
+
+          echo "Done checking for certificates in vault."
+        volumeMounts:
+          - name: certificates
+            mountPath: /certificates
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+{{- end }}
+      containers:
+      - name:  "generate-certs"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        env:
+{{- if eq .Values.global.vault.type "hashicorp" }}
+        - name: VAULT_ADDR
+          value: "{{ $.Values.global.vault.address }}"
+        - name: VAULT_SECRET_ENGINE
+          value: "{{ $.Values.global.vault.secretEngine }}"
+        - name: VAULT_SECRET_PREFIX
+          value: "{{ $.Values.global.vault.secretPrefix }}"
+        - name: KUBERNETES_AUTH_PATH
+          value: "{{ $.Values.global.vault.authPath }}"
+        - name: VAULT_APP_ROLE
+          value: "{{ $.Values.global.vault.role }}"
+        - name: VAULT_TYPE
+          value: "{{ $.Values.global.vault.type }}"
+{{- end }}
+        - name: TM_CLIENT_PORT
+          value: "8888"
+        - name: TM_TLS_ENABLED
+          value: "{{ $.Values.settings.tmTls }}"
+        - name: CERT_SUBJECT
+          value: "{{ $.Values.settings.certSubject }}"
+        - name: EXTERNAL_URL
+          value: "{{ include "quorum-tlscert-gen.name" . }}.{{ .Values.global.proxy.externalUrlSuffix }}"
+        - name: COMPONENT_NS
+          value: "{{ .Release.Namespace }}"
+        command: ["sh", "-c"]
+        args:
+          - |-
+
+            # Function to format a certificate file and save it to the specified path
+            formatCertificate () {
+              NAME="${1##*/}"
+              while read line || [ -n "$line" ];
+              do
+                echo "$line\n";
+              done < ${1} > ${2}/${NAME}.txt
+            }
+
+            # Set the directories path
+            CERTS_CHECKS_PATH=/certificates/check_certs
+            AMBASSADORTLS_PATH=/certificates/ambassadortls
+            ROOTCA_PATH=/certificates/rootca
+            FORMAT_CERTIFICATE_PATH="/formatcertificate"
+
+            # Create the ambassadortls directory if it doesn't exist
+            mkdir -p ${AMBASSADORTLS_PATH}
+
+            # if ambassadortls_absent file does not exist, create the certificates
+            if [ -e ${CERTS_CHECKS_PATH}/ambassadortls_absent.txt ]
+            then
+              # Create the rootca directory if it doesn't exist
+              mkdir -p ${ROOTCA_PATH}
+              cd ${ROOTCA_PATH}
+
+              # Generates the rootCA certificates
+              openssl genrsa -out rootca.key 2048
+              openssl req -x509 -new -nodes -key rootca.key -sha256 -days 1024 -out rootca.pem -subj "/${CERT_SUBJECT}"
+
+              # Generates the openssl file for domain
+              cd ${AMBASSADORTLS_PATH}
+
+              echo "[req]
+              req_extensions = v3_req
+              distinguished_name = dn
+              [dn]
+              [ v3_req ]
+              basicConstraints = CA:FALSE
+              keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+              subjectAltName = @alt_names
+              [alt_names]
+              DNS.1 = ${EXTERNAL_URL}
+              DNS.2 = {{ include "quorum-tlscert-gen.fullname" . }}.{{ .Release.Namespace }}
+              DNS.3 = tessera-{{ .Release.Name }}.{{ .Release.Namespace }}
+              " > openssl.conf
+              # Generates the ambassador tls certificates
+              openssl genrsa -out node.key 2048
+              openssl req -new -nodes -key node.key -out node.csr -subj "/CN=${EXTERNAL_URL}" -config "openssl.conf"
+              openssl x509 -req -in node.csr -CA ${ROOTCA_PATH}/rootca.pem -CAkey ${ROOTCA_PATH}/rootca.key -CAcreateserial -out node.pem -days 1000 -sha256 -extfile "openssl.conf" -extensions v3_req
+              cat node.pem > certchain.pem
+              cat ${ROOTCA_PATH}/rootca.pem >> certchain.pem
+              
+              # Check if TM_TLS_ENABLED is true
+              if [ "$TM_TLS_ENABLED" == "true"  ]
+              then
+                # Generate crypto for quorum nodes and knownserver file
+                openssl genrsa -out quorum-node.key 2048
+                openssl req -new -key quorum-node.key -out quorum-node.csr -subj "/CN=${EXTERNAL_URL}"
+                openssl x509 -req -in quorum-node.csr -CA ${ROOTCA_PATH}/rootca.pem -CAkey ${ROOTCA_PATH}/rootca.key -CAcreateserial -out quorum-node.pem -days 500 -sha256
+                cat quorum-node.key quorum-node.pem > quorum_certificates.pem
+
+                openssl pkcs12 -export -in quorum_certificates.pem -out quorum-node.pkcs12 -password pass:changeme -name myAlias -noiter -nomaciter
+                echo "changeme" > quorum-password
+
+                openssl x509 -in certchain.pem -noout -fingerprint -sha256 > quorum-certchain-sha256
+                export DIGEST=$(awk '{print $2}' quorum-certchain-sha256 | sed -n 's/Fingerprint=\(.*\)/\1/p')
+                printf '%s\n' "tessera-*.${COMPONENT_NS}:${TM_CLIENT_PORT} $DIGEST" "${EXTERNAL_URL} $DIGEST" > quorum-knownServer
+              fi;
+            fi;
+            # Create necessary subdirectories for certificate storage
+            mkdir -p ${FORMAT_CERTIFICATE_PATH}/rootca
+            mkdir -p ${FORMAT_CERTIFICATE_PATH}/ambassadortls
+
+            # Source the bevel-vault.sh script to perform the Vault-CURD operations
+            . /scripts/bevel-vault.sh
+            # Get the Vault token
+            echo "Getting the vault Token.."
+            vaultBevelFunc 'init'
+
+            # Check if ambassadortls certificates are absent, then save them to Vault
+            if [ -e ${CERTS_CHECKS_PATH}/ambassadortls_absent.txt ]
+            then
+              # Encode the certificate and key files in base64 format
+              base64 ${ROOTCA_PATH}/rootca.key > ${ROOTCA_PATH}/encode_rootca.key
+              base64 ${ROOTCA_PATH}/rootca.pem > ${ROOTCA_PATH}/encode_rootca.pem
+              base64 ${AMBASSADORTLS_PATH}/certchain.pem > ${AMBASSADORTLS_PATH}/encode_certchain.pem
+              base64 ${AMBASSADORTLS_PATH}/node.key > ${AMBASSADORTLS_PATH}/encode_node.key
+
+              # Format the certificate files for saving in the vault
+              formatCertificate "${ROOTCA_PATH}/encode_rootca.key" "${FORMAT_CERTIFICATE_PATH}/rootca"
+              formatCertificate "${ROOTCA_PATH}/encode_rootca.pem" "${FORMAT_CERTIFICATE_PATH}/rootca"
+              formatCertificate "${AMBASSADORTLS_PATH}/encode_certchain.pem" "${FORMAT_CERTIFICATE_PATH}/ambassadortls"
+              formatCertificate "${AMBASSADORTLS_PATH}/encode_node.key" "${FORMAT_CERTIFICATE_PATH}/ambassadortls"
+
+              # Read the formatted certificate files
+              ROOTCAKEY_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/rootca/encode_rootca.key.txt)
+              ROOTCAPEM_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/rootca/encode_rootca.pem.txt)
+              AMBASSADORCRT_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassadortls/encode_certchain.pem.txt)
+              AMBASSADORKEY_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassadortls/encode_node.key.txt)
+
+              # Check if tmTls is enabled
+              if [ "$TM_TLS_ENABLED" == "true" ]
+              then
+                # Encode additional certificate files when tmTls is true
+                base64 ${AMBASSADORTLS_PATH}/quorum-node.pkcs12 > ${AMBASSADORTLS_PATH}/encode_quorum-node.pkcs12
+                base64 ${AMBASSADORTLS_PATH}/quorum-password > ${AMBASSADORTLS_PATH}/encode_quorum-password
+                base64 ${AMBASSADORTLS_PATH}/quorum-knownServer > ${AMBASSADORTLS_PATH}/encode_quorum-knownServer
+                
+                # Format the additional certificate files for saving in the vault
+                formatCertificate "${AMBASSADORTLS_PATH}/encode_quorum-node.pkcs12" "${FORMAT_CERTIFICATE_PATH}/ambassadortls"
+                formatCertificate "${AMBASSADORTLS_PATH}/encode_quorum-password" "${FORMAT_CERTIFICATE_PATH}/ambassadortls"
+                formatCertificate "${AMBASSADORTLS_PATH}/encode_quorum-knownServer" "${FORMAT_CERTIFICATE_PATH}/ambassadortls"
+
+                # Read the additional formatted certificate files
+                KEYSTORE_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassadortls/encode_quorum-node.pkcs12.txt)
+                PASSWORD_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassadortls/encode_quorum-password.txt)
+                KNOWNSERVER_FORMAT=$(cat ${FORMAT_CERTIFICATE_PATH}/ambassadortls/encode_quorum-knownServer.txt)
+                
+                # Create a JSON file with the data to be saved in the vault when tmTls is true
+                echo "
+                {
+                  \"data\":
+                    {
+                      \"rootca_pem\": \"${ROOTCAPEM_FORMAT}\",
+                      \"rootca_key\": \"${ROOTCAKEY_FORMAT}\",
+                      \"ambassadorcrt\": \"${AMBASSADORCRT_FORMAT}\",
+                      \"ambassadorkey\": \"${AMBASSADORKEY_FORMAT}\",
+                      \"keystore\": \"${KEYSTORE_FORMAT}\",
+                      \"password\": \"${PASSWORD_FORMAT}\",
+                      \"knownServer\": \"${KNOWNSERVER_FORMAT}\"
+                    }
+                }" > payload.json
+              else
+                # Create a JSON file with the data to be saved in the vault when tmTls is false
+                echo "
+                {
+                  \"data\":
+                    {
+                      \"rootca_pem\": \"${ROOTCAPEM_FORMAT}\",
+                      \"rootca_key\": \"${ROOTCAKEY_FORMAT}\",
+                      \"ambassadorcrt\": \"${AMBASSADORCRT_FORMAT}\",
+                      \"ambassadorkey\": \"${AMBASSADORKEY_FORMAT}\"
+                    }
+                }" > payload.json
+              fi;
+
+              # Copy the TLS certificates to the Vault
+              vaultBevelFunc 'write' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/tlscerts" 'payload.json'
+
+              # Check if TLS certificates are written successfully and read them to validate
+              if [ "$TM_TLS_ENABLED" == "true" ]
+              then
+                # Obtain TLS certificates from the Vault when tmTls is true
+                vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/tlscerts"
+
+                # Extract TLS certificate and key information from the response obtained from the Vault
+                CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+                CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
+                AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
+                AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]')
+                KEYSTORE=$(echo ${VAULT_SECRET} | jq -r '.["keystore"]')
+                PASSWORD=$(echo ${VAULT_SECRET} | jq -r '.["password"]')
+                KNOWNSERVER=$(echo ${VAULT_SECRET} | jq -r '.["knownServer"]')
+
+                # Check if any of the certificate and key fields are missing, empty or having any kind of error
+                for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY" "$KEYSTORE" "$PASSWORD" "$KNOWNSERVER"
+                do
+                  if [ "$field" == "null" ] || [[ "$field" = *"error"* ]] || [ "$field" = "" ]; then
+                    AMBASSADORTLS_CERT_WRITTEN=false
+                    break
+                  else
+                    AMBASSADORTLS_CERT_WRITTEN=true
+                  fi
+                done
+              else
+                # Obtain the TLS certificates from the Vault when tmTls is false
+                vaultBevelFunc 'readJson' "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/tlscerts"
+
+                # Extract TLS certificate and key information from the response obtained from the Vault
+                CA_PEM=$(echo ${VAULT_SECRET} | jq -r '.["rootca_pem"]')
+                CA_KEY=$(echo ${VAULT_SECRET} | jq -r '.["rootca_key"]')
+                AMBASSADORCRT=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorcrt"]')
+                AMBASSADORKEY=$(echo ${VAULT_SECRET} | jq -r '.["ambassadorkey"]')
+                
+                # Check if any of the certificate and key fields are missing, empty or having any kind of error
+                for field in "$CA_PEM" "$CA_KEY" "$AMBASSADORCRT" "$AMBASSADORKEY"
+                do
+                  if [ "$field" == "null" ] || [[ "$field" = *"error"* ]] || [ "$field" = "" ]; then
+                    AMBASSADORTLS_CERT_WRITTEN=false
+                    break
+                  else
+                    AMBASSADORTLS_CERT_WRITTEN=true
+                  fi
+                done
+              fi;
+              echo "Final value of AMBASSADORTLS_CERT_WRITTEN:$AMBASSADORTLS_CERT_WRITTEN"
+              # Delete the same JSON file that we created to perform the write operation in the vault
+              rm payload.json
+            fi;
+
+            # Create tls secret with the certificates
+            if ! kubectl get secret tls --namespace {{ .Release.Namespace }} {{ include "quorum-tlscert-gen.name" . }}-tls-certs &>/dev/null; then
+              kubectl create secret tls --namespace {{ .Release.Namespace }} {{ include "quorum-tlscert-gen.name" . }}-tls-certs \
+              --cert=${AMBASSADORTLS_PATH}/certchain.pem \
+              --key=${AMBASSADORTLS_PATH}/node.key
+            fi
+
+            echo "COMPLETED"
+        volumeMounts:
+          - name: certificates
+            mountPath: /certificates
+{{- if eq .Values.global.vault.type "hashicorp" }}
+          - name: scripts-volume
+            mountPath: /scripts/bevel-vault.sh
+            subPath: bevel-vault.sh
+{{- end }}

@@ -19,7 +19,7 @@
   loop: "{{ network['organizations'] }}"
   loop_control:
     loop_var: ordererorg
-  when: ordererorg.type == 'orderer'
+  when: ordererorg.services.orderers is defined and ordererorg.services.orderers | length > 0
 
 # Check or wait for the peer
 - name: "Check peer pod is up"
@@ -31,10 +31,38 @@
   loop_control:
     loop_var: org
 
+# Get channeltx file from configmap obtener los datos del ordener en un task a aprte y despeus ahcer esto
+- name: Get channeltx file from config map 
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ orderer_kubeconfig }}"
+    kind: ConfigMap
+    name: "{{ channel_name }}-channeltx"
+    namespace: "{{ orderer_namespace}}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: ordererorg
+  vars:
+    orderer_namespace: "{{ ordererorg.name | lower }}-net"
+    orderer_kubeconfig: "{{ ordererorg.k8s.config_file }}"
+    orderer_context: "{{ ordererorg.k8s.context }}"
+  register: channeltx_data
+
+# Create the certs directory if it does not existt
+- name: Create the certs directory if it does not exist
+  file:
+    path: "{{playbook_dir}}/../../../{{ charts_dir }}/fabric-channel-create/files"
+    state: directory
+
+- name: Save channeltx file locally for {{ channel_name }}
+  shell: |
+     echo '{{ channeltx_data.results[0].resources[0].data[channel_name ~ "-channeltx_base64"] | to_nice_json }}' > {{ files_loc }}/channeltx.json
+  vars:
+    files_loc: "{{playbook_dir}}/../../../{{ charts_dir }}/fabric-channel-create/files"
+
 # Create the value file for creator Organization
 - name: "Create Create_Channel value file"
   include_role:
-    name: helm_component
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
   loop: "{{ network | json_query(org_query) }}"
   loop_control:
     loop_var: org
@@ -43,16 +71,18 @@
     name: "{{ org.name | lower }}"
     type: "create_channel_job"
     component_name: "{{item.channel_name|lower}}"
+    channel_name: "{{item.channel_name}}"
     component_ns: "{{ peer.name | lower}}-net"
     peer_name: "{{ peer | json_query('peers[*].name') | first }}"
+    peer_adress: "{{ peer | json_query('peers[*].peerAddress') | first }}"
     git_protocol: "{{ org.gitops.git_protocol }}"
     git_url: "{{ org.gitops.git_url }}"
     git_branch: "{{ org.gitops.branch }}"
     charts_dir: "{{ org.gitops.chart_source }}"
-    vault: "{{ org.vault }}"
-    k8s: "{{ org.k8s }}"
-    channeltx: "{{ lookup('file', '{{ build_path }}/channel-artifacts/{{item.channel_name|lower}}.tx.base64') }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
+    provider: "{{ org.cloud_provider }}"
+    vault: "{{ org.vault }}"
+    kubernetes: "{{ org.k8s }}"
 
 # Git Push : Push the above generated files to git directory 
 - name: Git Push

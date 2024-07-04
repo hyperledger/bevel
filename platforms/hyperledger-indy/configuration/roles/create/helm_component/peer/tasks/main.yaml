@@ -1,0 +1,24 @@
+# Ensure teh required dir exists
+- name: "Ensure {{ values_dir }}/{{ org_name }} dir exists"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/directory"
+  vars:
+    path: "{{ values_dir }}/{{ org_name }}"
+
+# Generate Indy vault policy and role for stewards
+- name: Stewards vault policy and role generating
+  template:
+    src: "{{ dlt_templates[component_type] }}"
+    dest: "{{ values_dir }}/{{ org_name }}/{{ component_name }}.yaml"
+
+############################################################################################
+# Test the value file for syntax errors/ missing values
+# This is done by calling the helm_lint role and passing the value file parameter
+# When a new helm_component is added, changes should be made in helm_lint role as well
+- name: Helm lint
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/helm_lint"
+  vars:
+    helmtemplate_type: "{{ component_type }}"
+    chart_path: "{{ charts_dir }}"
+    value_file: "{{ values_dir }}/{{ org_name }}/{{ component_name }}.yaml"

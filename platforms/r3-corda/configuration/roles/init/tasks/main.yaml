@@ -1,0 +1,34 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Wait for namespace creation
+- name: "Wait for namespace creation for {{ name }}"
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
+  vars:
+    component_type: "Namespace"
+    component_name: "{{ component_ns }}"
+    type: "retry"
+    
+# create build directory
+- name: Create build directory if it does not exist
+  file:
+    path: "{{ build_path }}"
+    state: directory
+
+- name: Get the kubernetes server url
+  shell: |
+    KUBECONFIG={{ kubernetes.config_file }} kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d " "
+  register: kubernetes_server_url
+
+# This task runs the Corda init
+- name: Corda init helm install
+  include_role:
+    name: "{{ playbook_dir }}/../../shared/configuration/roles/create/job_component"
+  vars:
+    component_name: "init"
+    type: "{{ init_type }}"
+    kubernetes_url: "{{ kubernetes_server_url.stdout }}"

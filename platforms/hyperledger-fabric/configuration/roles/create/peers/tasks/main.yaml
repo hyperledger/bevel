@@ -22,16 +22,21 @@
     name: create/refresh_certs/reset_pod
   vars:
     pod_name: "{{ peer.name | lower }}"
-    name: "{{ item.name | lower }}"
+    name: "{{ org.name | lower }}"
     file_path: "{{ values_dir }}/{{ name }}/values-{{ peer.name }}.yaml"
-    gitops_value: "{{ item.gitops }}"
+    gitops_value: "{{ org.gitops }}"
     component_ns: "{{ namespace }}"
-    kubernetes: "{{ item.k8s }}"
-    hr_name: "{{ item.name | lower }}-{{ peer.name }}"
+    kubernetes: "{{ org.k8s }}"
+    hr_name: "{{ org.name | lower }}-{{ peer.name }}"
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
   when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
+
+# Set Variable first_orderer
+- name: "Set Variable first_peer"
+  set_fact:
+    first_peer: "{{ component_services.peers | map(attribute='name') | first }}"
 
 # Create the value file for peers of organisations 
 - name: This role creates the value file for peers of organisations 
@@ -46,45 +51,21 @@
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ item.gitops }}"
+    gitops: "{{ org.gitops }}"
     msg: "[ci skip] Pushing Peer files"
-  tags:
-    - notest
-
-# Wait for the peer HelmRelease
-- name: 'Wait for {{ peer.name }} HelmRelease in {{ namespace }}'
-  k8s_info:
-    api_version: "helm.toolkit.fluxcd.io/v2beta1"
-    kind: "HelmRelease"
-    namespace: "{{ item.name | lower }}-net"
-    kubeconfig: "{{  item.k8s.config_file }}"
-    context: "{{ item.k8s.context }}"
-    name: "{{ item.name | lower }}-{{ peer.name }}"
-    field_selectors:
-      - status.conditions=Ready
-  register: component_data
-  retries: "{{ network.env.retry_count}}"
-  delay: 30
-  until: component_data.resources|length > 0
-  loop: "{{ component_services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: (refresh_cert is defined and refresh_cert == 'true') or peer.configpath is defined
 
 # Wait for peer pods to be in the state of running
-- name: "Waiting for peer pod {{ peer.name }} in {{ item.name | lower }}-net"
+- name: "Waiting for peer pod {{ peer.name }} in {{ org.name | lower }}-net"
   include_role:
     name: "{{ playbook_dir }}/../../shared/configuration/roles/check/helm_component"
   vars:
     component_type: "Pod"
-    namespace: "{{ item.name | lower }}-net"
+    namespace: "{{ org.name | lower }}-net"
     component_name: "{{ peer.name }}"
-    kubernetes: "{{ item.k8s }}"
+    kubernetes: "{{ org.k8s }}"
     label_selectors:
       - app = {{ component_name }}
   loop: "{{ component_services.peers }}"
   loop_control:
     loop_var: peer 
   when: peer.peerstatus is not defined or peer.peerstatus == 'new'
-  tags:
-    - notest

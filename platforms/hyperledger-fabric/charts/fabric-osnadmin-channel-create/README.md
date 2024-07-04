@@ -3,179 +3,92 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-<a name = "create-channel-hyperledger-fabric-deployment"></a>
-# Create Channel Hyperledger Fabric Deployment
+# fabric-osnadmin-channel-create
 
-- [Osn Create Channel Hyperledger Fabric Deployment Helm Chart](#osn-create-channel-hyperledger-fabric-deployment-helm-chart)
-- [Prerequisites](#prerequisites)
-- [Chart Structure](#chart-structure)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Verification](#verification)
-- [Updating the Deployment](#updating-the-deployment)
-- [Deletion](#deletion)
-- [Contributing](#contributing)
-- [License](#license)
+This chart is a component of Hyperledger Bevel. The fabric-osnadmin-channel-create chart deploys a Kubernetes job to create a channel. The channel name is same as the release name. This chart should be executed after the [fabric-genesis](../fabric-genesis/README.md) chart. See [Bevel documentation](https://hyperledger-bevel.readthedocs.io/en/latest/) for details.
 
+## TL;DR
 
-<a name = "osn-create-channel-hyperledger-fabric-deployment-helm-chart"></a>
-## Osn Create Channel Hyperledger Fabric Deployment Helm Chart
----
-A [Helm chart](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-osnadmin-channel-create) to create a channel with fabric 2.5.4.
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install allchannel bevel/fabric-osnadmin-channel-create
+```
 
-
-<a name = "prerequisites"></a>
 ## Prerequisites
----
-Before deploying the Helm chart, make sure to have the following prerequisites:
 
-- Kubernetes cluster up and running.
-- A HashiCorp Vault instance is set up and configured to use Kubernetes service account token-based authentication.
-- The Vault is unsealed and initialized.
-- Helm installed.
+- Kubernetes 1.19+
+- Helm 3.2.0+
 
+If Hashicorp Vault is used, then
+- HashiCorp Vault Server 1.13.1+
 
-<a name = "chart-structure"></a>
-## Chart Structure
----
-The structure of the Helm chart is as follows:
+Also, [fabric-genesis](../fabric-genesis/README.md) chart should be installed and this chart should be executed from the same namespace as the Orderer Organization.
 
-```
-fabric-osnadmin-channel-create/
-  |- templates/
-      |- _helpers.yaml
-      |- configmap.yaml
-      |- osn_create_channel.yaml
-  |- Chart.yaml
-  |- README.md
-  |- values.yaml
+## Installing the Chart
+
+To install the chart with the channel name `allchannel`:
+
+```bash
+helm repo add bevel https://hyperledger.github.io/bevel
+helm install allchannel bevel/fabric-osnadmin-channel-create
 ```
 
-- `templates/`: Contains the Kubernetes manifest templates that define the resources to be deployed.
-- `helpers.tpl`: Contains custom label definitions used in other templates.
-- `configmap.yaml`: Store configuration data that can be consumed by containers. The first ConfigMap stores various configuration data as key-value pairs and the second ConfigMap stores the base64-encoded content of the channel configuration file (channel.tx.base64). 
-- `osn_create_channel.yaml`: The certificates-init fetches TLS certificates from a Vault server and stores them in a local directory. The createchannel check the channel creation. If the channel does not exist, the createchannel creates the channel.
-- `Chart.yaml`: Contains the metadata for the Helm chart, such as the name, version, and description.
-- `README.md`: Provides information and instructions about the Helm chart.
-- `values.yaml`: Contains the default configuration values for the Helm chart.
+The command deploys the chart on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
+> **Tip**: List all releases using `helm list`
 
-<a name = "configuration"></a>
-## Configuration
----
-The [values.yaml](https://github.com/hyperledger/bevel/blob/develop/platforms/hyperledger-fabric/charts/fabric-osnadmin-channel-create/values.yaml) file contains configurable values for the Helm chart. We can modify these values according to the deployment requirements. Here are some important configuration options:
+## Uninstalling the Chart
 
-### Metadata
+To uninstall/delete the `allchannel` deployment:
 
-| Name                  | Description                                                           | Default Value                                     |
-| ----------------------| ----------------------------------------------------------------------|---------------------------------------------------|
-| namespace             | Provide the namespace for organization's peer                         | org1-net                                  |
-| network.version             | Provide Fabric version                    | 2.5.4                                 |
-| images.fabrictools    | Valid image name and version for fabric tools                         | ghcr.io/hyperledger/bevel-fabric-tools:2.5.4                    |
-| images.alpineutils    | Valid image name and version to read certificates from vault server   | ghcr.io/hyperledger/bevel-alpine:latest           |
-| labels                | Custom labels (other than specified)                                  | ""                                                |
-
-
-### Deployment
-
-| Name         | Description                                 | Default Value  |
-| ------------ | ------------------------------------------- | -------------- |
-| annotations  | Deployment annotations                      | ""             |
-
-### Vault
-
-| Name                | Description                                                         | Default Value                 |
-| ------------------- | --------------------------------------------------------------------| ------------------------------|
-| role                | Vault role for the organization                                     | vault-role                    |
-| address             | Vault server address                                                | ""                            |
-| authpath            | Kubernetes auth backend configured in vault for the organization    | devorg1-net-auth |
-| orderersecretprefix | Vault secret prefix for orderer                                     | secret/secretsv2/crypto/ordererOrganizations/org1-net/orderers   |
-| serviceaccountname  | Service account name for vault                                      | vault-auth                    |
-| type                | Provide the type of vault                                           | hashicorp    |
-| imagesecretname     | Image secret name for vault                                         | ""                            |
-| tls                 | Vault ca.cert Kubernetes secret                                     | ""                            |
-
-### Channel
-
-| Name   | Description                       | Default Value  |
-| ------ | --------------------------------- | -------------- |
-| name   | Name of the channel               | mychannel      |
-
-### Orderer
-
-| Name    | Description                 | Default Value             |
-| ------- | ----------------------------| --------------------------|
-| orderer_info | Provide orderer's names    | orderer1  |
-
-### Other
-
-| Name       | Description                                  | Default Value   |
-| ---------- | ---------------------------------------------| --------------- |
-| genesis  | Provide the base64 encoded genesis file    | ""              |
-
-
-<a name = "deployment"></a>
-## Deployment
----
-
-To deploy the fabric-channel-create Helm chart, follow these steps:
-
-1. Modify the [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-osnadmin-channel-create/values.yaml) file to set the desired configuration values.
-2. Run the following Helm command to install the chart:
-    ```
-    $ helm repo add bevel https://hyperledger.github.io/bevel/
-    $ helm install <release-name> ./fabric-osnadmin-channel-create
-    ```
-Replace `<release-name>` with the desired name for the release.
-
-This will deploy the fabric-channel-create node to the Kubernetes cluster based on the provided configurations.
-
-
-<a name = "verification"></a>
-## Verification
----
-
-To verify the deployment, we can use the following command:
+```bash
+helm uninstall allchannel
 ```
-$ kubectl get jobs -n <namespace>
-```
-Replace `<namespace>` with the actual namespace where the Job was created. This command will display information about the Job, including the number of completions and the current status of the Job's pods.
 
+The command removes all the Kubernetes components associated with the chart and deletes the release.
 
-<a name = "updating-the-deployment"></a>
-## Updating the Deployment
----
+## Parameters
 
-If we need to update the deployment with new configurations or changes, modify the same [values.yaml](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-osnadmin-channel-create/values.yaml) file with the desired changes and run the following Helm command:
-```
-$ helm upgrade <release-name> ./fabric-channel-create
-```
-Replace `<release-name>` with the name of the release. This command will apply the changes to the deployment, ensuring the fabric-channel-create node is up to date.
+### Global parameters
+These parameters are refered to as same in each parent or child chart
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+|`global.version` | Fabric Version. This chart is only used for `2.5.x` | `2.5.4` |
+|`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws`, `azure` and `minikube` are tested | `aws` |
+| `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
+| `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
+| `global.vault.role`  | Role used for authentication with Vault | `vault-role`    |
+| `global.vault.network`  | Network type that is being deployed | `fabric`    |
+| `global.vault.address`| URL of the Vault server.    | `""`            |
+| `global.vault.authPath`    | Authentication path for Vault  | `supplychain`            |
+| `global.vault.secretEngine` | Vault secret engine name   | `secretsv2`  |
+| `global.vault.secretPrefix` | Vault secret prefix which must start with `data/`   | `data/supplychain`  |
+| `global.vault.tls` | Name of the Kubernetes secret which has certs to connect to TLS enabled Vault   | `false`  |
 
+### Image
 
-<a name = "deletion"></a>
-## Deletion
----
+| Name   | Description    | Default Value   |
+| -------------| ---------- | --------- |
+| `image.fabricTools`  | Fabric Tools image repository  | `ghcr.io/hyperledger/bevel-fabric-tools` |
+| `image.alpineUtils`  | Alpine utils image repository and tag | `ghcr.io/hyperledger/bevel-alpine:latest` |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials | `""`            |
 
-To delete the deployment and associated resources, run the following Helm command:
-```
-$ helm uninstall <release-name>
-```
-Replace `<release-name>` with the name of the release. This command will remove all the resources created by the Helm chart.
+### Settings
 
+| Name   | Description  | Default Value |
+|--------|---------|-------------|
+| `orderers` | List of Orderer nodes in the network and their OSN Admin addresses. This list presents two fields `name` and `adminAddress`  | `- name: orderer1`<br/>`adminAddress: orderer1.supplychain-net:7055` <br/>`- name: orderer2`<br/>`adminAddress: orderer2.supplychain-net:7055` <br/> `- name: orderer3`<br/>`adminAddress: orderer3.supplychain-net:7055`  |
+| `orderer.addOrderer` | Flag to add new Orderer node to the network | `false` |
+| `orderer.name` | Name of the new Orderer node to be addded | `neworderer` |
+| `orderer.localMspId` | New Orderer MSP ID   | `newordererMSP` |
+| `orderer.ordererAddress` | New Orderer Internal or External Address with port for Peer to connect  | `neworderer.neworg-net:7050` |
 
-<a name = "contributing"></a>
-## Contributing
----
-If you encounter any bugs, have suggestions, or would like to contribute to the [Osn Create Channel Hyperledger Fabric Deployment Helm Chart](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-fabric/charts/fabric-osnadmin-channel-create), please feel free to open an issue or submit a pull request on the [project's GitHub repository](https://github.com/hyperledger/bevel).
-
-
-<a name = "license"></a>
 ## License
 
 This chart is licensed under the Apache v2.0 license.
 
-Copyright &copy; 2023 Accenture
+Copyright &copy; 2024 Accenture
 
 ### Attribution
 

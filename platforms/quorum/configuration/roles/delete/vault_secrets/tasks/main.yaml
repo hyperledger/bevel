@@ -10,7 +10,7 @@
 
 #############################################################################################
 
-# Delete the Docker credentials
+# Delete Docker credentials
 - name: Delete docker creds
   k8s:
     kind: Secret
@@ -19,33 +19,19 @@
     state: absent
     kubeconfig: "{{ kubernetes.config_file }}"
     context: "{{ kubernetes.context }}"
-  ignore_errors: yes
+  ignore_errors: true
 
-# Delete Ambassador creds
-- name: Delete Ambassador creds
-  k8s:
-    kind: Secret
-    namespace: "{{ org_namespace }}"
-    name: "{{ peer.name }}-ambassador-certs"
-    kubeconfig: "{{ kubernetes.config_file }}"
-    context: "{{ kubernetes.context }}"
-    state: absent
-  loop: "{{ services.peers }}"
-  loop_control:
-    loop_var: peer
-  ignore_errors: yes
-
-# Delete crypto materials
-- name: Delete Crypto materials
+# Deletes crypto materials
+- name: Delete Crypto material 
   shell: |
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/tm
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/quorum
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/{{ peer.name }}/certs
-    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ org_name }}/crypto/genesis
-  loop: "{{ services.peers }}"
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/quorum-node-{{ peer.name }}-keys
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/tessera-{{ peer.name }}-keys
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/tlscerts
+    vault kv delete {{ item.vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org_name }}/genesis
   environment:
     VAULT_ADDR: "{{ item.vault.url }}"
     VAULT_TOKEN: "{{ item.vault.root_token }}"
+  loop: "{{ services.peers is defined | ternary( services.peers, services.validators) }}"
   loop_control:
     loop_var: peer
-  ignore_errors: yes
+  ignore_errors: true

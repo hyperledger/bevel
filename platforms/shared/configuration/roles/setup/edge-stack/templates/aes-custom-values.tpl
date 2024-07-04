@@ -73,3 +73,4 @@ licenseKey:
   secretName:
   # Annotations to attach to the license-key-secret.
   annotations: {}
+

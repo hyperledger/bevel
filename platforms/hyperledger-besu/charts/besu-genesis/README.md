@@ -14,7 +14,7 @@ helm repo add bevel https://hyperledger.github.io/bevel
 helm install genesis bevel/besu-genesis
 ```
 
-## Prerequisitess
+## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
@@ -54,7 +54,7 @@ These parameters are refered to as same in each parent or child chart
 | Name   | Description  | Default Value |
 |--------|---------|-------------|
 |`global.serviceAccountName` | The serviceaccount name that will be created for Vault Auth and k8S Secret management| `vault-auth` |
-| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently ony `aws` and `minikube` is tested | `aws` |
+| `global.cluster.provider` | Kubernetes cluster provider like AWS EKS or minikube. Currently only `aws`, `azure` and `minikube` are tested | `aws` |
 | `global.cluster.cloudNativeServices` | only `false` is implemented, `true` to use Cloud Native Services (SecretsManager and IAM for AWS; KeyVault & Managed Identities for Azure) is for future  | `false`  |
 | `global.cluster.kubernetesUrl` | URL of the Kubernetes Cluster  | `""`  |
 | `global.vault.type`  | Type of Vault to support other providers. Currently, only `hashicorp` and `kubernetes` is supported. | `hashicorp`    |
@@ -71,10 +71,10 @@ These parameters are refered to as same in each parent or child chart
 | -------------| ---------- | --------- |
 | `image.genesisUtils.repository`  | Quorum/Besu hooks image repository  | `ghcr.io/hyperledger/bevel-k8s-hooks` |
 | `image.genesisUtils.tag`  | Quorum/Besu hooks image tag  | `qgt-0.2.12` |
-| `image.pullSecret`    | Provide the docker secret name in the namespace  | `""`            |
+| `image.pullSecret`    | Secret name in the namespace containing private image registry credentials  | `""`            |
 | `image.pullPolicy`  | Pull policy to be used for the Docker images    | `IfNotPresent`    |
 
-### TLS
+### Settings
 
 | Name   | Description  | Default Value |
 |--------|---------|-------------|

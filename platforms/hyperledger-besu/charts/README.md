@@ -6,7 +6,7 @@
 # Charts for Hyperledger Besu components
 
 ## About
-This folder contains the helm charts which are used for the deployment of the Hyperledger Besu components. Each helm that you can use has the following keys and you need to set them. The `global.cluster.provider` is used as a key for the various cloud features enabled. Also you only need to specify one cloud provider, **not** both if deploying to cloud. As of writing this doc, AWS is fully supported.
+This folder contains the helm charts which are used for the deployment of the Hyperledger Besu components. Each helm chart that you can use has the following keys and you need to set them. The `global.cluster.provider` is used as a key for the various cloud features to be enabled. Also you only need to specify one cloud provider, **not** both if deploying to cloud. As of writing this doc, AWS is fully supported.
 
 ```yaml
 global:
@@ -110,24 +110,48 @@ helm install genesis ./besu-genesis --namespace carrier-bes --values ./values/pr
 helm install carrier ./besu-node --namespace carrier-bes --values ./values/proxy-and-vault/txnode-sec.yaml --set global.proxy.p2p=15016 --set node.besu.identity="O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
 ```
 
-### API Calls
-Once deployed, services are available as follows on the address as provided in your `global.proxy.externalUrlSuffix`.
+### API call
 
-```bash
-# HTTP RPC API
-curl -v -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://supplychainrpc.test.yourdomain.com
+Once your services are deployed, they can be accessed using the domain name provided in your `global.proxy.externalUrlSuffix`.
 
-# which should return (confirming that the node running the JSON-RPC service is syncing):
-{
-  "jsonrpc" : "2.0",
-  "id" : 1,
-  "result" : "0x64"
-}
-```
+1. **Retrieve the Source Host for Your Node**
+
+   Run the following command to get the mapping for your node:
+
+   ```bash
+   kubectl get mapping --namespace supplychain-bes
+   ```
+
+   From the output, copy the source host for your node.
+
+2. **Make HTTP RPC API Calls**
+
+   You can interact with your node using HTTP RPC API calls. Here's an example of how to do it:
+
+   ```bash
+   curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://<source-host>
+   ```
+
+   Replace `<source-host>` with the source host you copied earlier.
+
+3. **Verify the Node Syncing Status**
+
+   If the node running the JSON-RPC service is syncing correctly, the previous command should return the following:
+
+   ```json
+   {
+     "jsonrpc" : "2.0",
+     "id" : 1,
+     "result" : "0x64"
+   }
+   ```
+
+   This confirms that your node is syncing as expected.
 
 ### Clean-up
 
-To clean up, just uninstall the helm releases.
+To clean up, simply uninstall the Helm releases. It's important to uninstall the genesis Helm chart at the end to prevent any cleanup failure.
+
 ```bash
 helm uninstall --namespace supplychain-bes validator-1
 helm uninstall --namespace supplychain-bes validator-2
@@ -138,5 +162,11 @@ helm uninstall --namespace supplychain-bes genesis
 
 helm uninstall --namespace carrier-bes carrier
 helm uninstall --namespace carrier-bes genesis
+```
+### Add and remove qbft validators
 
+To deploy the proposed validator chart, we need to deploy the Besu node chart first.
+
+```bash
+helm install validator-5 ./besu-propose-validator --namespace supplychain-bes --values besu-propose-validator/values.yaml
 ```
