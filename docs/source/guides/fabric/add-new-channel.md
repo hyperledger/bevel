@@ -3,7 +3,7 @@
 [//]: # (SPDX-License-Identifier: Apache-2.0)
 [//]: # (##############################################################################################)
 
-# Add a new channel
+# Add a new channel to an existing network
 
 This guide explains how to add a new channel in a Hyperledger Fabric network using two methods:
 
