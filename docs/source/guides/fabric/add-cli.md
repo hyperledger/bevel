@@ -22,29 +22,36 @@ This guide explains how to add a CLI to an existing Hyperledger Fabric network u
 1. **Update Configuration File**
 
     - Edit the `network.yaml` file to include the new organization with the following details:
+        - `peerstatus: new`
+        - `cli: enabled`      
 		- `org_status: new`
 		- Organization details (name, MSP ID, etc.)
 		- Orderer information
 	- Existing organizations should have `org_status: existing`
+	- Existing peer(s) with cli deployed should have `peerstatus: existing`
     - Refer to the [networkyaml-fabric.md](../networkyaml-fabric.md) guide for details on editing the configuration file.
 
 	Snippet from `network.channels` section below:
 	```yaml
-	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:65:139"
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-cli.yaml:57:105"
 	```
 
 	and from `network.organizations` section below:
 
 	```yaml
-	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:143:155"
-		..
-		..
-	--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:406:414"
-		..
-		..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-cli.yaml:107:122"
+          ..
+          ..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-cli.yaml:161:161"
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-cli.yaml:171:177"
+              ..
+              ..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-cli.yaml:203:209"
+              ..
+              ..
 	```
 
-1. **Run Playbook**
+2. **Run Playbook**
 	
 	Execute the following command to run the `add-cli.yaml` playbook:
 

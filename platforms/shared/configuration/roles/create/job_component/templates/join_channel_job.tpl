@@ -39,3 +39,4 @@ peer:
   tlsStatus: true
   channelName: {{ channel_name }}  
   ordererAddress: {{ participant.ordererAddress }}
+  addPeerValue: {{ add_peer_value }}

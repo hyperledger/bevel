@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ component_name }}
+  name: {{ component_name | replace('_','-') }}
   namespace: {{ component_ns }}
   annotations:
     fluxcd.io/automated: "false"
 spec:
   interval: 1m
-  releaseName: {{ component_name }}
+  releaseName: {{ component_name | replace('_','-') }}
   chart:
     spec:
       interval: 1m
@@ -17,39 +17,41 @@ spec:
         namespace: flux-{{ network.env.type }}
       chart: {{ charts_dir }}/fabric-cli    
   values:
-    metadata:
-      namespace: {{ component_ns }}
-      images:
-        fabrictools: {{ docker_url }}/{{ fabric_tools_image[network.version] }}
-        alpineutils: {{ docker_url }}/{{ alpine_image }}
-    storage:
-      class: {{ sc_name }}
-      size: 256Mi
-    vault:
-      role: vault-role
-      address: {{ vault.url }}
-      authpath: {{ org.k8s.cluster_id | default('')}}{{ network.env.type }}{{ org.name | lower }}
-      adminsecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ component_ns }}/users/admin
-      orderersecretprefix: {{ vault.secret_path | default('secretsv2') }}/data/{{ org.name | lower }}/peerOrganizations/{{ component_ns }}/orderer
-      serviceaccountname: vault-auth
-      type: {{ vault.type | default("hashicorp") }}
+    global:
+      version: {{ network.version }}
+      serviceAccountName: vault-auth
+      cluster:
+        provider: {{ org.cloud_provider }}
+        cloudNativeServices: false
+      vault:
+        type: hashicorp
+        network: fabric
+        address: {{ vault.url }}
+        authPath: {{ network.env.type }}{{ component }}
+        secretEngine: {{ vault.secret_path | default("secretsv2") }}
+        secretPrefix: "data/{{ network.env.type }}{{ component }}"
+        role: vault-role
+        tls: false
+
+    image:
+      fabricTools: {{ docker_url }}/{{ fabric_tools_image }}
+      alpineUtils: {{ docker_url }}/bevel-alpine:{{ bevel_alpine_version }}
 {% if network.docker.username is defined and network.docker.password is defined %}
-      imagesecretname: regcred
+      pullSecret: regcred
 {% else %}
-      imagesecretname: ""
+      pullSecret: ""
 {% endif %}
-      tls: false
-    peer:
-      name: {{ peer.name }}
-      localmspid: {{ org.name | lower}}MSP
-      tlsstatus: true
-{% if network.env.proxy == 'none' %}
-      address: {{ peer.name }}.{{ component_ns }}:7051
-{% else %}
-      address: {{ peer.peerAddress }}
-{% endif %}
-    orderer:
-      address: {{ orderer.uri }}
+
+    peerName: {{ peer.name }}
+    storageClass: storage-{{ peer.name }}
+    storageSize: 256Mi
+    localMspId: {{ org.name | lower}}MSP
+    tlsStatus: true
+    ports:
+      grpc:
+        clusterIpPort: {{ peer.grpc.port }}
+    ordererAddress: {{ orderer.uri }}
+
 {% if network.env.labels is defined %}
     labels:
 {% if network.env.labels.service is defined %}

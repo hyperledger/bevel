@@ -165,6 +165,7 @@ Each `organization` field under `participants` field of the channel contains the
 | org_status         | `new` (for inital setup) or `existing` (for add new org) | 
 | ordererAddress     | URL of the orderer this peer connects to, including port                  |
 | peer.name          | Name of the peer                                           |
+| peer.type                          | Type can be `anchor` and `nonanchor` for Peer                                                                    |
 | peer.gossipAddress | Gossip address of the peer, including port                               |
 | peer.peerAddress | External address of the peer, including port                                  |
 
@@ -242,7 +243,7 @@ The `vault` field under each organization contains
 For gitops fields the snapshot from the sample configuration file with the example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:203:215"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:203:216"
 ```
 
 The gitops field under each organization contains
@@ -253,6 +254,7 @@ The gitops field under each organization contains
 | git_url                              | SSH or HTTPs url of the repository where flux should be synced                                                            |
 | branch                               | Branch of the repository where the Helm Charts and value files are stored                                        |
 | release_dir                          | Relative path where flux should sync files                                                                       |
+| component_dir                        | Relative path where values files are stored.files                                                                       |
 | chart_source                         | Relative path where the helm charts are stored                                                                   |
 | git_repo                         | Gitops git repo URL https URL for git push like "github.com/hyperledger/bevel.git"             |
 | username                             | Username which has access rights to read/write on repository                                                     |
@@ -263,7 +265,7 @@ The gitops field under each organization contains
 For Hyperledger Fabric, you can also generate different user certificates and pass the names and attributes in the specific section for `users`. This is only applicable if using Fabric CA. An example is below:
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:338:344"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:340:346"
 ```
 
 The fields under `user` are
@@ -279,7 +281,7 @@ The services field for each organization under `organizations` section of Fabric
 Each organization will have a CA service under the service field. The snapshot of CA service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:217:225"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:218:226"
 ```
 
 The fields under `ca` service are
@@ -295,7 +297,7 @@ The fields under `ca` service are
 Example of peer service. Below is a snapshot of the peer service with example values.
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:354:387"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:356:389"
 ```
 
 The fields under `peer` service are
@@ -342,7 +344,7 @@ The chaincodes section contains the list of chaincode for the peer, the fields u
 The organization with orderer type will have concensus service. The snapshot of consensus service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:227:228"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:228:229"
 ```
 
 The fields under `consensus` service are
@@ -357,7 +359,7 @@ The fields under `consensus` service are
 Example of ordering service. The snapshot of orderers service with example values is below
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:229:253"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabricv2.yaml:230:254"
 ```
 
 The fields under `orderer` service are
