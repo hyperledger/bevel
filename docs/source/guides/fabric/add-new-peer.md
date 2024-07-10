@@ -27,9 +27,9 @@ This guide explains how to add a new **general** (non-anchor) peer to an existin
     - There is a single Hashicorp Vault and both clusters (as well as ansible controller) can access it.
     - Admin User certs have been already generated and stored in Vault (this is taken care of by deploy-network.yaml playbook if you are using Bevel to setup the network).
     - The `network.env.type` is different for different clusters.
-    - The GitOps release directory `gitops.release_dir` is different for different clusters.
+    - The GitOps release directory `gitops.release_dir` and `gitops.component_dir` are different for different clusters.
 
-1. **Update Configuration File**
+2. **Update Configuration File**
 
     - Edit the `network.yaml` file to include the new peer with the following details:
 		- `peerstatus: new`
@@ -41,25 +41,25 @@ This guide explains how to add a new **general** (non-anchor) peer to an existin
 
     Snippet from `network.channels` section below:
     ```yaml
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:60:87"
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:57:105"
     ```
 
     and from `network.organizations` section below:
 
     ```yaml
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:94:103"
-        ..
-        ..
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:144:144"
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:153:159"
-            ..
-            ..
-    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:187:192"
-            ..
-            ..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:107:122"
+          ..
+          ..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:161:161"
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:171:177"
+              ..
+              ..
+    --8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-peer.yaml:203:209"
+              ..
+              ..
     ```
 
-1. **Run Playbook**
+3. **Run Playbook**
 	
 	Execute the following command to run the `add-peer.yaml` playbook:
 

@@ -25,76 +25,7 @@
     file:
       path: "./build"
       state: absent
-  # Create Namespaces and Vault-rbac kubernetes-value files for new organization
-  - include_role:
-      name: "create/namespace"
-    vars:
-      component_name: "{{ item.name | lower }}-net"
-      component_type_name: "{{ item.type | lower }}"
-      kubernetes: "{{ item.k8s }}"
-      release_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-
-  # Setup script for Vault and OS Package Manager
-  - name: "Setup script for Vault and OS Package Manager"
-    include_role:
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
-    vars:
-      namespace: "{{ org.name | lower }}-net"
-      kubernetes: "{{ org.k8s }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.org_status == 'new'
   
-  # Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
-  - include_role: 
-      name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-    vars:
-      name: "{{ org.name | lower }}"
-      component_name: "{{ org.name | lower }}-vaultk8s-job"
-      component_type: "{{ org.type | lower }}"
-      component_ns: "{{ org.name | lower }}-net"
-      component_auth: "{{ network.env.type }}{{ name }}"
-      kubernetes: "{{ org.k8s }}"
-      vault: "{{ org.vault }}"
-      gitops: "{{ org.gitops }}"
-      reset_path: "platforms/hyperledger-fabric/configuration"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    when: org.org_status == 'new'
-  
-  # Create Storageclass for new organization
-  - include_role:
-      name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
-    vars:
-      org_name: "{{ org.name | lower }}"
-      sc_name: "{{ org_name }}-bevel-storageclass"
-      region: "{{ org.k8s.region | default('eu-west-1') }}"
-    loop: "{{ network['organizations'] }}"
-    loop_control:
-      loop_var: org
-    
-  # Create Organization crypto materials for new organization
-  - include_role:
-      name: "create/ca_tools/peer"
-    vars:
-      component_name: "{{ item.name | lower}}-net"
-      component: "{{ item.name | lower}}"
-      component_type: "{{ item.type | lower}}"
-      component_services: "{{ item.services }}"
-      orderer_org: "{{ item.orderer_org | lower }}"
-      sc_name: "{{ component }}-bevel-storageclass"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      ca: "{{ item.services.ca }}"
-      docker_url: "{{ network.docker.url }}"
-      gitops: "{{ item.gitops }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type == 'peer'
-
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
       name: "create/new_peer/update_block"
@@ -106,22 +37,26 @@
  
   # This role creates the value file for peers of organisations and write couch db credentials
   # to the vault.
-  - include_role:
+  - name: Create all peers
+    include_role:
       name: "create/peers"
     vars:
       build_path: "./build"
-      namespace: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
-      component_services: "{{ item.services }}"
-      vault: "{{ item.vault }}"
-      git_protocol: "{{ item.gitops.git_protocol }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
+      namespace: "{{ org.name | lower}}-net"
+      component_type: "{{ org.type | lower}}"
+      component_services: "{{ org.services }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      git_protocol: "{{ org.gitops.git_protocol }}"
+      git_url: "{{ org.gitops.git_url }}"
+      git_branch: "{{ org.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'peer'
+    loop_control:
+      loop_var: org
+    when: org.services.peers is defined and org.services.peers | length > 0
 
   # This role fetches block 0 and joins peers of new organizaion to the channel
   - include_role:
@@ -131,18 +66,6 @@
       participants: "{{ item.participants }}"
       docker_url: "{{ network.docker.url }}"
     loop: "{{ network['channels'] }}"
-
-  # Create CLI pod for peers with cli option enabled
-  - name: Create CLI pod for each peer when enabled
-    include_role:
-      name: "create/cli_pod"
-    vars:
-      peers: "{{ org.services.peers }}"
-      docker_url: "{{ network.docker.url }}"
-    loop: "{{ network.organizations }}"
-    loop_control:
-      loop_var: org
-    when: org.type == "peer"
 
   vars: #These variables can be overriden from the command line
     privilege_escalate: false           #Default to NOT escalate to root privledges
