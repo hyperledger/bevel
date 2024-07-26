@@ -22,7 +22,7 @@
 # Create the value file for creater org first peer
 - name: "start cli for {{ peer.name }}-{{ org.name }} for updating the channel"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participant.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participant.name | lower }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participant.name }} {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli -n {{ participant.name | lower }}-net
   when: existing_cli.resources|length == 0
 
 # Wait for fabric cli
@@ -46,10 +46,13 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp ./build/{{ channel_name | lower}}_config_block.pb {{ org.name | lower }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name | lower}}_config_block.pb
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name | lower }}-net ${PEER_CLI} -- peer channel update -f {{ channel_name | lower}}_config_block.pb -c {{ channel_name | lower}} -o {{ participant.ordererAddress }} --tls --cafile ${ORDERER_CA}
   environment:
-    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt"
   vars: 
     kubernetes: "{{ org.k8s }}"
   register: update_channel
+  until: update_channel.rc == 0
+  retries: 5
+  delay: 10
 
 # Delete the cli   
 - name: "Delete cli {{ peer.name }}-{{ participant.name }}-cli"

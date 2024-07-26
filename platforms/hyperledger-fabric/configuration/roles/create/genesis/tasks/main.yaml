@@ -6,6 +6,19 @@
 
 ############################################################################################
 
+# Find old .json files
+- name: Find .json files
+  find:
+    paths: "{{ playbook_dir }}/../../../{{ org.gitops.chart_source }}/fabric-genesis/files"
+    patterns: "*.json"
+  register: json_files
+
+# Delete old .json files
+- name: Delete .json files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ json_files.files }}"
 
 # Remove all Helm releases of organization except genesis
 - name: Delete Helm releases
@@ -20,7 +33,7 @@
 - name: Fetch peers cetificates
   include_tasks: get_certificates.yaml
   vars:
-    charts_dir: "{{ organization.gitops.chart_source }}"
+    charts_dir: "{{ org.gitops.chart_source }}"
     org_name: "{{ organization.name | lower }}"
     peers: "{{ organization.services.peers }}"
   loop: "{{ network['organizations'] }}"
