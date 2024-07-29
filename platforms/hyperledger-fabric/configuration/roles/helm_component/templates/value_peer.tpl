@@ -70,7 +70,7 @@ spec:
       settings:
         createConfigMaps: {{ create_configmaps }}
         refreshCertValue: false
-        addPeerValue: false
+        addPeerValue: {{ add_peer_value }}
         removeCertsOnDelete: true
         removeOrdererTlsOnDelete: true
 

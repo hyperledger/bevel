@@ -6,7 +6,7 @@
 
 ---
 # yaml-language-server: $schema=../../../../platforms/network-schema.json
-# This is a sample configuration file to add new Peers to existing Organizations and channels.
+# This is a sample configuration file to add new peer Cli to existing Organizations and channels.
 network:
   # Network level configuration specifies the attributes required for each organization
   # to join an existing network.
@@ -70,7 +70,7 @@ network:
     - organization:
       name: carrier
       type: creator       # creator organization will create the channel and instantiate chaincode, in addition to joining the channel and install chaincode
-      org_status: existing  # org_status must be existing when adding peer
+      org_status: new  # org_status must be existing when adding peer
       peers:
       - peer:
         name: peer0
@@ -116,7 +116,7 @@ network:
       location: London
       subject: "O=Carrier,OU=Carrier,L=51.50/-0.13/London,C=GB"
       external_url_suffix: org3proxy.blockchaincloudpoc.com
-      org_status: existing  # org_status must be existing when adding peer
+      org_status: new  # org_status must be existing when adding peer
       orderer_org: supplychain # Name of the organization that provides the ordering service
       ca_data:
         certificate: /path/carrier/server.crt                           # CA Server public cert must be provided when adding peer on new cluster
@@ -165,16 +165,16 @@ network:
           type: ca
           grpc:
             port: 7054      
-        # When adding peer on new cluster, ca as a service is removed
-        # Ensure existing peers are listed with peerstatus = existing
+
+        # Peers that already have a CLI deployed must have peerstatus = existing
         peers:
         - peer:
           name: peer0
           type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer1.carrier-net.org3proxy.blockchaincloudpoc.com:443 # No change from original configuration
           peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          peerstatus: existing    # old peers should have status as existing
-          cli: disabled           # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          peerstatus: existing    # Peers that already have a cli deployed must have status as existing
+          cli: enabled           # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
           grpc:
             port: 7051
           events:
@@ -205,8 +205,8 @@ network:
           type: nonanchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
           gossippeeraddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External address of the existing anchor peer
           peerAddress: peer1.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
-          peerstatus: new     # new peers should have status as new
-          cli: disabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          peerstatus: new     # new peer cli should have status as new
+          cli: enabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
           grpc:
             port: 7051
           events:
