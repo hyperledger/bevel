@@ -1,0 +1,66 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+- name: Set fact for files location
+  ansible.builtin.set_fact:
+    files_loc: "{{ playbook_dir }}/../../../{{ charts_dir }}/enterprise-node/build"
+
+- name: Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ files_loc }}"
+    - "{{ files_loc }}/doorman"
+    - "{{ files_loc }}/nms"
+
+# Get the cenm certs from network-service org
+- name: Get cenm cert from current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: Secret
+    name: "cenm-certs"
+    namespace: "{{ component_ns }}"
+  register: cenm_data
+- debug:
+    msg: "{{ cenm_data }}"
+- name: Print the value of component_ns
+  debug:
+    msg: "component_ns={{ component_ns }}"
+# Get the doorman cert from network-service org
+- name: Get doorman cert from current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: Secret
+    name: "doorman-tls-certs"
+    namespace: "{{ component_ns }}"
+  register: doorman_data
+
+# Get the networkmap cert from network-service org
+- name: Get nms cert from current org
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    kind: Secret
+    name: "nms-tls-certs"
+    namespace: "{{ component_ns }}"
+  register: nms_data
+
+- name: Save cenm-certs secret locally
+  ansible.builtin.copy:
+    content: "{{ cenm_data.resources[0].data['network-root-truststore.jks'] | b64decode }}"
+    dest: "{{ files_loc }}/network-root-truststore.jks"
+
+- name: Save doorman-tls-certs secret locally
+  ansible.builtin.copy:
+    content: "{{ doorman_data.resources[0].data['tls.crt'] | b64decode }}"
+    dest: "{{ files_loc }}/doorman/tls.crt"
+
+- name: Save nms-tls-certs secret locally
+  ansible.builtin.copy:
+    content: "{{ nms_data.resources[0].data['tls.crt'] | b64decode }}"
+    dest: "{{ files_loc }}/nms/tls.crt"
+

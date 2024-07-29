@@ -15,4 +15,4 @@ global:
 proxy:
   provider: ambassador
 settings:
-  secondaryInit: false
+  secondaryInit: true

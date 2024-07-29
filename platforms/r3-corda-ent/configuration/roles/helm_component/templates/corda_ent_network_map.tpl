@@ -32,7 +32,6 @@ spec:
         provider: "ambassador"
         externalUrlSuffix: "{{ external_url_suffix }}"
       cenm:
-        prefix: "{{ org_name }}-cenm"
         sharedCreds:
           truststore: {{ cred_truststore }}
           keystore: {{ cred_keystore}}
@@ -52,7 +51,7 @@ spec:
           internal:
             port: {{ network_map_int_port }}
           port: {{ network_map_ext_port }}
-
+    prefix: "{{ org_name }}-cenm"
     storage:
       size: 1Gi
       dbSize: 5Gi

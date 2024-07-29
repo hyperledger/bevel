@@ -8,159 +8,59 @@
 # This role sets up all Corda node services
 ##############################################################################################
 
+- name: Get doorman and nms certs
+  include_role: 
+    name: get/certs
+  vars:
+    component_ns: "{{ network.organizations[0].name }}-ent"
+  # when: network.organizations[0].type=='cenm'
+
+- name: "Setup primary init with network-service org"
+  include_role:
+    name: setup/init
+  vars:
+    build_path: "./build"
+    init_type: "corda_ent_secondary_init"
+    values_dir: "./build/{{ component_ns }}"
+
 # Wait for namespace creation
-- name: "Wait for namespace creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "Namespace"
-    component_name: "{{ component_ns }}"
-    type: "retry"
+- name: Gather Kubernetes cluster information
+  community.kubernetes.k8s_cluster_info:
+    kubeconfig: "{{ kubernetes.config_file }}"
+  register: cluster_info
 
-# Wait for vault-reviewer creation
-- name: "Wait for vault-reviewer creation for {{ organisation }}"
-  include_role:
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/check/k8_component"
-  vars:
-    component_type: "ServiceAccount"
-    component_name: "vault-reviewer"
-    type: "retry"
-  tags:
-    - notest
+# Set the Kubernetes server URL fact
+- name: Set kubernetes_server_url fact
+  set_fact:
+    kubernetes_server: "{{ cluster_info.connection.host }}"
 
-# Setup cluster enviorment for float
-- name: Setup cluster enviorment for float
-  include_role:
-    name: setup/float-environment
-  when: org.firewall.enabled
+- name: "Create secrets for node"
+  include_tasks: create_secret.yaml
 
-# Create vault access policies
-- name: "Setup vault access for nodes"
+# Create deployment file for notary node
+- name: Create notary node deployment file
   include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    name: "{{ org.name | lower }}"
-    component_name: "{{ org.name | lower }}-vaultk8s-job"
-    component_auth: "{{ network.env.type }}{{ name }}"
-    component_type: "{{ org.type | lower }}"
-
-# Create float vault access policies for the float cluster
-- name: "Setup vault access for float"
-  include_role: 
-    name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
-  vars:
-    component_name: "{{ org.name | lower }}-vaultk8s-job-float"
-    component_auth: "{{ network.env.type }}{{ name }}float"
-    component_type: "{{ org.type | lower }}"
-    vault: "{{ org.services.float.vault }}"
-    kubernetes: "{{ org.services.float.k8s }}"
-  when: org.firewall.enabled
-
-# Create ambassador certificates for node when firewall is enabled
-- name: Create ambassador certificates for node when firewall is enabled
-  include_role:
-    name: create/certificates/node
-  vars:
-    k8s: "{{ org.services.float.k8s }}"
-    vault: "{{ org.services.float.vault }}"
-    node_name: "{{ org.name | lower }}"
-    namespace: "{{ component_ns }}"
-    domain_name: "{{ org.services.float.name }}.{{ node_name }}.{{ org.services.float.external_url_suffix }}"
-  when: org.firewall.enabled
-
-# Create ambassador certificates for node when firewall is disabled
-- name: Create ambassador certificates for node when firewall is disabled
-  include_role:
-    name: create/certificates/node
-  vars:
-    k8s: "{{ org.k8s }}"
-    vault: "{{ org.vault }}"
-    node_name: "{{ peer.name | lower }}"
-    namespace: "{{ component_ns }}"
-    domain_name: "{{ node_name }}.{{ org.external_url_suffix }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-
-# Save tls certificates for network services to Vault
-- name: Save tls certificates for network services to Vault
-  include_role:
-    name: setup/tlscerts
-  loop: "{{ network.network_services }}"
-  loop_control:
-    loop_var: service
-
-# Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
-- name: Write the networkroot truststore, node truststore, node keystore, firewallca, float and bridge passwords to the vault
-  include_role:
-    name: setup/credentials
-
-# Create value file for generate-pki-node chart
-- name: Create value files for generate-pki-node chart
-  include_role:
-    name: setup/pki-generator-node
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: org.firewall.enabled
-
-# Create value file for node registration
-- name: Create value file for node registration
-  include_role:
-    name: setup/node_registration
-  vars:
-    node_name: "{{ peer.name | lower }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-
-# Create value file for node
-- name: "Create value file for node"
-  include_role:
     name: helm_component
-  vars:
-    helm_lint: "true"
-    type: node
-    git_url: "{{ org.gitops.git_url }}"
-    git_branch: "{{ org.gitops.branch }}"
-    charts_dir: "{{ org.gitops.chart_source }}"
-    component_name: "{{ peer.name | lower }}"
-    node_name: "{{ peer.name | lower }}"
-    values_dir: "{{ playbook_dir }}/../../../{{ org.gitops.release_dir }}"
-    name: "{{ org.name | lower }}"
-    corda_service_version: node-{{ network.version }}    
-    doorman_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
-    networkmap_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
-  loop: "{{ org.services.peers }}"
+  vars:    
+    type: corda_ent_node
+    node_name: "{{ node.name | lower }}"
+    p2p_port: "{{ node.ports.p2p }}"
+    rpc_port: "{{ node.ports.rpc }}"
+    rpc_admin_port: "{{ node.ports.admin_rpc }}"
+    subject: "{{ node.subject }}"
+    legal_name: "{{ node.subject }}"
+    service_name: "{{ node.serviceName }}"
+    validating: "{{ node.validating }}"
+    nms_url: "{{ network | json_query('network_services[?type==`idman`].uri') | first }}"
+    doorman_url: "{{ network | json_query('network_services[?type==`networkmap`].uri') | first }}"
+  loop: "{{ node }}"
   loop_control:
-    loop_var: peer
+    loop_var: node
 
-# Git Push : Pushes the above generated files to git directory 
-- name: Git Push
+# Git Push: Push the deployment files for notary node
+- name: Push notary deployment files
   include_role: 
     name: "{{ playbook_dir }}/../../shared/configuration/roles/git_push"
   vars:
     GIT_DIR: "{{ playbook_dir }}/../../../"
-    gitops: "{{ org.gitops }}"
-    msg: "[ci skip] Pushing node files"
-
-# Create value file for bridge 
-- name: Create value file for bridge
-  include_role:
-    name: setup/bridge
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: org.firewall.enabled
-
-# Create value file for float 
-- name: Create value file for float
-  include_role:
-    name: setup/float
-  vars:
-    k8s: "{{ org.services.float.k8s }}"
-    gitops: "{{ org.services.float.gitops }}"
-  loop: "{{ org.services.peers }}"
-  loop_control:
-    loop_var: peer
-  when: org.firewall.enabled
+    msg: "[ci skip] Pushing notary deployment file for notary"
