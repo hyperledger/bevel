@@ -26,85 +26,52 @@
         path: "./build"
         state: absent
         
-    # Create Namespaces and Vault-rbac kubernetes-value files for new organization
-    - include_role:
+    # Create Namespaces and Vault-rbac kubernetes-value files
+    - name: Create namespace and Vault auth for each organization
+      include_role:
         name: "create/namespace"
       vars:
-        component_name: "{{ item.name | lower }}-net"
-        component_type_name: "{{ item.type | lower }}"
-        kubernetes: "{{ item.k8s }}"
-        release_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
-
-    # Setup script for Vault and OS Package Manager
-    - name: "Setup script for Vault and OS Package Manager"
-      include_role:
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/scripts"
-      vars:
-        namespace: "{{ org.name | lower }}-net"
+        component_name: "{{ org.name | lower }}-net"
         kubernetes: "{{ org.k8s }}"
+        release_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-      when: org.org_status == 'new'
 
-    # Setup Vault-Kubernetes accesses and Regcred for docker registry for new organization
-    - include_role: 
-        name: "{{ playbook_dir }}/../../shared/configuration/roles/setup/vault_kubernetes"
+    # Create necessary secrets
+    - name: "Create k8s secrets"
+      include_role:
+        name: create/secrets
       vars:
-        name: "{{ org.name | lower }}"
-        component_name: "{{ org.name | lower }}-vaultk8s-job"
-        component_type: "{{ org.type | lower }}"
         component_ns: "{{ org.name | lower }}-net"
-        component_auth: "{{ network.env.type }}{{ name }}"
         kubernetes: "{{ org.k8s }}"
         vault: "{{ org.vault }}"
-        gitops: "{{ org.gitops }}"
-        reset_path: "platforms/hyperledger-fabric/configuration"
       loop: "{{ network['organizations'] }}"
       loop_control:
         loop_var: org
-      when: org.org_status == 'new'
-
-    # Create Storageclass for new organization
-    - include_role:
-        name: "{{ playbook_dir }}/../../../platforms/shared/configuration/roles/setup/storageclass"  
-      vars:
-        org_name: "{{ org.name | lower }}"
-        sc_name: "{{ org_name }}-bevel-storageclass"
-        region: "{{ org.k8s.region | default('eu-west-1') }}"
-      loop: "{{ network['organizations'] }}"
-      loop_control:
-        loop_var: org
-      when: org.org_status == 'new'
+      when: 
+      - org.org_status is not defined or org.org_status == 'new'
         
-    # Create CA Server value files and check-in for new organization
-    - include_role:
+    # Create CA Server helm-value files and check-in
+    - name: Create CA server for each organization
+      include_role:
         name: "create/ca_server"
       vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        sc_name: "{{ component }}-bevel-storageclass"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        ca: "{{ item.services.ca }}"
+        component_ns: "{{ org.name | lower}}-net"
+        component: "{{ org.name | lower}}"
+        component_services: "{{ org.services }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        ca: "{{ org.services.ca }}"
         docker_url: "{{ network.docker.url }}"
-        gitops: "{{ item.gitops }}"
-        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
+        gitops: "{{ org.gitops }}"
+        values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.services.ca is defined and item.org_status == 'new'
-
-    # Create generate_crypto script for new organization
-    - include_role:
-        name: "create/crypto_script"
-      vars:
-        component_type: "{{ item.type | lower}}"
-        orderers: "{{ item.services.orderers }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.org_status == 'new'
+      loop_control:
+        loop_var: org
+      when: 
+        - org.services.ca is defined
+        - org.org_status is not defined or org.org_status == 'new'
 
     #Creating a pause so that the client certificates are valid
     # You can continue if the CA-server pods are running for more than 5 minutes
@@ -122,64 +89,41 @@
       loop: "{{ network['channels'] }}"
       loop_control:
         loop_var: channel
-    
-    # Create CA Tools value files and check-in for new organization
-    - include_role:
-        name: "create/ca_tools/peer"
-      vars:
-        component_name: "{{ item.name | lower}}-net"
-        component: "{{ item.name | lower}}"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        orderer_org: "{{ item.orderer_org | lower }}"
-        sc_name: "{{ component }}-bevel-storageclass"
-        kubernetes: "{{ item.k8s }}"
-        vault: "{{ item.vault }}"
-        ca: "{{ item.services.ca }}"
-        docker_url: "{{ network.docker.url }}"
-        gitops: "{{ item.gitops }}"
-        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
-      loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and item.org_status == 'new'
-
-    # Creating channel artifacts and putting them in vault
-    # This role creates configtx.yaml file as the requirements mentioned in network.yaml
-    # which is then consumed by configtxgen tool
-    - include_role:
-        name: "create/configtx"
-      vars:
-        config_file: "./build/configtx.yaml"
-
-    # This role generate genesis block and channeltx
-    # Generates the config.json from the configtx.yaml for new organization
-    - include_role:
-        name: "create/channel_artifacts"
-      vars:
-        build_path: "./build"
-        genesis: "{{ item.genesis }}"
-        channel_name: "{{ item.channel_name | lower}}"
-        fetch_certs: "false"
-        profile_name: "{{ item.channel_name }}"
-      loop: "{{ network['channels'] }}"
 
     # This role creates the value file for peers of organisations and write couch db credentials
     # to the vault.
-    - include_role:
+    - name: Create all peers
+      include_role:
         name: "create/peers"
       vars:
         build_path: "./build"
-        namespace: "{{ item.name | lower}}-net"
-        component_type: "{{ item.type | lower}}"
-        component_services: "{{ item.services }}"
-        vault: "{{ item.vault }}"
-        git_protocol: "{{ item.gitops.git_protocol }}"
-        git_url: "{{ item.gitops.git_url }}"
-        git_branch: "{{ item.gitops.branch }}"
+        namespace: "{{ org.name | lower}}-net"
+        component_type: "{{ org.type | lower}}"
+        component_services: "{{ org.services }}"
+        kubernetes: "{{ org.k8s }}"
+        vault: "{{ org.vault }}"
+        git_protocol: "{{ org.gitops.git_protocol }}"
+        git_url: "{{ org.gitops.git_url }}"
+        git_branch: "{{ org.gitops.branch }}"
         docker_url: "{{ network.docker.url }}"
-        charts_dir: "{{ item.gitops.chart_source }}"
-        values_dir: "{{ playbook_dir }}/../../../{{ item.gitops.release_dir }}/{{ item.name | lower }}"
+        charts_dir: "{{ org.gitops.chart_source }}"
+        values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
       loop: "{{ network['organizations'] }}"
-      when: item.type == 'peer' and item.org_status == 'new'
+      loop_control:
+        loop_var: org
+      when: 
+        - org.services.peers is defined and org.services.peers | length > 0
+        - org.org_status is not defined or org.org_status == 'new'
+  
+    - name: "Create genesis block"
+      include_role: 
+        name: "create/genesis"
+      vars:
+        org: "{{ network['organizations'] | first }}"
+        docker_url: "{{ network.docker.url }}"
+        kubernetes: "{{ org.k8s  }}"
+        generateGenisis: false
+      when: genererate_configtx is defined and genererate_configtx == 'true'
 
     # This role is to start the existing peer cli
     # Fetch the configuration block and modify the block
@@ -207,19 +151,7 @@
         build_path: "./build"
         participants: "{{ item.participants }}"
         docker_url: "{{ network.docker.url }}"
-      loop: "{{ network['channels'] }}"  
-
-    # Create CLI pod for peers with cli option enabled
-    - name: Create CLI pod for each peer with it enabled
-      include_role:
-        name: "create/cli_pod"
-      vars:
-        peers: "{{ org.services.peers }}"
-        docker_url: "{{ network.docker.url }}"
-      loop: "{{ network.organizations }}"
-      loop_control:
-        loop_var: org
-      when: org.type == 'peer' and org.org_status == 'new'
+      loop: "{{ network['channels'] }}"
 
   vars: # These variables can be overriden from the command line
     privilege_escalate: false           # Default to NOT escalate to root privledges
@@ -227,3 +159,4 @@
     install_arch:  "amd64"              # Default to amd64 architecture
     bin_install_dir:  "~/bin"           # Default to /bin install directory for binaries
     add_new_org: "true"                 # Default to true
+    genererate_configtx: "true" 

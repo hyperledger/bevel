@@ -23,14 +23,14 @@
 # Creeate the value file for creater org first peer
 - name: "start cli"
   shell: |
-    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli
+    KUBECONFIG={{ org.k8s.config_file }} helm upgrade --install -f ./build/{{ participantx.name }}/existing_peer_cli_job.yaml {{ peer.name }}-{{ participantx.name }}-cli {{playbook_dir}}/../../../{{org.gitops.chart_source}}/fabric-cli -n {{  org.name | lower }}-net
   when: existing_cli.resources|length == 0
 
 # Wait for fabric cli
 - name: "Check if fabric cli is present"
   k8s_info:
     kind: Pod
-    namespace: "{{ org.name }}-net"
+    namespace: "{{ org.name | lower }}-net"
     kubeconfig: "{{ org.k8s.config_file }}"
     context: "{{ org.k8s.context }}"
     label_selectors:
@@ -39,6 +39,16 @@
   until: ("Running" in get_cli|json_query('resources[*].status.phase'))
   retries: "{{ network.env.retry_count}}"
   delay: 40
+
+# Start the cli, configure and download the configuration block
+- name: Call nested_fetch_role for the peer
+  include_tasks: get_new_org_data.yaml
+  vars:
+    org_name: "{{ org.name | lower }}"
+  loop: "{{ network['organizations'] }}"
+  loop_control:
+    loop_var: org  
+  when: org.org_status == 'new'
 
 # Fetch the config block from blockchain by executing the create_block.sh script file
 # from first peer of creator cli
@@ -53,6 +63,6 @@
     KUBECONFIG={{ kubernetes.config_file }} kubectl exec -n {{ org.name }}-net ${PEER_CLI} --  sh ./create_block.sh
     KUBECONFIG={{ kubernetes.config_file }} kubectl cp {{ org.name }}-net/${PEER_CLI}:/opt/gopath/src/github.com/hyperledger/fabric/peer/{{ channel_name | lower }}_update_in_envelope.pb ./build/{{ channel_name | lower}}_config_block.pb
   environment:
-    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/crypto/orderer/tls/ca.crt"
+    ORDERER_CA: "/opt/gopath/src/github.com/hyperledger/fabric/orderer/tls/orderer.crt"
   vars: 
     kubernetes: "{{ org.k8s }}"

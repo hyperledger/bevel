@@ -93,3 +93,14 @@ settings:
   generateGenesis: {{ generateGenisisBLock }} 
   removeConfigMapOnDelete: false
 
+{% if add_org %}
+add_new_org: {{ add_org }}
+newOrgs:
+{% for organization in network.organizations %}
+{% for data, value in organization.items() %}
+{% if data == 'name' and  organization.org_status == 'new' %}
+  - name: {{ value }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
