@@ -32,6 +32,16 @@
     path: "{{ build_path }}/channel-artifacts/{{ channel_name }}-orderer-tls"
     state: absent
 
+# Copy tls server.crt from vault to the build directory
+- name: Fetch the tls server.crt from vault
+  shell: |
+    vault kv get -field=server_crt {{ vault.secret_path | default('secretsv2') }}/{{ network.env.type }}{{ org.name }}/orderers/{{ orderer.name }}-tls > server.crt
+    mkdir -p {{ build_path }}/tls-cert/{{ orderer.name }}
+    mv server.crt {{ build_path }}/tls-cert/{{ orderer.name }}
+  environment:
+    VAULT_ADDR: "{{ vault.url }}"
+    VAULT_TOKEN: "{{ vault.root_token }}"
+    
 # creating new orderer-tls file
 - name: Creating new orderer-tls file
   file:
@@ -43,9 +53,9 @@
   shell: |
     if [ {{ network.env.proxy }} == 'none' ]
     then
-      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name }}-orderer-tls 
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.name|lower }}.{{ component_ns }}\",\"port\":{{ orderer.grpc.port }},\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
     else
-      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\",\"host\":\"{{ orderer.ordererAddress.split(":")[0] | to_json }}\",\"port\":\"{{ orderer.ordererAddress.split(":")[1] | to_json }}\",\"server_tls_cert\":\"$(cat {{ build_path }}/crypto-config/ordererOrganizations/{{ component_ns }}/orderers/{{ orderer.name|lower }}.{{ component_ns }}/tls/server.crt | base64 -w 0)\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
+      echo -n "{\"client_tls_cert\":\"$(cat {{ build_path }}/tls-cert/{{ orderer.name }}/server.crt | base64 -w 0))\",\"host\":\"{{ orderer.ordererAddress.split(":")[0] | to_json }}\",\"port\":{{ orderer.ordererAddress.split(":")[1] | to_json }},\"server_tls_cert\":\"$(cat {{ build_path }}/tls-cert/{{ orderer.name }}/server.crt | base64 -w 0))\"}"  >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer-tls 
     fi
 
 # Create orderer file for adding new endpoint information
@@ -53,9 +63,9 @@
   shell: |
     if [ {{ network.env.proxy }} == 'none' ]
     then
-      echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-orderer
+      echo -n '"{{ orderer.name }}.{{ component_ns }}:{{ orderer.grpc.port }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
     else
-      echo -n '"{{ orderer.ordererAddress }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name }}-orderer
+      echo -n '"{{ orderer.ordererAddress }}"' >> {{ build_path }}/channel-artifacts/{{ channel_name | lower}}-orderer
     fi
 
 ############################################################################################
@@ -64,7 +74,9 @@
   template:
     src: "update_channel_script.tpl"
     dest: "{{ build_path }}/update-channel-script.sh"
-  vars:    
+  vars:
+    ordererAddress: "{{ orderer.ordererAddress }}"
+    ordererOrg: "{{ org.name | lower }}MSP"
     os: "{{ fabric.os }}"
     arch: "{{ fabric.arch }}"
     version: "{{ network.version }}"
