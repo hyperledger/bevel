@@ -51,10 +51,10 @@ helm install genesis ./quorum-genesis --namespace supplychain-quo --create-names
 ### 2. Install Validator Nodes
 ```bash
 # Install validator nodes
+helm install validator-0 ./quorum-node --namespace supplychain-quo --values ./values/noproxy-and-novault/validator.yaml
 helm install validator-1 ./quorum-node --namespace supplychain-quo --values ./values/noproxy-and-novault/validator.yaml
 helm install validator-2 ./quorum-node --namespace supplychain-quo --values ./values/noproxy-and-novault/validator.yaml
 helm install validator-3 ./quorum-node --namespace supplychain-quo --values ./values/noproxy-and-novault/validator.yaml
-helm install validator-4 ./quorum-node --namespace supplychain-quo --values ./values/noproxy-and-novault/validator.yaml
 ```
 
 ### 3. Deploy Member and Tessera Node Pair
@@ -100,16 +100,16 @@ helm install genesis ./quorum-genesis --namespace supplychain-quo --values ./val
 ### 3. Install Validator Nodes
 ```bash
 # Install validator nodes
-helm install validator-1 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15011
-helm install validator-2 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15012
-helm install validator-3 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15013
-helm install validator-4 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15014
+helm install validator-0 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15011
+helm install validator-1 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15012
+helm install validator-2 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15013
+helm install validator-3 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/validator.yaml --set global.proxy.p2p=15014
 ```
 
 ### 4. Deploy Member and Tessera Node Pair
 ```bash
 # Deploy Quorum and Tessera node pair
-helm install supplychain ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/txnode.yaml --set global.proxy.p2p=15015
+helm install member-0 ./quorum-node --namespace supplychain-quo --values ./values/proxy-and-vault/txnode.yaml --set global.proxy.p2p=15015
 ```
 
 ### Setting Up Another Member in a Different Namespace
@@ -130,7 +130,7 @@ kubectl -n carrier-quo create secret generic roottoken --from-literal=token=<VAU
 helm install genesis ./quorum-genesis --namespace carrier-quo --values ./values/proxy-and-vault/genesis-sec.yaml
 
 # Install secondary member node
-helm install carrier ./quorum-node --namespace carrier-quo --values ./values/proxy-and-vault/txnode-sec.yaml --set global.proxy.p2p=15016
+helm install member-0 ./quorum-node --namespace carrier-quo --values ./values/proxy-and-vault/txnode-sec.yaml --set global.proxy.p2p=15016
 ```
 
 ## `API call`
@@ -187,7 +187,7 @@ To deploy the proposed validator chart for IBFT, you first need to set up the Qu
    Utilize Helm for installing the validator chart. Ensure to adjust values accordingly:
 
    ```bash
-   helm install validator-5 ./quorum-propose-validator --namespace supplychain-quo --values quorum-propose-validator/values.yaml
+   helm install validator-4 ./quorum-propose-validator --namespace supplychain-quo --values quorum-propose-validator/values.yaml
    ```
 
    This chart facilitates the addition or removal of validators through majority voting.
@@ -209,14 +209,14 @@ To deploy the proposed validator chart for IBFT, you first need to set up the Qu
 To clean up, simply uninstall the Helm releases. It's important to uninstall the genesis Helm chart at the end to prevent any cleanup failure.
 
 ```bash
+helm uninstall --namespace supplychain-quo validator-0
 helm uninstall --namespace supplychain-quo validator-1
 helm uninstall --namespace supplychain-quo validator-2
 helm uninstall --namespace supplychain-quo validator-3
 helm uninstall --namespace supplychain-quo validator-4
-helm uninstall --namespace supplychain-quo validator-5
-helm uninstall --namespace supplychain-quo supplychain
+helm uninstall --namespace supplychain-quo member-0
 helm uninstall --namespace supplychain-quo genesis
 
-helm uninstall --namespace carrier-quo carrier
+helm uninstall --namespace carrier-quo member-0
 helm uninstall --namespace carrier-quo genesis
 ```
