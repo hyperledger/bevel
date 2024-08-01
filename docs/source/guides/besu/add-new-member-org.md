@@ -33,7 +33,7 @@ The `network.yaml` file should contain the specific `network.organization` detai
 
 !!! note
 
-    Make sure that the genesis flie is provided in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
+    Make sure that the genesis file is provided in base64 encoding. Also, if you are adding node to the same cluster as of another node, make sure that you add the ambassador ports of the existing node present in the cluster to the network.yaml
 
 For reference, sample `network-besu-new-memberorg.yaml` file [here](https://github.com/hyperledger/bevel/blob/main/platforms/hyperledger-besu/configuration/samples/network-besu-new-memberorg.yaml)
 
