@@ -1,0 +1,18 @@
+- name: Get new org data 
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ genesis_org_kubeconfig }}"
+    kind: ConfigMap
+    name: "{{ org_name }}-new-data"
+    namespace: "{{ genesis_org_namespace}}"
+  vars:
+    genesis_org: "{{ network['organizations'] | first }}"
+    genesis_org_namespace: "{{ genesis_org.name | lower }}-net"
+    genesis_org_kubeconfig: "{{ genesis_org.k8s.config_file }}"
+    genesis_org_context: "{{ genesis_org.k8s.context }}"
+  register: org_data
+
+- name: Save new org data file locally
+  shell: |
+     echo '{{ org_data.resources[0].data[org_name ~ "-new-data"]  }}' > {{ files_loc }}
+  vars:
+    files_loc: "{{ build_path }}/channel-artifacts/{{ channel_name | lower }}.json"

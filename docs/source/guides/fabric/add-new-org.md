@@ -28,16 +28,16 @@ Refer [this guide](../networkyaml-fabric.md) for details on editing the configur
 While modifying the configuration file(`network.yaml`) for adding new organization, all the existing organizations should have `org_status` tag as `existing` and the new organization should have `org_status` tag as `new` under `network.channels` e.g.
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:65:139"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:62:151"
 ```
 
 and under `network.organizations` as
 
 ```yaml
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:144:155"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:153:168"
       ..
       ..
---8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:406:414"
+--8<-- "platforms/hyperledger-fabric/configuration/samples/network-fabric-add-organization.yaml:448:458"
       ..
       ..
 

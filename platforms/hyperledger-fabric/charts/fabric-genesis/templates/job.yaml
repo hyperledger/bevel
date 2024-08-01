@@ -233,6 +233,16 @@ spec:
                 fi
               }
   {{- end }} 
+
+              function writeNewOrg {
+                key=$1
+                file=$2
+
+                kubectl get configmap --namespace ${COMPONENT_NAME} ${key}
+                if [ $? -ne 0 ]; then
+                  kubectl create configmap --namespace ${COMPONENT_NAME} ${key} --from-file=${key}=${file}
+                fi
+              }
               
               OUTPUT_PATH_PEER="/templates/crypto-config/organizations"
             {{- range $org := $.Values.organizations }}
@@ -309,6 +319,13 @@ spec:
                     writeSafeSecret {{ $channel.name }}-{{ $participant }}-anchortx {{ $channel.name }}{{ $participant }}MSPAnchor.tx
                   {{- end }}
                 fi
+              {{- end }}
+              {{- if .Values.add_new_org }}
+                {{- range $org := $.Values.newOrgs }}
+                  export FABRIC_CFG_PATH=/templates
+                  configtxgen -printOrg {{ $org.name | lower }}MSP > {{ $org.name | lower }}_new.json
+                  writeNewOrg {{ $org.name | lower }}-new-data {{ $org.name | lower }}_new.json
+                {{- end }}
               {{- end }}
           volumeMounts:
           - name: scripts-volume

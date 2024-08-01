@@ -81,6 +81,22 @@ network:
         peerAddress: peer0.carrier-net.org3proxy.blockchaincloudpoc.com:443 # Must include port, External URI of the peer
       ordererAddress: orderer1.supplychain-net.org1proxy.blockchaincloudpoc.com:443             # Must include port, External or internal URI of the orderer
     - organization:
+      name: supplychain
+      type: joiner
+      org_status: existing
+      peers:
+      - peer:
+        name: peer0
+        type: anchor  
+        gossipAddress: peer1.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443
+        peerAddress: peer0.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443
+      - peer:
+        name: peer1
+        type: nonanchor  
+        gossipAddress: peer0.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443
+        peerAddress: peer1.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443
+      ordererAddress: orderer1.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443
+    - organization:
       name: warehouse
       type: joiner
       org_status: existing # Status of the organization for the existing network, can be new / existing
@@ -187,7 +203,7 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=GB/ST=London/L=London/O=Orderer/CN=ca.supplychain-net.org1proxy.blockchaincloudpoc.com"
+          subject: "/C=GB/ST=London/L=London/O=Orderer"
           type: ca
           grpc:
             port: 7054
@@ -220,6 +236,44 @@ network:
           grpc:
             port: 7050
           ordererAddress: orderer3.supplychain-net.org1proxy.blockchaincloudpoc.com:443
+
+        peers:
+        - peer:
+          name: peer0          
+          type: anchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer1.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443 # Internal Address of the other peer in same Org for gossip, same peer if there is only one peer
+          peerAddress: peer0.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443 # External URI of the peer
+          cli: enabled      # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
+        - peer:
+          name: peer1         
+          type: nonanchor    # This can be anchor/nonanchor. Atleast one peer should be anchor peer.    
+          gossippeeraddress: peer0.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443 # External address of the existing anchor peer
+          peerAddress: peer1.supplychain-net.org1proxy.hlf.blockchaincloudpoc-develop.com:443 # External URI of the peer
+          cli: enabled       # Creates a peer cli pod depending upon the (enabled/disabled) tag.          
+          grpc:
+            port: 7051         
+          events:
+            port: 7053
+          couchdb:
+            port: 5984
+          restserver:
+            targetPort: 20001
+            port: 20001 
+          expressapi:
+            targetPort: 3000
+            port: 3000
 
     # Specification for the 2nd organization. Each organization maps to a VPC and a separate k8s cluster
     - organization:
@@ -270,7 +324,7 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=CH/ST=Zurich/L=Zurich/O=Manufacturer/CN=ca.manufacturer-net.org2proxy.blockchaincloudpoc.com"
+          subject: "/C=CH/ST=Zurich/L=Zurich/O=Manufacturer"
           type: ca
           grpc:
             port: 7054
@@ -354,7 +408,7 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=GB/ST=London/L=London/O=Carrier/CN=ca.carrier-net.org3proxy.blockchaincloudpoc.com"
+          subject: "/C=GB/ST=London/L=London/O=Carrier"
           type: ca
           grpc:
             port: 7054
@@ -443,7 +497,7 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=US/ST=New York/L=New York/O=Store/CN=ca.store-net.org4proxy.blockchaincloudpoc.com"
+          subject: "/C=US/ST=New York/L=New York/O=Store"
           type: ca
           grpc:
             port: 7054
@@ -526,7 +580,7 @@ network:
       services:
         ca:
           name: ca
-          subject: "/C=US/ST=Massachusetts/L=Boston/O=Warehouse/CN=ca.warehouse-net.org5proxy.blockchaincloudpoc.com"
+          subject: "/C=US/ST=Massachusetts/L=Boston/O=Warehouse"
           type: ca
           grpc:
             port: 7054
