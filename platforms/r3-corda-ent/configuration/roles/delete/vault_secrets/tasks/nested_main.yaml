@@ -5,15 +5,17 @@
 ##############################################################################################
 
 #############################################################################################
-# This role saves the crypto from Vault into ansible_provisioner
+# This role deletes the Vault configurations for each service
 #############################################################################################
 
-# Save the cert file
-- name: Save cert
-  local_action: copy content="{{ vault_output['data'].data.tlscacerts | b64decode }}" dest="{{ cert_path }}/{{ type }}.pem"
-  when: type == 'ambassador'
-
-# Save the key file
-- name: Save key
-  local_action: copy content="{{ vault_output['data'].data.tlskey | b64decode }}" dest="{{ cert_path }}/{{ type }}.key"
-  when: type == 'ambassador'
+# Delete Ambassador Creds
+- name: Delete Ambassador creds
+  k8s:
+    kind: Secret
+    namespace: "{{ component_name }}"
+    name: "{{ service.value['name'] }}-ambassador-certs"
+    kubeconfig: "{{ kubernetes.config_file }}"
+    context: "{{ kubernetes.context }}"
+    state: absent
+  ignore_errors: true
+  changed_when: false
