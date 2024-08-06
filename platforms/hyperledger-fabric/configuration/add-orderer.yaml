@@ -24,25 +24,6 @@
       path: "./build"
       state: absent
 
-  # Create CA Tools helm-value files and check-in
-  - name: Create CA tools for each organization
-    include_role:
-      name: "create/ca_tools/orderer"
-    vars:
-      component_name: "{{ item.name | lower}}-net"
-      component: "{{ item.name | lower}}"
-      component_type: "{{ item.type | lower}}"
-      component_services: "{{ item.services }}"
-      sc_name: "{{ component }}-bevel-storageclass"
-      kubernetes: "{{ item.k8s }}"
-      vault: "{{ item.vault }}"
-      ca: "{{ item.services.ca }}"
-      docker_url: "{{ network.docker.url }}"
-      gitops: "{{ item.gitops }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
-    loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
-
   # Generate script to modify the fetched configuration block
   - name: "Modify the system channel with tls information of new orderer"
     include_role:
@@ -65,18 +46,22 @@
       name: "create/orderers"
     vars:
       build_path: "./build"
-      namespace: "{{ item.name | lower}}-net"
-      component_type: "{{ item.type | lower}}"
-      component_services: "{{ item.services }}"
-      vault: "{{ item.vault }}"
-      git_protocol: "{{ item.gitops.git_protocol }}"
-      git_url: "{{ item.gitops.git_url }}"
-      git_branch: "{{ item.gitops.branch }}"
+      namespace: "{{ org.name | lower}}-net"
+      component_type: "{{ org.type | lower}}"
+      org_name: "{{ org.name | lower }}"
+      component_services: "{{ org.services }}"
+      kubernetes: "{{ org.k8s }}"
+      vault: "{{ org.vault }}"
+      git_protocol: "{{ org.gitops.git_protocol }}"
+      git_url: "{{ org.gitops.git_url }}"
+      git_branch: "{{ org.gitops.branch }}"
       docker_url: "{{ network.docker.url }}"
-      charts_dir: "{{ item.gitops.chart_source }}"
-      values_dir: "{{playbook_dir}}/../../../{{item.gitops.release_dir}}/{{ item.name | lower }}"
+      charts_dir: "{{ org.gitops.chart_source }}"
+      values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"
     loop: "{{ network['organizations'] }}"
-    when: item.type == 'orderer'
+    loop_control:
+        loop_var: org
+    when: org.services.orderers is defined and org.services.orderers | length > 0
 
   # Generate script to modify the fetched configuration block
   - name: "Modify the system channel with endpoint information of new orderer"
@@ -112,10 +97,15 @@
     vars:
       build_path: "./build"
       channel_name: "{{ channel.channel_name | lower }}"
+      org_peer: "{{ channel.participants | first}}"
+      vault: "{{ org.vault }}"
+      existingOrdererAddress: "{{ org_peer.ordererAddress }}"
+      peer: "{{ org_peer.peers | first }}"
       docker_url: "{{ network.docker.url }}"
     loop: "{{ network.channels }}"
     loop_control:
       loop_var: channel
+    when: '2.5.' not in network.version
 
   vars: #These variables can be overriden from the command line
     add_new_org: 'false'                #Default for this playbook is false

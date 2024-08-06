@@ -117,6 +117,26 @@ spec:
             fi     
           }
 
+          function getAdminTlsSecret {
+            KEY=$1
+
+            echo "Getting TLS certificates from Vault."
+            vaultBevelFunc "readJson" "${VAULT_SECRET_ENGINE}/${VAULT_SECRET_PREFIX}/users/${KEY}"
+            if [ "$SECRETS_AVAILABLE" == "yes" ]
+            then
+              OSN_TLS_CA_ROOT_CERT=$(echo ${VAULT_SECRET} | jq -r '.["ca_crt"]')
+              ADMIN_TLS_SIGN_CERT=$(echo ${VAULT_SECRET} | jq -r '.["client_crt"]')
+              ADMIN_TLS_PRIVATE_KEY=$(echo ${VAULT_SECRET} | jq -r '.["client_key"]')
+
+              echo "${OSN_TLS_CA_ROOT_CERT}" > ${OUTPUT_TLS_PATH}/tlsca.crt
+              echo "${ADMIN_TLS_SIGN_CERT}" > ${OUTPUT_TLS_PATH}/server.crt
+              echo "${ADMIN_TLS_PRIVATE_KEY}" > ${OUTPUT_TLS_PATH}/server.key
+              ADMIN_TLS_SECRET=true
+            else
+              ADMIN_TLS_SECRET=false
+            fi     
+          }
+
 {{- else }}
 
           function getAdminMspSecret {
@@ -140,6 +160,23 @@ spec:
             fi            
           }
 
+          function getAdminTlsSecret {
+            KEY=$1
+            KUBENETES_SECRET=$(kubectl get secret ${KEY} --namespace {{ .Release.Namespace }} -o json)
+            if  [ "$KUBENETES_SECRET" = "" ]; then
+              ADMIN_TLS_SECRET=false
+            else
+              OSN_TLS_CA_ROOT_CERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.ca_crt'  | base64 -d)
+              ADMIN_TLS_SIGN_CERT=$(echo ${KUBENETES_SECRET} | jq -r '.data.client_crt'  | base64 -d)
+              ADMIN_TLS_PRIVATE_KEY=$(echo ${KUBENETES_SECRET} | jq -r '.data.client_key'  | base64 -d)
+
+              echo "${OSN_TLS_CA_ROOT_CERT}" > ${OUTPUT_TLS_PATH}/tlsca.crt
+              echo "${ADMIN_TLS_SIGN_CERT}" > ${OUTPUT_PATH}/cacerts/server.crt
+              echo "${ADMIN_TLS_PRIVATE_KEY}" > ${OUTPUT_PATH}/keystore/server.key 
+              ADMIN_TLS_SECRET=true
+            fi            
+          }
+
 {{- end }} 
 
           COUNTER=1
@@ -147,14 +184,17 @@ spec:
           do
 
             OUTPUT_PATH="${MOUNT_PATH}/admin/msp"
+            OUTPUT_TLS_PATH="${MOUNT_PATH}/tls/msp"
+            mkdir -p ${OUTPUT_TLS_PATH}
             mkdir -p ${OUTPUT_PATH}/admincerts
             mkdir -p ${OUTPUT_PATH}/cacerts
             mkdir -p ${OUTPUT_PATH}/keystore
             mkdir -p ${OUTPUT_PATH}/signcerts
             mkdir -p ${OUTPUT_PATH}/tlscacerts
-            getAdminMspSecret admin-msp  
+            getAdminMspSecret admin-msp
+            getAdminTlsSecret admin-tls
 
-            if [ "$ADMIN_MSP_SECRET" = "true" ]
+            if [ "$ADMIN_MSP_SECRET" = "true" ] && [ "$ADMIN_TLS_SECRET" = "true" ]
             then
               echo "Peer certificates have been obtained correctly"
               break
@@ -214,6 +254,8 @@ spec:
           value: "{{ .Values.ordererAddress }}"
         - name: CORE_PEER_MSPCONFIGPATH
           value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/msp
+        - name: CORE_PEER_TLSCONFIGPATH
+          value: /opt/gopath/src/github.com/hyperledger/fabric/crypto/admin/tls
         volumeMounts:
         - name: certificates
           mountPath: /opt/gopath/src/github.com/hyperledger/fabric/crypto

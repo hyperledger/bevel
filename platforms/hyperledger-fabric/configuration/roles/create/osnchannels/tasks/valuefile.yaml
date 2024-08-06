@@ -50,6 +50,14 @@
     add_orderer_value: "{{ add_orderer | default('false') }}"
   when: add_orderer is not defined or add_orderer == false
 
+- name: Delete Helm releases
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubernetes.config_file }}"
+    name: "{{ channel_name }}"
+    release_namespace: "{{ org.name | lower }}-net"
+    state: absent
+  when: add_orderer is defined and add_orderer == 'true'
+
 # Create the value file for creator Organization
 - name: "Create Create_Channel value file osnadmin"
   include_role:
@@ -65,6 +73,8 @@
     charts_dir: "{{ org.gitops.chart_source }}"
     vault: "{{ org.vault }}"
     k8s: "{{ org.k8s }}"
+    existing_orderer: "{{ network.orderers | first }}"
+    existingOrdererAddress: "{{ existing_orderer.uri }}"
     orderers_list: "{{ org.services.orderers }}"
     first_orderer: "{{ org.services.orderers | first }}"
     values_dir: "{{playbook_dir}}/../../../{{org.gitops.release_dir}}/{{ org.name | lower }}"

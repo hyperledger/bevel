@@ -7,6 +7,7 @@ NETWORK_VERSION="{{ version }}"
 
 echo "installing jq "
 apt-get install -y jq
+
 if [ "$NETWORK_VERSION" != "2.5.4" ]; then
     echo "installing configtxlator"
     mkdir temp
@@ -27,8 +28,7 @@ if [ "$NETWORK_VERSION" != "2.5.4" ]; then
     jq --argjson a "$(cat ./orderer-tls)" '.channel_group.groups.Orderer.values.ConsensusType.value.metadata.consenters += $a' {{ channel_name }}_modified_intermediate_config.json > {{ channel_name }}_modified_config.json
 else
     echo "version 2.5.4++++"
-    jq --argjson a "$(cat ./orderer)" '.channel_group.values.OrdererAddresses.value.addresses += $a' {{ channel_name }}_config.json > {{ channel_name }}_modified_intermediate_address_config.json
-    jq --argjson a "$(cat ./orderer)" '.channel_group.groups.Orderer.groups.{{ component_name }}MSP.values.Endpoints.value.addresses += $a' {{ channel_name }}_modified_intermediate_address_config.json > {{ channel_name }}_modified_intermediate_endpoints_config.json
+    jq --argjson a "$(cat ./orderer)" '.channel_group.groups.Orderer.groups.{{ component_name }}MSP.values.Endpoints.value.addresses += $a' {{ channel_name }}_config.json > {{ channel_name }}_modified_intermediate_endpoints_config.json
     jq --argjson a "$(cat ./orderer-tls)" '.channel_group.groups.Orderer.values.ConsensusType.value.metadata.consenters += $a' {{ channel_name }}_modified_intermediate_endpoints_config.json > {{ channel_name }}_modified_config.json
 fi
 echo "converting the channel_config.json and channel_modified_config.json to .pb files"
